@@ -16,7 +16,7 @@ public class HealthCheckController {
     @GetMapping("/api/health")
     public String healthCheck() {
         try (Connection connection = dataSource.getConnection()) {
-            return "✅ 서버 정상 작동 중 & 미니 PC MySQL 연결 성공 ! (DB: " + connection.getCatalog() + ")";
+            return "✅ 서 버 정상 작동 중 & 미니 PC MySQL 연결 성공 ! (DB: " + connection.getCatalog() + ")";
         } catch (Exception e) {
             return "❌ DB 연결 실패: " + e.getMessage();
         }

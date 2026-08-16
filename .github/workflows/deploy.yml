@@ -48,7 +48,8 @@ jobs:
         host: ${{ secrets.MINI_PC_HOST }}
         port: ${{ secrets.MINI_PC_PORT }}
         username: ${{ secrets.MINI_PC_USERNAME }}
-        key: ${{ secrets.MINI_PC_KEY }}    
+        key: ${{ secrets.MINI_PC_KEY }}
+        script: |
           cd ~/toilet-admin
           docker compose pull
           docker compose up -d

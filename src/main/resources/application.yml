@@ -6,20 +6,20 @@ spring:
   application:
     name: toilet-admin
 
-  # 1. ?????? ?? ??
+  # 1. 데이터베이스 연동 설정
   datasource:
-    # ?? PC -> ?? PC MySQL ??
+    # 개인 PC -> 미니 PC MySQL 접속
     url: jdbc:mysql://192.168.0.100:3306/toilet_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: luha
     password: dl23235656!
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  # 2. JPA ?? (???? ???? DB ???? ?? ??)
+  # 2. JPA 설정 (엔티티를 기반으로 DB 테이블을 자동 관리)
   jpa:
     hibernate:
-      ddl-auto: update           # ?? ? ??? ????? DB ???? ??
-    show-sql: true              # ???? SQL ??? ?? ??? ??
+      ddl-auto: update           # 실행 시 엔티티 변경사항을 DB 테이블에 반영
+    show-sql: true              # 실행되는 SQL 쿼리를 콘솔 로그에 출력
     properties:
       hibernate:
-        format_sql: true        # SQL ??? ?? ??? ???
+        format_sql: true        # SQL 쿼리를 보기 편하게 포맷팅
         dialect: org.hibernate.dialect.MySQLDialect

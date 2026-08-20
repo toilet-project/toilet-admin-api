@@ -5,9 +5,9 @@ server:
 spring:
   # 1. 데이터베이스 연동 설정
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DB_URL}
+    username: ${SPRING_DB_USERNAME}
+    password: ${SPRING_DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # 2. JPA 설정

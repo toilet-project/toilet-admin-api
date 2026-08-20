@@ -1,6 +1,6 @@
 
 server:
-  port: 8089
+  port: ${ADMIN_PORT}
 
 spring:
   # 1. 데이터베이스 연동 설정

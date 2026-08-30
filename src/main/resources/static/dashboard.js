@@ -10,8 +10,38 @@ function setDefaultPeriod() {
 function renderTrend(rows) {
   const target = el('trend'); target.replaceChildren()
   if (!rows.length) { target.textContent = '표시할 데이터가 없습니다.'; return }
-  const max = Math.max(...rows.map((row) => row.insertedRecords + row.updatedRecords), 1)
-  rows.slice().reverse().forEach((row) => { const item = document.createElement('div'); item.className = 'bar'; const bar = document.createElement('div'); bar.style.height = `${Math.max(6, ((row.insertedRecords + row.updatedRecords) / max) * 105)}px`; item.append(bar, Object.assign(document.createElement('strong'), { textContent: number(row.insertedRecords + row.updatedRecords) }), Object.assign(document.createElement('span'), { textContent: compactDate(row.date) })); target.append(item) })
+  const series = rows.slice().reverse().map((row) => ({ ...row, value: row.insertedRecords + row.updatedRecords }))
+
+  if (series.length === 1) {
+    const [latest] = series
+    const summary = document.createElement('div'); summary.className = 'trend-single-day'
+    summary.innerHTML = '<span class="trend-single-day-icon" aria-hidden="true">↗</span><div><span>최근 동기화 반영</span><strong></strong><p>일별 데이터가 2일 이상 쌓이면 추이를 표시합니다.</p></div>'
+    summary.querySelector('strong').textContent = `${number(latest.value)}건`
+    target.append(summary)
+    return
+  }
+
+  const width = 760; const height = 180; const padding = { top: 22, right: 20, bottom: 32, left: 20 }
+  const max = Math.max(...series.map(({ value }) => value), 1)
+  const availableWidth = width - padding.left - padding.right; const availableHeight = height - padding.top - padding.bottom
+  const points = series.map((row, index) => ({
+    ...row,
+    x: padding.left + (availableWidth * index / (series.length - 1)),
+    y: padding.top + availableHeight - (row.value / max * availableHeight),
+  }))
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', '일별 신규 및 수정 데이터 추이')
+  const create = (name, attributes = {}) => { const node = document.createElementNS('http://www.w3.org/2000/svg', name); Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value))); return node }
+  ;[0.25, 0.5, 0.75].forEach((ratio) => svg.append(create('line', { x1: padding.left, y1: padding.top + availableHeight * ratio, x2: width - padding.right, y2: padding.top + availableHeight * ratio, class: 'trend-grid-line' })))
+  const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
+  const areaPath = `${linePath} L ${points.at(-1).x} ${height - padding.bottom} L ${points[0].x} ${height - padding.bottom} Z`
+  svg.append(create('path', { d: areaPath, class: 'trend-area' }), create('path', { d: linePath, class: 'trend-line' }))
+  points.forEach((point, index) => {
+    svg.append(create('circle', { cx: point.x, cy: point.y, r: 4.5, class: 'trend-point' }))
+    if (index === 0 || index === points.length - 1 || index === Math.floor(points.length / 2)) {
+      const label = create('text', { x: point.x, y: height - 10, 'text-anchor': 'middle', class: 'trend-label' }); label.textContent = compactDate(point.date); svg.append(label)
+    }
+  })
+  target.append(svg)
 }
 function renderHistory(rows) {
   const target = el('history'); target.replaceChildren()

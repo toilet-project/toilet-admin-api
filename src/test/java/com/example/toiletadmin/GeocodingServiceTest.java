@@ -2,6 +2,7 @@ package com.example.toiletadmin;
 
 import com.example.toiletadmin.global.service.GeocodingService;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,6 +11,7 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@Disabled("실제 Kakao API 키와 외부 네트워크가 필요한 수동 지오코딩 확인용 테스트")
 public class GeocodingServiceTest {
 
     @Autowired

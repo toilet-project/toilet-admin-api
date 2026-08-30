@@ -2,8 +2,10 @@ package com.example.toiletadmin.sync.service;
 
 import com.example.toiletadmin.sync.dto.BatchSyncDailySummaryResponse;
 import com.example.toiletadmin.sync.dto.BatchSyncHistoryResponse;
+import com.example.toiletadmin.sync.dto.AdminDashboardResponse;
 import com.example.toiletadmin.sync.model.BatchSyncHistory;
 import com.example.toiletadmin.sync.model.BatchSyncStatus;
+import java.time.Duration;
 import com.example.toiletadmin.sync.repository.BatchSyncHistoryRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +38,38 @@ public class BatchSyncHistoryService {
                 .map(entry -> summarize(entry.getKey(), entry.getValue()))
                 .sorted(Comparator.comparing(BatchSyncDailySummaryResponse::date).reversed())
                 .toList();
+    }
+
+    public AdminDashboardResponse getDashboard(LocalDate from, LocalDate to) {
+        LocalDate effectiveTo = to == null ? LocalDate.now() : to;
+        LocalDate effectiveFrom = from == null ? effectiveTo.minusDays(DEFAULT_DAYS - 1) : from;
+        List<BatchSyncHistory> histories = findHistories(effectiveFrom, effectiveTo);
+        List<BatchSyncDailySummaryResponse> dailySummaries = getDailySummaries(effectiveFrom, effectiveTo);
+
+        List<BatchSyncHistory> successful = histories.stream()
+                .filter(history -> history.getStatus() == BatchSyncStatus.SUCCESS)
+                .toList();
+        BatchSyncHistory latestSuccess = successful.stream()
+                .max(Comparator.comparing(BatchSyncHistory::getCompletedAt))
+                .orElse(null);
+
+        AdminDashboardResponse.BatchSummary batch = new AdminDashboardResponse.BatchSummary(
+                successful.size(), histories.size() - successful.size(),
+                histories.stream().mapToInt(BatchSyncHistory::getReceivedRecords).sum(),
+                histories.stream().mapToInt(BatchSyncHistory::getInsertedRecords).sum(),
+                histories.stream().mapToInt(BatchSyncHistory::getUpdatedRecords).sum(),
+                histories.stream().mapToInt(BatchSyncHistory::getSkippedRecords).sum(),
+                histories.stream().mapToInt(BatchSyncHistory::getFailedRecords).sum(),
+                latestSuccess == null ? null : latestSuccess.getTotalToiletCount(),
+                latestSuccess == null ? null : latestSuccess.getCompletedAt(),
+                latestSuccess == null ? null : Math.max(0, Duration.between(latestSuccess.getStartedAt(), latestSuccess.getCompletedAt()).toSeconds())
+        );
+
+        return new AdminDashboardResponse(
+                effectiveFrom, effectiveTo, batch,
+                new AdminDashboardResponse.ReportSummary(false, null, null, null),
+                dailySummaries, histories.stream().limit(10).map(BatchSyncHistoryResponse::from).toList()
+        );
     }
 
     private List<BatchSyncHistory> findHistories(LocalDate from, LocalDate to) {

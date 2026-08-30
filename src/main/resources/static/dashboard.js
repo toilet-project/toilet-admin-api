@@ -100,8 +100,16 @@ async function reviewReport(id, action) {
 }
 async function loadReports() {
   const status = el('report-list-status'); status.className = 'status'; status.textContent = '대기 제보를 불러오는 중입니다.'
-  try { const response = await fetch(`${API_BASE}/api/admin/v1/reports`, { credentials: 'include' }); if (!response.ok) { const error = await response.json().catch(() => null); throw new Error(error?.error?.message ?? '제보 목록을 불러오지 못했습니다.') }; reports = await response.json(); renderReports(); status.textContent = reports.length ? `대기 제보 ${number(reports.length)}건` : '대기 제보가 없습니다.' }
+  try { const response = await fetch(`${API_BASE}/api/admin/v1/reports`, { credentials: 'include' }); if (!response.ok) { const error = await response.json().catch(() => null); if (response.status === 401) { renderLoginGuide(); status.textContent = ''; return } if (response.status === 403) { renderPermissionGuide(); status.textContent = ''; return } throw new Error(error?.error?.message ?? '제보 목록을 불러오지 못했습니다.') }; reports = await response.json(); renderReports(); status.textContent = reports.length ? `대기 제보 ${number(reports.length)}건` : '대기 제보가 없습니다.' }
   catch (error) { reports = []; renderReports(); status.className = 'status is-error'; status.textContent = error.message ?? '제보 목록을 불러오지 못했습니다.' }
+}
+function renderLoginGuide() {
+  const target = el('report-list'); target.innerHTML = `<section class="auth-guide"><span>로그인이 필요합니다</span><strong>관리자 계정으로 로그인해 주세요.</strong><p>로그인 후 이 화면으로 자동으로 돌아옵니다.</p><div><a href="${API_BASE}/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="${API_BASE}/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section>`
+  el('report-status').textContent = '로그인 필요'; el('report-caption').textContent = '관리자 권한이 있는 계정으로 로그인해 주세요.'
+}
+function renderPermissionGuide() {
+  const target = el('report-list'); target.innerHTML = '<section class="auth-guide is-denied"><span>관리자 권한이 필요합니다</span><strong>로그인한 계정에는 제보 검토 권한이 없습니다.</strong><p>운영자 계정으로 다시 로그인하거나 관리자 권한 설정을 확인해 주세요.</p></section>'
+  el('report-status').textContent = '권한 없음'; el('report-caption').textContent = 'API 관리자 권한이 필요합니다.'
 }
 async function load() {
   const status = el('status'); status.className = 'status'; status.textContent = '운영 데이터를 불러오는 중입니다.'

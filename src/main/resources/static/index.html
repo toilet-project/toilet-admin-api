@@ -18,11 +18,12 @@
       <article><span>마지막 데이터 수</span><strong id="total-count">-</strong><small id="last-success">최근 성공 이력 없음</small></article>
       <article><span>배치 성공</span><strong id="success-count">-</strong><small id="failure-count">실패 -회</small></article>
       <article><span>신규 등록</span><strong id="inserted-count">-</strong><small id="updated-count">수정 -건</small></article>
-      <article><span>제보 현황</span><strong id="report-status">준비 중</strong><small>제보 기능 구현 후 표시됩니다.</small></article>
+      <article><span>제보 현황</span><strong id="report-status">-</strong><small id="report-caption">대기 제보를 불러오는 중입니다.</small></article>
     </section>
 
     <section class="panel"><div class="panel-title"><div><h2>일별 데이터 변화</h2><p>기간 내 신규·수정된 화장실 수입니다.</p></div></div><div id="trend" class="trend" aria-label="일별 데이터 변화"></div></section>
     <section class="panel"><div class="panel-title"><div><h2>최근 배치 실행</h2><p>실패한 실행은 사유를 함께 표시합니다.</p></div></div><div class="table-wrap"><table><thead><tr><th>완료 시각</th><th>상태</th><th>수신</th><th>신규</th><th>수정</th><th>실패 사유</th></tr></thead><tbody id="history"></tbody></table></div></section>
+    <section class="panel report-panel"><div class="panel-title"><div><h2>제보 검토</h2><p>대기 중인 위치·개방 시간 제보를 확인하고 처리합니다.</p></div><button id="report-refresh" class="secondary-button" type="button">제보 새로고침</button></div><p id="report-list-status" class="status" role="status">대기 제보를 불러오는 중입니다.</p><div id="report-list" class="report-list"></div><section id="report-detail" class="report-detail" hidden aria-live="polite"></section></section>
   </main>
   <script src="/dashboard.js"></script>
 </body>

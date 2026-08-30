@@ -52,11 +52,17 @@ jobs:
           script: |
             mkdir -p ~/toilet-admin
             cd ~/toilet-admin
+
+            # 관리자 컨테이너는 Docker 네트워크 안에서 MySQL 컨테이너 이름으로 접속한다.
+            # 외부/LAN DB 주소 시크릿은 컨테이너 내부에서 접근할 수 없으므로 호스트 부분만 치환한다.
+            DB_URL='${{ secrets.SPRING_DB_URL }}'
+            DB_PATH_AND_QUERY=$(printf '%s' "$DB_URL" | sed -E 's#^jdbc:mysql://[^/]+/#/#')
+            INTERNAL_DB_URL="jdbc:mysql://toilet-mysql${DB_PATH_AND_QUERY}"
             
             # GitHub Secrets 값으로 .env 파일 생성/덮어쓰기
             cat <<EOF > .env
             ADMIN_PORT=${{ secrets.ADMIN_PORT }}
-            SPRING_DB_URL=${{ secrets.SPRING_DB_URL }}
+            SPRING_DB_URL=$INTERNAL_DB_URL
             SPRING_DB_USERNAME=${{ secrets.SPRING_DB_USERNAME }}
             SPRING_DB_PASSWORD=${{ secrets.SPRING_DB_PASSWORD }}
             KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}

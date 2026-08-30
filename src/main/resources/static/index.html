@@ -7,7 +7,15 @@
   <link rel="stylesheet" href="/dashboard.css" />
 </head>
 <body>
-  <main class="dashboard-shell">
+  <main id="auth-shell" class="auth-shell">
+    <section class="login-card">
+      <p class="eyebrow">GEUPDDONG ADMIN</p>
+      <h1 id="auth-title">관리자 로그인</h1>
+      <p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p>
+      <div id="auth-actions" class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div>
+    </section>
+  </main>
+  <main id="dashboard-shell" class="dashboard-shell" hidden>
     <header class="page-header">
       <div><p class="eyebrow">GEUPDDONG ADMIN</p><h1>운영 현황</h1><p>배치와 공중화장실 데이터 상태를 확인합니다.</p></div>
       <div class="period-picker"><label>기간 <input id="from" type="date" /> <span>~</span> <input id="to" type="date" /></label><button id="refresh" type="button">새로고침</button></div>

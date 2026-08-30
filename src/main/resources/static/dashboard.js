@@ -104,6 +104,7 @@ async function loadReports() {
   catch (error) { reports = []; renderReports(); status.className = 'status is-error'; status.textContent = error.message ?? '제보 목록을 불러오지 못했습니다.' }
 }
 function renderLoginGuide() {
+  showLoginPage()
   const target = el('report-list'); target.innerHTML = `<section class="auth-guide"><span>로그인이 필요합니다</span><strong>관리자 계정으로 로그인해 주세요.</strong><p>로그인 후 이 화면으로 자동으로 돌아옵니다.</p><div><a href="${API_BASE}/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="${API_BASE}/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section>`
   el('report-status').textContent = '로그인 필요'; el('report-caption').textContent = '관리자 권한이 있는 계정으로 로그인해 주세요.'
 }
@@ -120,4 +121,17 @@ async function load() {
     renderTrend(data.dailySummaries); renderHistory(data.recentExecutions); status.textContent = `${data.from} ~ ${data.to} 기준`; }
   catch (error) { status.className = 'status is-error'; status.textContent = error.message ?? '운영 데이터를 불러오지 못했습니다.'; }
 }
-setDefaultPeriod(); el('refresh').addEventListener('click', load); el('report-refresh').addEventListener('click', () => void loadReports()); load(); void loadReports()
+function showLoginPage() { el('dashboard-shell').hidden = true; el('auth-shell').hidden = false; el('auth-title').textContent = '관리자 로그인'; el('auth-description').textContent = '승인된 관리자 계정으로 로그인해 주세요.'; el('auth-actions').hidden = false }
+function showForbiddenPage() { el('dashboard-shell').hidden = true; el('auth-shell').hidden = false; el('auth-title').textContent = '관리자 권한이 필요합니다'; el('auth-description').textContent = '로그인한 계정에는 관리자 화면 접근 권한이 없습니다.'; el('auth-actions').hidden = true }
+async function bootstrap() {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })
+    if (response.status === 401) return showLoginPage()
+    if (!response.ok) return showForbiddenPage()
+    const profile = await response.json()
+    if (!profile.roles?.includes('ADMIN')) return showForbiddenPage()
+    el('auth-shell').hidden = true; el('dashboard-shell').hidden = false
+    setDefaultPeriod(); el('refresh').addEventListener('click', load); el('report-refresh').addEventListener('click', () => void loadReports()); load(); void loadReports()
+  } catch { showLoginPage() }
+}
+bootstrap()

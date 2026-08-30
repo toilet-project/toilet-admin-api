@@ -7,9 +7,16 @@ const API_BASE = 'https://api.geupddong.com'
 let reports = []
 let selectedReportId = null
 
+function seoulDateValue(value) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(value)
+  const part = (type) => parts.find((item) => item.type === type).value
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
 function setDefaultPeriod() {
   const today = new Date(); const before = new Date(); before.setDate(today.getDate() - 29)
-  el('to').value = today.toISOString().slice(0, 10); el('from').value = before.toISOString().slice(0, 10)
+  el('to').value = seoulDateValue(today); el('from').value = seoulDateValue(before)
 }
 function renderTrend(rows) {
   const target = el('trend'); target.replaceChildren()

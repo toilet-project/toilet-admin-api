@@ -1,6 +1,9 @@
 server:
   port: 0
 
+kakao:
+  rest-api-key: test-key
+
 spring:
   datasource:
     url: jdbc:h2:mem:toilet_admin_test;MODE=MySQL;DB_CLOSE_DELAY=-1

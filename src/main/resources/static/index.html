@@ -23,6 +23,13 @@
     </header>
 
     <p id="status" class="status" role="status">운영 데이터를 불러오는 중입니다.</p>
+    <section class="operations-strip" aria-label="서비스 상태">
+      <article id="ops-admin"><span>관리자</span><strong>확인 중</strong><small>-</small></article>
+      <article id="ops-api"><span>공개 API</span><strong>확인 중</strong><small>-</small></article>
+      <article id="ops-db"><span>데이터베이스</span><strong>확인 중</strong><small>-</small></article>
+      <article id="ops-batch"><span>정기 배치</span><strong>확인 중</strong><small>-</small></article>
+      <article id="ops-disk"><span>디스크</span><strong>확인 중</strong><small>-</small></article>
+    </section>
     <section class="summary-grid" aria-label="핵심 지표">
       <article><span>마지막 데이터 수</span><strong id="total-count">-</strong><small id="last-success">최근 성공 이력 없음</small></article>
       <article><span>배치 성공</span><strong id="success-count">-</strong><small id="failure-count">실패 -회</small></article>

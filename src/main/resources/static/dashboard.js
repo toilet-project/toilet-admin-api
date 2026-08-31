@@ -4,7 +4,7 @@ const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 's
 const compactDate = (value) => value ? value.slice(5).replace('-', '/') : ''
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character])
 const API_BASE = 'https://api.geupddong.com'
-let reports = []
+let reportSummary = { pendingCount: 0, recentReports: [] }
 
 function seoulDateValue(value) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -69,22 +69,21 @@ function reportTypeLabel(type) { return type === 'COORDINATE_CORRECTION' ? '위�
 function kakaoMapLink(name, latitude, longitude) { return `https://map.kakao.com/link/map/${encodeURIComponent(name)},${latitude},${longitude}` }
 function setReportSummary() {
   const target = el('report-status'); const caption = el('report-caption')
-  target.textContent = `${number(reports.length)}건`; caption.textContent = reports.length ? '검토가 필요한 제보입니다.' : '검토 대기 중인 제보가 없습니다.'
+  target.textContent = `${number(reportSummary.pendingCount)}건`; caption.textContent = reportSummary.pendingCount ? '검토가 필요한 제보입니다.' : '검토 대기 중인 제보가 없습니다.'
 }
 function renderReports() {
   const target = el('report-list'); target.replaceChildren(); setReportSummary()
-  if (!reports.length) { target.innerHTML = '<p class="empty-state">현재 검토할 제보가 없습니다.</p>'; return }
-  reports.slice(0, 5).forEach((report) => {
+  if (!reportSummary.recentReports.length) { target.innerHTML = '<p class="empty-state">현재 검토할 제보가 없습니다.</p>'; return }
+  reportSummary.recentReports.forEach((report) => {
     const link = document.createElement('a'); link.className = 'report-list-item'; link.href = `/reports.html?reportId=${encodeURIComponent(report.id)}`
     link.innerHTML = `<span class="report-type-badge ${report.reportType === 'COORDINATE_CORRECTION' ? 'location' : 'time'}">${reportTypeLabel(report.reportType)}</span><strong>${escapeHtml(report.toiletName || `화장실 #${report.toiletId}`)}</strong><span>${escapeHtml(date(report.createdAt))}</span>`
     target.append(link)
   })
 }
-async function getToilet(id) { const response = await fetch(`${API_BASE}/api/v1/toilets/${id}`, { credentials: 'include' }); if (!response.ok) throw new Error('화장실 상세 정보를 불러오지 못했습니다.'); return response.json() }
 async function loadReports() {
   const status = el('report-list-status'); status.className = 'status'; status.textContent = '대기 제보를 불러오는 중입니다.'
-  try { const response = await fetch(`${API_BASE}/api/admin/v1/reports`, { credentials: 'include' }); if (!response.ok) { const error = await response.json().catch(() => null); if (response.status === 401) { renderLoginGuide(); status.textContent = ''; return } if (response.status === 403) { renderPermissionGuide(); status.textContent = ''; return } throw new Error(error?.error?.message ?? '제보 목록을 불러오지 못했습니다.') }; reports = await response.json(); renderReports(); status.textContent = reports.length ? `대기 제보 ${number(reports.length)}건` : '대기 제보가 없습니다.' }
-  catch (error) { reports = []; renderReports(); status.className = 'status is-error'; status.textContent = error.message ?? '제보 목록을 불러오지 못했습니다.' }
+  try { const response = await fetch(`${API_BASE}/api/admin/v1/reports/summary`, { credentials: 'include' }); if (!response.ok) { const error = await response.json().catch(() => null); if (response.status === 401) { renderLoginGuide(); status.textContent = ''; return } if (response.status === 403) { renderPermissionGuide(); status.textContent = ''; return } throw new Error(error?.error?.message ?? '제보 목록을 불러오지 못했습니다.') }; reportSummary = await response.json(); renderReports(); status.textContent = reportSummary.pendingCount ? `대기 제보 ${number(reportSummary.pendingCount)}건` : '대기 제보가 없습니다.' }
+  catch (error) { reportSummary = { pendingCount: 0, recentReports: [] }; renderReports(); status.className = 'status is-error'; status.textContent = error.message ?? '제보 목록을 불러오지 못했습니다.' }
 }
 function renderLoginGuide() {
   showLoginPage()

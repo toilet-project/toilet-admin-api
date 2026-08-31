@@ -103,8 +103,9 @@ async function load() {
     renderTrend(data.dailySummaries); renderHistory(data.recentExecutions); status.textContent = `${data.from} ~ ${data.to} 기준`; }
   catch (error) { status.className = 'status is-error'; status.textContent = error.message ?? '운영 데이터를 불러오지 못했습니다.'; }
 }
-function showLoginPage() { el('dashboard-shell').hidden = true; el('auth-shell').hidden = false; el('auth-title').textContent = '관리자 로그인'; el('auth-description').textContent = '승인된 관리자 계정으로 로그인해 주세요.'; el('auth-actions').hidden = false }
+function showLoginPage() { el('loading-shell').hidden = true; el('dashboard-shell').hidden = true; el('auth-shell').hidden = false; el('auth-title').textContent = '관리자 로그인'; el('auth-description').textContent = '승인된 관리자 계정으로 로그인해 주세요.'; el('auth-actions').hidden = false }
 function showForbiddenPage() {
+  el('loading-shell').hidden = true
   el('dashboard-shell').hidden = true
   el('auth-shell').hidden = false
   el('auth-title').textContent = '관리자 권한이 필요합니다'
@@ -118,7 +119,7 @@ async function bootstrap() {
     if (!response.ok) return showForbiddenPage()
     const profile = await response.json()
     if (!profile.roles?.includes('ADMIN')) return showForbiddenPage()
-    el('auth-shell').hidden = true; el('dashboard-shell').hidden = false
+    el('loading-shell').hidden = true; el('auth-shell').hidden = true; el('dashboard-shell').hidden = false
     setDefaultPeriod(); el('refresh').addEventListener('click', load); el('report-refresh').addEventListener('click', () => void loadReports()); load(); void loadReports()
   } catch { showLoginPage() }
 }

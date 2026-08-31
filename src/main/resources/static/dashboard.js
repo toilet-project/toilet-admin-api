@@ -129,7 +129,13 @@ async function load() {
   catch (error) { status.className = 'status is-error'; status.textContent = error.message ?? '운영 데이터를 불러오지 못했습니다.'; }
 }
 function showLoginPage() { el('dashboard-shell').hidden = true; el('auth-shell').hidden = false; el('auth-title').textContent = '관리자 로그인'; el('auth-description').textContent = '승인된 관리자 계정으로 로그인해 주세요.'; el('auth-actions').hidden = false }
-function showForbiddenPage() { el('dashboard-shell').hidden = true; el('auth-shell').hidden = false; el('auth-title').textContent = '관리자 권한이 필요합니다'; el('auth-description').textContent = '로그인한 계정에는 관리자 화면 접근 권한이 없습니다.'; el('auth-actions').hidden = true }
+function showForbiddenPage() {
+  el('dashboard-shell').hidden = true
+  el('auth-shell').hidden = false
+  el('auth-title').textContent = '관리자 권한이 필요합니다'
+  el('auth-description').textContent = '다른 관리자 계정으로 로그인하거나, 관리자 권한 설정을 확인해 주세요.'
+  el('auth-actions').hidden = false
+}
 async function bootstrap() {
   try {
     const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })

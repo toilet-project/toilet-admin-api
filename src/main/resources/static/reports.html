@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>급똥 관리자 | 제보 검토</title>
+  <link rel="stylesheet" href="/dashboard.css" />
+</head>
+<body>
+  <main id="auth-shell" class="auth-shell">
+    <section class="login-card">
+      <p class="eyebrow">GEUPDDONG ADMIN</p>
+      <h1 id="auth-title">관리자 로그인</h1>
+      <p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p>
+      <div id="auth-actions" class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div>
+    </section>
+  </main>
+  <main id="reports-shell" class="dashboard-shell" hidden>
+    <header class="page-header review-page-header">
+      <div><p class="eyebrow">GEUPDDONG ADMIN</p><h1>제보 검토</h1><p>대기 중인 위치·개방 시간 제보를 검색하고 처리합니다.</p></div>
+      <a class="secondary-link" href="/">운영 현황으로</a>
+    </header>
+    <section class="panel review-workspace">
+      <div class="review-toolbar"><label class="report-search"><span class="sr-only">화장실명 검색</span><input id="report-search" type="search" placeholder="화장실명으로 검색" autocomplete="off" /></label><button id="report-refresh" class="secondary-button" type="button">새로고침</button></div>
+      <p id="report-list-status" class="status" role="status">제보를 불러오는 중입니다.</p>
+      <div class="review-layout"><section class="review-list-column" aria-label="제보 목록"><div id="report-list" class="report-list"></div></section><section id="report-detail" class="report-detail review-detail-column" aria-live="polite"><p class="empty-state">왼쪽 목록에서 제보를 선택해 주세요.</p></section></div>
+    </section>
+  </main>
+  <script src="/reports.js"></script>
+</body>
+</html>

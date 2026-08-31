@@ -2,88 +2,31 @@ const el = (id) => document.getElementById(id)
 const API_BASE = 'https://api.geupddong.com'
 let reports = []
 let selectedReportId = null
+let kakaoMapsReady
+let locationConfirmation = null
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character])
 const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-'
 const reportTypeLabel = (type) => type === 'COORDINATE_CORRECTION' ? '위치 제보' : '개방 시간 제보'
 const reportName = (report) => report.toiletName || `화장실 #${report.toiletId}`
 const reportTypeClass = (report) => report.reportType === 'COORDINATE_CORRECTION' ? 'location' : 'time'
-const kakaoMapLink = (name, latitude, longitude) => `https://map.kakao.com/link/map/${encodeURIComponent(name)},${latitude},${longitude}`
+const coordinateText = (latitude, longitude) => latitude != null && longitude != null ? `${Number(latitude).toFixed(7)}, ${Number(longitude).toFixed(7)}` : '좌표 정보 없음'
 
-function selectedIdFromUrl() {
-  const value = new URLSearchParams(window.location.search).get('reportId')
-  return value && /^\d+$/.test(value) ? Number(value) : null
-}
-function updateUrl(reportId) {
-  const url = new URL(window.location.href)
-  if (reportId == null) url.searchParams.delete('reportId'); else url.searchParams.set('reportId', String(reportId))
-  window.history.replaceState({}, '', url)
-}
-function matchingReports() {
-  const keyword = el('report-search').value.trim().toLowerCase()
-  return keyword ? reports.filter((report) => reportName(report).toLowerCase().includes(keyword)) : reports
-}
-function renderReports() {
-  const target = el('report-list'); target.replaceChildren()
-  const filtered = matchingReports()
-  if (!filtered.length) { target.innerHTML = `<p class="empty-state">${reports.length ? '검색 결과가 없습니다.' : '현재 검토할 제보가 없습니다.'}</p>`; return }
-  filtered.forEach((report) => {
-    const button = document.createElement('button'); button.type = 'button'; button.className = `report-list-item${selectedReportId === report.id ? ' is-selected' : ''}`
-    button.innerHTML = `<span class="report-type-badge ${reportTypeClass(report)}">${reportTypeLabel(report.reportType)}</span><strong>${escapeHtml(reportName(report))}</strong><span>${escapeHtml(date(report.createdAt))}</span>`
-    button.addEventListener('click', () => void selectReport(report.id))
-    target.append(button)
-  })
-}
-async function getToilet(id) {
-  const response = await fetch(`${API_BASE}/api/v1/toilets/${id}`, { credentials: 'include' })
-  if (!response.ok) throw new Error('화장실 상세 정보를 불러오지 못했습니다.')
-  return response.json()
-}
+function selectedIdFromUrl() { const value = new URLSearchParams(window.location.search).get('reportId'); return value && /^\d+$/.test(value) ? Number(value) : null }
+function updateUrl(reportId) { const url = new URL(window.location.href); if (reportId == null) url.searchParams.delete('reportId'); else url.searchParams.set('reportId', String(reportId)); window.history.replaceState({}, '', url) }
+function matchingReports() { const keyword = el('report-search').value.trim().toLowerCase(); return keyword ? reports.filter((report) => reportName(report).toLowerCase().includes(keyword)) : reports }
+function renderReports() { const target = el('report-list'); target.replaceChildren(); const filtered = matchingReports(); if (!filtered.length) { target.innerHTML = `<p class="empty-state">${reports.length ? '검색 결과가 없습니다.' : '현재 검토할 제보가 없습니다.'}</p>`; return } filtered.forEach((report) => { const button = document.createElement('button'); button.type = 'button'; button.className = `report-list-item${selectedReportId === report.id ? ' is-selected' : ''}`; button.innerHTML = `<span class="report-type-badge ${reportTypeClass(report)}">${reportTypeLabel(report.reportType)}</span><strong>${escapeHtml(reportName(report))}</strong><span>${escapeHtml(date(report.createdAt))}</span>`; button.addEventListener('click', () => void selectReport(report.id)); target.append(button) }) }
+async function getToilet(id) { const response = await fetch(`${API_BASE}/api/v1/toilets/${id}`, { credentials: 'include' }); if (!response.ok) throw new Error('화장실 상세 정보를 불러오지 못했습니다.'); return response.json() }
+function locationDetailMarkup(report, toilet) { return `<section class="location-review"><div class="location-review-intro"><span>좌표 검토 지도</span><p>주황색 핀을 움직여 승인할 위치를 보정할 수 있습니다. 제보 원문은 변경되지 않고, 최종 좌표만 변경 이력에 남습니다.</p></div><div id="review-location-map" class="review-location-map" aria-label="현재 등록 위치와 제보 위치 비교 지도"></div><div class="map-legend"><span><i class="legend-dot current"></i>현재 등록 위치</span><span><i class="legend-dot proposed"></i>제보·승인 위치</span></div><div class="coordinate-comparison"><article><span>현재 등록 위치</span><strong>${escapeHtml(coordinateText(toilet.latitude, toilet.longitude))}</strong><small>${escapeHtml(toilet.roadAddress || toilet.jibunAddress || '주소 정보 없음')}</small></article><article><span>승인 예정 위치</span><strong id="confirmed-coordinate">${escapeHtml(coordinateText(report.latitude, report.longitude))}</strong><small id="confirmed-address">${escapeHtml(report.roadAddress || '주소 정보 없음')}</small></article></div></section>` }
 async function selectReport(id) {
   const report = reports.find((item) => item.id === id); if (!report) return
-  selectedReportId = id; updateUrl(id); renderReports()
-  const detail = el('report-detail'); detail.innerHTML = '<p class="status">제보 상세를 불러오는 중입니다.</p>'
-  try {
-    const toilet = await getToilet(report.toiletId); const isLocation = report.reportType === 'COORDINATE_CORRECTION'
-    const current = isLocation ? `<a target="_blank" rel="noreferrer" href="${kakaoMapLink(toilet.name, toilet.latitude, toilet.longitude)}">현재 위치 지도 열기</a>` : `<strong>${escapeHtml(toilet.openTime || '정보 없음')}</strong>`
-    const proposed = isLocation ? `<a target="_blank" rel="noreferrer" href="${kakaoMapLink(toilet.name, report.latitude, report.longitude)}">제보 위치 지도 열기</a>` : `<strong>${escapeHtml(report.openTime)}</strong>`
-    detail.innerHTML = `<div class="report-detail-head"><div><span class="report-type-badge ${reportTypeClass(report)}">${reportTypeLabel(report.reportType)}</span><h3>${escapeHtml(reportName(report))}</h3><p>${escapeHtml(date(report.createdAt))} 접수</p></div><button id="report-detail-close" class="icon-button" type="button" aria-label="제보 상세 닫기">×</button></div><div class="comparison-grid"><article><span>${isLocation ? '현재 등록 정보' : '현재 개방 시간'}</span>${current}${isLocation ? `<small>${escapeHtml(toilet.roadAddress || toilet.jibunAddress || '주소 정보 없음')}</small>` : ''}</article><article><span>${isLocation ? '제보된 위치' : '제보된 개방 시간'}</span>${proposed}${isLocation ? `<small>${escapeHtml(report.roadAddress || '주소 정보 없음')}</small>` : ''}</article></div><div class="report-reason"><span>제보 사유</span><p>${escapeHtml(report.reason)}</p></div><label class="review-note"><span>검토 메모 <em>(선택)</em></span><textarea id="review-note" maxlength="500" placeholder="승인 또는 반려 사유를 남길 수 있습니다."></textarea></label><div class="review-actions"><button id="report-reject" class="reject-button" type="button">반려</button><button id="report-approve" type="button">승인 후 반영</button></div>`
-    el('report-detail-close').addEventListener('click', () => { selectedReportId = null; updateUrl(null); detail.innerHTML = '<p class="empty-state">왼쪽 목록에서 제보를 선택해 주세요.</p>'; renderReports() })
-    el('report-approve').addEventListener('click', () => void reviewReport(report.id, 'approve'))
-    el('report-reject').addEventListener('click', () => void reviewReport(report.id, 'reject'))
-  } catch (error) { detail.innerHTML = `<p class="status is-error">${error.message ?? '제보 상세를 불러오지 못했습니다.'}</p>` }
+  selectedReportId = id; locationConfirmation = null; updateUrl(id); renderReports(); const detail = el('report-detail'); detail.innerHTML = '<p class="status">제보 상세를 불러오는 중입니다.</p>'
+  try { const toilet = await getToilet(report.toiletId); const isLocation = report.reportType === 'COORDINATE_CORRECTION'; detail.innerHTML = `<div class="report-detail-head"><div><span class="report-type-badge ${reportTypeClass(report)}">${reportTypeLabel(report.reportType)}</span><h3>${escapeHtml(reportName(report))}</h3><p>${escapeHtml(date(report.createdAt))} 접수</p></div><button id="report-detail-close" class="icon-button" type="button" aria-label="제보 상세 닫기">×</button></div>${isLocation ? locationDetailMarkup(report, toilet) : `<div class="comparison-grid"><article><span>현재 개방 시간</span><strong>${escapeHtml(toilet.openTime || '정보 없음')}</strong></article><article><span>제보된 개방 시간</span><strong>${escapeHtml(report.openTime || '정보 없음')}</strong></article></div>`}<div class="report-reason"><span>제보 사유</span><p>${escapeHtml(report.reason)}</p></div><label class="review-note"><span>검토 메모 <em>(선택)</em></span><textarea id="review-note" maxlength="500" placeholder="승인 또는 반려 사유를 남길 수 있습니다."></textarea></label><div class="review-actions"><button id="report-reject" class="reject-button" type="button">반려</button><button id="report-approve" type="button">승인 후 반영</button></div>`; el('report-detail-close').addEventListener('click', () => { selectedReportId = null; locationConfirmation = null; updateUrl(null); detail.innerHTML = '<p class="empty-state">왼쪽 목록에서 제보를 선택해 주세요.</p>'; renderReports() }); el('report-approve').addEventListener('click', () => void reviewReport(report, 'approve')); el('report-reject').addEventListener('click', () => void reviewReport(report, 'reject')); if (isLocation) await drawLocationMap(report, toilet) } catch (error) { detail.innerHTML = `<p class="status is-error">${error.message ?? '제보 상세를 불러오지 못했습니다.'}</p>` }
 }
-async function reviewReport(id, action) {
-  const note = el('review-note')?.value?.trim() ?? ''; const actionLabel = action === 'approve' ? '승인하고 서비스 정보에 반영' : '반려'
-  if (!window.confirm(`이 제보를 ${actionLabel}할까요?`)) return
-  const detail = el('report-detail'); detail.querySelectorAll('button').forEach((button) => { button.disabled = true })
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/v1/reports/${id}/${action}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note }) })
-    if (!response.ok) { const error = await response.json().catch(() => null); throw new Error(error?.error?.message ?? '제보 처리에 실패했습니다.') }
-    selectedReportId = null; updateUrl(null); detail.innerHTML = '<p class="empty-state">제보가 처리되었습니다.</p>'; await loadReports()
-  } catch (error) { detail.insertAdjacentHTML('afterbegin', `<p class="status is-error">${error.message ?? '제보 처리에 실패했습니다.'}</p>`); detail.querySelectorAll('button').forEach((button) => { button.disabled = false }) }
-}
-function showLoginPage(title, description) {
-  el('reports-shell').hidden = true; el('auth-shell').hidden = false
-  el('auth-title').textContent = title; el('auth-description').textContent = description; el('auth-actions').hidden = false
-}
-async function loadReports() {
-  const status = el('report-list-status'); status.className = 'status'; status.textContent = '제보를 불러오는 중입니다.'
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/v1/reports`, { credentials: 'include' })
-    if (!response.ok) { if (response.status === 401) return showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.'); if (response.status === 403) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나, 관리자 권한 설정을 확인해 주세요.'); throw new Error('제보 목록을 불러오지 못했습니다.') }
-    reports = await response.json(); renderReports(); status.textContent = reports.length ? `대기 제보 ${reports.length}건` : '대기 제보가 없습니다.'
-    const requestedId = selectedReportId ?? selectedIdFromUrl(); if (requestedId && reports.some((report) => report.id === requestedId)) await selectReport(requestedId)
-  } catch (error) { reports = []; renderReports(); status.className = 'status is-error'; status.textContent = error.message ?? '제보 목록을 불러오지 못했습니다.' }
-}
-async function bootstrap() {
-  try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })
-    if (response.status === 401) return showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
-    if (!response.ok) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나, 관리자 권한 설정을 확인해 주세요.')
-    const profile = await response.json(); if (!profile.roles?.includes('ADMIN')) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나, 관리자 권한 설정을 확인해 주세요.')
-    el('auth-shell').hidden = true; el('reports-shell').hidden = false
-    el('report-search').addEventListener('input', renderReports); el('report-refresh').addEventListener('click', () => void loadReports()); await loadReports()
-  } catch { showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.') }
-}
+async function loadKakaoMaps() { if (kakaoMapsReady) return kakaoMapsReady; kakaoMapsReady = (async () => { const response = await fetch('/api/admin/v1/map-config'); if (!response.ok) throw new Error('지도 설정을 불러오지 못했습니다.'); const config = await response.json(); if (!config.enabled || !config.javascriptKey) throw new Error('카카오 지도 키가 아직 배포되지 않았습니다.'); await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(config.javascriptKey)}&libraries=services&autoload=false`; script.onload = resolve; script.onerror = () => reject(new Error('카카오 지도 SDK를 불러오지 못했습니다.')); document.head.append(script) }); await new Promise((resolve) => window.kakao.maps.load(resolve)) })(); return kakaoMapsReady }
+async function drawLocationMap(report, toilet) { const target = el('review-location-map'); if (!target) return; try { await loadKakaoMaps(); const current = new kakao.maps.LatLng(toilet.latitude, toilet.longitude); const proposed = new kakao.maps.LatLng(report.latitude, report.longitude); const map = new kakao.maps.Map(target, { center: proposed, level: 3, draggable: true, scrollwheel: true }); const bounds = new kakao.maps.LatLngBounds(); bounds.extend(current); bounds.extend(proposed); map.setBounds(bounds, 48, 48, 48, 48); new kakao.maps.Marker({ map, position: current, title: '현재 등록 위치' }); const marker = new kakao.maps.Marker({ map, position: proposed, draggable: true, title: '제보·승인 위치' }); locationConfirmation = { latitude: Number(report.latitude), longitude: Number(report.longitude), roadAddress: report.roadAddress }; const updateConfirmed = (position, address) => { locationConfirmation = { latitude: position.getLat(), longitude: position.getLng(), roadAddress: address || locationConfirmation.roadAddress }; el('confirmed-coordinate').textContent = coordinateText(locationConfirmation.latitude, locationConfirmation.longitude); el('confirmed-address').textContent = locationConfirmation.roadAddress || '주소를 확인하는 중입니다.' }; const geocoder = new kakao.maps.services.Geocoder(); kakao.maps.event.addListener(marker, 'dragend', () => { const position = marker.getPosition(); updateConfirmed(position); geocoder.coord2Address(position.getLng(), position.getLat(), (result, status) => { if (status === kakao.maps.services.Status.OK) updateConfirmed(position, result[0]?.road_address?.address_name || result[0]?.address?.address_name || '주소 정보 없음') }) }) } catch (error) { target.outerHTML = `<p class="status is-error">${escapeHtml(error.message || '지도를 표시하지 못했습니다.')}</p>` } }
+async function reviewReport(report, action) { const note = el('review-note')?.value?.trim() ?? ''; const actionLabel = action === 'approve' ? '승인하고 서비스 정보에 반영' : '반려'; if (!window.confirm(`이 제보를 ${actionLabel}할까요?`)) return; const detail = el('report-detail'); detail.querySelectorAll('button').forEach((button) => { button.disabled = true }); const body = { note }; if (action === 'approve' && report.reportType === 'COORDINATE_CORRECTION' && locationConfirmation) Object.assign(body, { confirmedLatitude: locationConfirmation.latitude, confirmedLongitude: locationConfirmation.longitude, confirmedRoadAddress: locationConfirmation.roadAddress }); try { const response = await fetch(`${API_BASE}/api/admin/v1/reports/${report.id}/${action}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (!response.ok) { const error = await response.json().catch(() => null); throw new Error(error?.error?.message ?? '제보 처리에 실패했습니다.') }; selectedReportId = null; locationConfirmation = null; updateUrl(null); detail.innerHTML = '<p class="empty-state">제보가 처리되었습니다.</p>'; await loadReports() } catch (error) { detail.insertAdjacentHTML('afterbegin', `<p class="status is-error">${escapeHtml(error.message ?? '제보 처리에 실패했습니다.')}</p>`); detail.querySelectorAll('button').forEach((button) => { button.disabled = false }) } }
+function showLoginPage(title, description) { el('reports-shell').hidden = true; el('auth-shell').hidden = false; el('auth-title').textContent = title; el('auth-description').textContent = description; el('auth-actions').hidden = false }
+async function loadReports() { const status = el('report-list-status'); status.className = 'status'; status.textContent = '제보를 불러오는 중입니다.'; try { const response = await fetch(`${API_BASE}/api/admin/v1/reports`, { credentials: 'include' }); if (!response.ok) { if (response.status === 401) return showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.'); if (response.status === 403) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나, 관리자 권한 설정을 확인해 주세요.'); throw new Error('제보 목록을 불러오지 못했습니다.') }; reports = await response.json(); renderReports(); status.textContent = reports.length ? `대기 제보 ${reports.length}건` : '대기 제보가 없습니다.'; const requestedId = selectedReportId ?? selectedIdFromUrl(); if (requestedId && reports.some((item) => item.id === requestedId)) await selectReport(requestedId) } catch (error) { reports = []; renderReports(); status.className = 'status is-error'; status.textContent = error.message ?? '제보 목록을 불러오지 못했습니다.' } }
+async function bootstrap() { try { const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' }); if (response.status === 401) return showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.'); if (!response.ok) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나, 관리자 권한 설정을 확인해 주세요.'); const profile = await response.json(); if (!profile.roles?.includes('ADMIN')) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나, 관리자 권한 설정을 확인해 주세요.'); el('auth-shell').hidden = true; el('reports-shell').hidden = false; el('report-search').addEventListener('input', renderReports); el('report-refresh').addEventListener('click', () => void loadReports()); await loadReports() } catch { showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.') } }
 bootstrap()

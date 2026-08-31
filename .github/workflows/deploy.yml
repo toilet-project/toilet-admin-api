@@ -67,8 +67,32 @@ jobs:
             SPRING_DB_PASSWORD=${{ secrets.SPRING_DB_PASSWORD }}
             KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}
             KAKAO_JAVASCRIPT_KEY=${{ secrets.KAKAO_JAVASCRIPT_KEY }}
+            OPERATIONS_API_HEALTH_URL=https://api.geupddong.com/api/health
+            EOF
+
+            cat <<EOF > docker-compose.yml
+            services:
+              toilet-admin:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:latest
+                container_name: toilet-admin
+                restart: unless-stopped
+                env_file:
+                  - .env
+                ports:
+                  - "127.0.0.1:${{ secrets.ADMIN_PORT }}:${{ secrets.ADMIN_PORT }}"
+                networks:
+                  - toilet-network
+                logging:
+                  driver: json-file
+                  options:
+                    max-size: "10m"
+                    max-file: "5"
+
+            networks:
+              toilet-network:
+                external: true
             EOF
             
             docker compose pull
-            docker compose up -d --build
+            docker compose up -d --remove-orphans
             docker image prune -af --filter "until=24h"

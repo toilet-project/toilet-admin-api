@@ -6,6 +6,26 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character
 const API_BASE = 'https://api.geupddong.com'
 let reportSummary = { pendingCount: 0, recentReports: [] }
 
+function setOperationCard(id, status, message, detail) {
+  const card = el(id); card.className = `ops-${String(status).toLowerCase()}`
+  card.querySelector('strong').textContent = status === 'UP' ? '정상' : status === 'STALE' ? '확인 필요' : status === 'WARN' ? '주의' : status === 'UNKNOWN' ? '정보 없음' : '장애'
+  card.querySelector('small').textContent = detail || message || '-'
+}
+async function loadOperations() {
+  try {
+    const response = await fetch('/api/admin/v1/operations/status')
+    if (!response.ok) throw new Error('운영 상태 조회 실패')
+    const data = await response.json()
+    setOperationCard('ops-admin', data.admin.status, data.admin.message)
+    setOperationCard('ops-api', data.publicApi.status, data.publicApi.message)
+    setOperationCard('ops-db', data.database.status, data.database.message)
+    setOperationCard('ops-batch', data.batch.status, data.batch.message, data.batch.completedAt ? `최근 ${date(data.batch.completedAt)}` : data.batch.message)
+    setOperationCard('ops-disk', data.disk.status, '', `사용 ${data.disk.usedPercent}%`)
+  } catch {
+    ;['ops-admin', 'ops-api', 'ops-db', 'ops-batch', 'ops-disk'].forEach((id) => setOperationCard(id, 'UNKNOWN', '상태를 확인하지 못했습니다.'))
+  }
+}
+
 function seoulDateValue(value) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -120,7 +140,7 @@ async function bootstrap() {
     const profile = await response.json()
     if (!profile.roles?.includes('ADMIN')) return showForbiddenPage()
     el('loading-shell').hidden = true; el('auth-shell').hidden = true; el('dashboard-shell').hidden = false
-    setDefaultPeriod(); el('refresh').addEventListener('click', load); el('report-refresh').addEventListener('click', () => void loadReports()); load(); void loadReports()
+    setDefaultPeriod(); el('refresh').addEventListener('click', () => { void load(); void loadOperations() }); el('report-refresh').addEventListener('click', () => void loadReports()); load(); void loadReports(); void loadOperations()
   } catch { showLoginPage() }
 }
 bootstrap()

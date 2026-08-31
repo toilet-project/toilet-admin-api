@@ -56,7 +56,7 @@ function renderTrend(rows) {
 function renderHistory(rows) {
   const target = el('history'); target.replaceChildren()
   if (!rows.length) { target.innerHTML = '<tr><td colspan="6">표시할 배치 실행 이력이 없습니다.</td></tr>'; return }
-  rows.forEach((row) => {
+  rows.slice(0, 5).forEach((row) => {
     const tr = document.createElement('tr')
     const textCell = (value) => Object.assign(document.createElement('td'), { textContent: value })
     const statusCell = document.createElement('td'); const badge = document.createElement('span')
@@ -74,7 +74,7 @@ function setReportSummary() {
 function renderReports() {
   const target = el('report-list'); target.replaceChildren(); setReportSummary()
   if (!reports.length) { target.innerHTML = '<p class="empty-state">현재 검토할 제보가 없습니다.</p>'; return }
-  reports.forEach((report) => {
+  reports.slice(0, 5).forEach((report) => {
     const link = document.createElement('a'); link.className = 'report-list-item'; link.href = `/reports.html?reportId=${encodeURIComponent(report.id)}`
     link.innerHTML = `<span class="report-type-badge ${report.reportType === 'COORDINATE_CORRECTION' ? 'location' : 'time'}">${reportTypeLabel(report.reportType)}</span><strong>${escapeHtml(report.toiletName || `화장실 #${report.toiletId}`)}</strong><span>${escapeHtml(date(report.createdAt))}</span>`
     target.append(link)

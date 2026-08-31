@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>급똥 관리자 | 중복 좌표 품질</title><link rel="stylesheet" href="/dashboard.css" /></head>
+<body>
+  <main id="loading-shell" class="page-loading" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
+  <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
+  <main id="quality-shell" class="dashboard-shell quality-shell" hidden>
+    <header class="page-header"><div><p class="eyebrow">GEUPDDONG ADMIN</p><h1>중복 좌표 품질 관리</h1><p>같은 좌표에 등록된 화장실을 검토하고 확정 좌표와 변경 이력을 관리합니다.</p></div><a class="secondary-link" href="/">운영 현황으로</a></header>
+    <section class="panel quality-workspace">
+      <div class="quality-toolbar"><input id="quality-search" type="search" placeholder="화장실명·주소·관리번호 검색" autocomplete="off" /><select id="quality-status" aria-label="확인 상태"><option value="">전체 상태</option><option value="PENDING">미확인</option><option value="NEEDS_CORRECTION">보정 필요</option><option value="CONFIRMED_SHARED">실제 공동 위치</option></select><button id="quality-refresh" class="secondary-button" type="button">새로고침</button></div>
+      <p id="quality-status-text" class="status" role="status">중복 좌표를 불러오는 중입니다.</p>
+      <div class="quality-layout"><section class="quality-list-column"><div id="quality-list" class="quality-list"></div><nav id="quality-pagination" class="report-pagination" aria-label="중복 좌표 페이지 이동"></nav></section><section id="quality-detail" class="quality-detail"><p class="empty-state">왼쪽 목록에서 중복 좌표 그룹을 선택해 주세요.</p></section></div>
+    </section>
+  </main>
+  <script src="/data-quality.js"></script>
+</body></html>

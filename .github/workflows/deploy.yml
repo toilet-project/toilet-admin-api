@@ -66,6 +66,7 @@ jobs:
             SPRING_DB_USERNAME=${{ secrets.SPRING_DB_USERNAME }}
             SPRING_DB_PASSWORD=${{ secrets.SPRING_DB_PASSWORD }}
             KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}
+            KAKAO_JAVASCRIPT_KEY=${{ secrets.KAKAO_JAVASCRIPT_KEY }}
             EOF
             
             docker compose pull

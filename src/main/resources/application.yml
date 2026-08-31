@@ -24,3 +24,7 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+
+kakao:
+  rest-api-key: ${KAKAO_REST_API_KEY:}
+  javascript-key: ${KAKAO_JAVASCRIPT_KEY:}

@@ -5,6 +5,8 @@ server:
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
+  jackson:
+    time-zone: Asia/Seoul
   # 1. 데이터베이스 연동 설정
   datasource:
     url: ${SPRING_DB_URL}
@@ -24,6 +26,8 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: Asia/Seoul
 
 kakao:
   rest-api-key: ${KAKAO_REST_API_KEY:}

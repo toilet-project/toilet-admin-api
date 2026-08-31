@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>권한·감사 로그 | 급똥 관리자</title>
+  <link rel="stylesheet" href="/dashboard.css" />
+</head>
+<body>
+  <main id="loading-shell" class="page-loading" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
+  <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
+  <main id="security-shell" class="dashboard-shell security-shell" hidden>
+    <header class="page-header"><div><p class="eyebrow">GEUPDDONG ADMIN</p><h1>권한·감사 로그</h1><p>관리자 권한과 주요 운영 행위를 안전하게 관리합니다.</p></div><a class="secondary-link" href="/">운영 현황으로</a></header>
+
+    <section class="panel security-panel">
+      <div class="panel-title"><div><h2>사용자·관리자 권한</h2><p>사용자를 검색하고 ADMIN 역할을 부여하거나 회수합니다.</p></div></div>
+      <div class="security-toolbar">
+        <input id="user-keyword" type="search" placeholder="이름 또는 이메일 검색" autocomplete="off" />
+        <select id="user-role" aria-label="역할"><option value="">전체 역할</option><option value="ADMIN">관리자</option><option value="USER">사용자</option></select>
+        <select id="user-status" aria-label="계정 상태"><option value="">전체 상태</option><option value="ACTIVE">활성</option><option value="SUSPENDED">정지</option><option value="WITHDRAWN">탈퇴</option></select>
+        <button id="user-refresh" class="secondary-button" type="button">조회</button>
+      </div>
+      <p id="user-status-text" class="status" role="status">사용자를 불러오는 중입니다.</p>
+      <div class="table-wrap"><table><thead><tr><th>사용자</th><th>이메일</th><th>상태</th><th>역할</th><th>최근 로그인</th><th>관리</th></tr></thead><tbody id="user-list"></tbody></table></div>
+      <nav id="user-pagination" class="report-pagination" aria-label="사용자 페이지 이동"></nav>
+      <p class="security-note">자신의 ADMIN 역할과 마지막 남은 ADMIN 역할은 회수할 수 없습니다. 회수된 역할은 다음 토큰 재발급부터 반영되며 기존 access token은 최대 15분 안에 만료됩니다.</p>
+    </section>
+
+    <section class="panel security-panel">
+      <div class="panel-title"><div><h2>감사 로그</h2><p>역할 변경과 제보 승인·반려 이력을 기간·행위·관리자별로 조회합니다.</p></div></div>
+      <div class="security-toolbar audit-toolbar">
+        <label><span>기간</span><input id="audit-from" type="date" /><span>~</span><input id="audit-to" type="date" /></label>
+        <select id="audit-action" aria-label="감사 행위"><option value="">전체 행위</option><option value="ROLE_GRANTED">권한 부여</option><option value="ROLE_REVOKED">권한 회수</option><option value="REPORT_APPROVED">제보 승인</option><option value="REPORT_REJECTED">제보 반려</option></select>
+        <input id="audit-actor" type="number" min="1" placeholder="관리자 ID" aria-label="행위 관리자 ID" />
+        <select id="audit-target" aria-label="대상 유형"><option value="">전체 대상</option><option value="USER">사용자</option><option value="TOILET_REPORT">제보</option></select>
+        <select id="audit-sort" aria-label="정렬"><option value="NEWEST">최신 순</option><option value="OLDEST">오래된 순</option></select>
+        <button id="audit-refresh" class="secondary-button" type="button">조회</button>
+      </div>
+      <p id="audit-status-text" class="status" role="status">감사 로그를 불러오는 중입니다.</p>
+      <div class="table-wrap"><table><thead><tr><th>일시</th><th>행위자</th><th>행위</th><th>대상</th><th>상세</th></tr></thead><tbody id="audit-list"></tbody></table></div>
+      <nav id="audit-pagination" class="report-pagination" aria-label="감사 로그 페이지 이동"></nav>
+    </section>
+  </main>
+  <script src="/security.js"></script>
+</body>
+</html>

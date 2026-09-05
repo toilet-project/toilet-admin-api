@@ -1,0 +1,30 @@
+.region-shell { max-width: 1600px; }
+.region-toolbar { display:flex; align-items:end; gap:12px; flex-wrap:wrap; }
+.region-toolbar label { display:grid; gap:6px; font-size:13px; font-weight:700; }
+.region-toolbar label:first-child { flex:1; min-width:180px; }
+.region-toolbar input,.region-toolbar select,.region-detail input,.region-detail textarea { width:100%; border:1px solid #cbded3; border-radius:9px; padding:10px; font:inherit; min-height:42px; background:white; color:#163528; }
+.region-notice { font-size:13px; line-height:1.65; color:#586c60; background:#f1f7f3; padding:12px; border-radius:10px; }
+.region-layout { display:grid; grid-template-columns:minmax(260px,340px) minmax(0,1fr); gap:24px; align-items:start; }
+#region-list { display:grid; gap:8px; }
+.region-item { display:grid; gap:7px; text-align:left; padding:14px; background:#fff; color:#183b28; border:1px solid #dce9e1; border-radius:12px; min-width:0; }
+.region-item strong,.region-item small { overflow-wrap:anywhere; }
+.region-item[aria-pressed=true] { border-color:#168148; background:#f0faf4; box-shadow:inset 3px 0 #168148; }
+.region-badge { font-size:12px; font-weight:700; color:#805019; background:#fff2df; border-radius:6px; padding:4px 8px; justify-self:start; }
+.region-badge.verified { color:#136538; background:#e5f5eb; }
+.region-detail { min-width:0; border:1px solid #dce9e1; border-radius:14px; padding:20px; }
+.region-detail h2 { font-size:23px; margin-bottom:10px; overflow-wrap:anywhere; }
+.region-detail dl { display:grid; grid-template-columns:110px minmax(0,1fr); gap:9px; font-size:14px; line-height:1.6; }
+.region-detail dt { color:#62776b; }.region-detail dd { margin:0; overflow-wrap:anywhere; }
+.region-detail summary { cursor:pointer; font-weight:700; padding:12px 0; }
+.region-detail pre { max-height:260px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; padding:12px; background:#f2f6f3; font-size:12px; }
+.region-detail fieldset { border:1px solid #dce9e1; border-radius:12px; padding:14px; margin:18px 0; min-width:0; }
+.region-detail legend { font-weight:800; }.region-detail label { display:grid; gap:6px; margin-top:12px; font-size:14px; }
+.region-map { height:390px; margin-top:12px; border-radius:10px; background:#edf3ef; }
+.region-map-toolbar { display:flex; gap:8px; }.region-map-toolbar input { min-width:0; }.region-map-toolbar button { white-space:nowrap; }
+#region-candidates { display:grid; gap:5px; margin-top:8px; }#region-candidates button { text-align:left; background:#edf7f1; color:#22523a; }
+.region-detail button:disabled { opacity:.5; cursor:default; }
+#region-draft { display:block; margin:12px 0; font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
+#region-save { min-height:44px; margin-top:12px; width:100%; }
+.region-history-item { border-top:1px solid #e4ece7; padding:12px 0; font-size:13px; }
+.region-history-item p { margin:6px 0; overflow-wrap:anywhere; }
+@media(max-width:900px){.region-layout{grid-template-columns:1fr}.region-map{height:330px}.region-detail{padding:14px}.region-shell{padding:24px 12px}.region-detail dl{grid-template-columns:85px minmax(0,1fr)}}

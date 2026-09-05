@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>급똥 관리자 | 행정구역 검토</title><link rel="stylesheet" href="/dashboard.css"/><link rel="stylesheet" href="/regions.css"/></head>
+<body>
+<main id="loading-shell" class="page-loading" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
+<main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
+<main id="region-shell" class="dashboard-shell region-shell" hidden>
+  <header class="page-header"><div><p class="eyebrow">DATA QUALITY</p><h1>행정구역 검토</h1><p>좌표와 주소의 판정 근거를 확인하고, 필요한 위치만 수정합니다.</p></div><a class="secondary-link" href="/">운영 현황으로</a></header>
+  <section class="panel">
+    <div class="region-toolbar"><label>검색<input id="region-search" type="search" maxlength="100" placeholder="화장실명·주소·관리번호"/></label><label>판정 상태<select id="region-filter"><option value="REVIEW">검토 대상 전체</option><option value="MISMATCH">지역 불일치</option><option value="ADDRESS_UNVERIFIED">주소 검증 불확실</option><option value="REVERSE_FAILED">역조회·코드 충돌</option><option value="NO_COORDINATE">좌표 미입력</option><option value="STALE">변경 후 재판정 대기</option><option value="UNASSESSED">최초 판정 대기</option><option value="VERIFIED">검증 통과</option><option value="ALL">전체</option></select></label><button id="region-refresh" type="button">새로고침</button></div>
+    <p class="region-notice">지역 코드는 좌표에서 파생됩니다. 코드 충돌을 임의로 통과 처리하지 않으며, 위치 변경 후 자동 워커가 재판정합니다. 대기량·API 한도에 따라 반영이 지연될 수 있습니다.</p>
+    <p id="region-status" class="status" role="status"></p>
+    <div class="region-layout"><section><div id="region-list"></div><nav id="region-pages" class="report-pagination" aria-label="행정구역 목록 페이지"></nav></section><section id="region-detail" class="region-detail"><p class="empty-state">목록에서 검토할 화장실을 선택해 주세요.</p></section></div>
+  </section>
+</main>
+<script src="/regions.js"></script>
+</body></html>

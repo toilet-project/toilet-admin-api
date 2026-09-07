@@ -20,6 +20,8 @@
 
 정상·최초 배포·lock 충돌·image 확인 실패·Compose config/pull/up 실패·health HTTP 실패/DOWN/잘못된 JSON 총10가지 시나리오. 기존 설정 백업, 실패 이후 up 미실행, 최대30회 health, 배포 up 최대1회를 검사한다. 실제 flock 경합이나 Docker 배포 성공을 대신하지 않는다.
 
+PR의 `Deployment safety checks`도 같은 합성 시나리오를 Linux에서 실행한다. 저장소 Secret·운영 SSH·Docker Hub 로그인 없이 contents 읽기 권한만 사용하며 실제 배포를 실행하지 않는다. YAML 파서만 임시 디렉터리에 설치한다.
+
 ## 운영 적용 전 확인
 
 1. 다른 배포 없음·main 차이 재검토·서버 flock/curl/python3/Compose --wait 지원 확인.

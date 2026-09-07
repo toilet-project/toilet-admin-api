@@ -4,6 +4,13 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: toilet-admin-production
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -39,10 +46,12 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:${{ github.sha }}
 
-      # 6. 미니 PC에 SSH 접속하여 배포 실행 (.env 자동 생성 및 Prune 옵션 변경)
-      - name: Deploy to Mini PC via SSH Password
+      # 기존 SSH 연결은 유지한다. Tunnel 연결 변경은 별도 검토한다.
+      - name: Deploy to Mini PC via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.MINI_PC_HOST }}
@@ -50,8 +59,33 @@ jobs:
           username: ${{ secrets.MINI_PC_USERNAME }}
           key: ${{ secrets.MINI_PC_KEY }}
           script: |
+            set -eu
+            umask 077
+            trap 'rc=$?; if [ "$rc" -ne 0 ]; then printf "%s\n" "Admin deployment failed. Preserve rollback files; inspect before retrying." >&2; fi; exit "$rc"' EXIT
+            command -v flock >/dev/null
+            command -v curl >/dev/null
+            command -v python3 >/dev/null
             mkdir -p ~/toilet-admin
             cd ~/toilet-admin
+            exec 9>.deploy.lock
+            flock -n 9
+
+            # Backup before overwriting configuration or pulling/replacing an image.
+            rollback_dir=$(mktemp -d "$PWD/rollback-preparation.XXXXXXXX")
+            for file in .env docker-compose.yml; do
+              if [ -f "$file" ]; then
+                cp -- "$file" "$rollback_dir/"
+                chmod 600 "$rollback_dir/$file"
+              fi
+            done
+            if docker container inspect toilet-admin >/dev/null 2>&1; then
+              previous_image=$(docker container inspect --format '{{.Image}}' toilet-admin)
+              docker image inspect "$previous_image" >/dev/null
+              printf '%s\n' "$previous_image" > "$rollback_dir/admin-image-id"
+              rollback_tag="geupddong-admin-rollback:$(basename "$rollback_dir")"
+              docker image tag "$previous_image" "$rollback_tag"
+              printf '%s\n' "$rollback_tag" > "$rollback_dir/admin-image-tag"
+            fi
 
             # 관리자 컨테이너는 Docker 네트워크 안에서 MySQL 컨테이너 이름으로 접속한다.
             # 외부/LAN DB 주소 시크릿은 컨테이너 내부에서 접근할 수 없으므로 호스트 부분만 치환한다.
@@ -73,7 +107,7 @@ jobs:
             cat <<EOF > docker-compose.yml
             services:
               toilet-admin:
-                image: ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:latest
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:${{ github.sha }}
                 container_name: toilet-admin
                 restart: unless-stopped
                 env_file:
@@ -92,7 +126,24 @@ jobs:
               toilet-network:
                 external: true
             EOF
-            
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker image prune -af --filter "until=24h"
+
+            docker compose config --quiet
+            docker compose pull toilet-admin
+            docker compose up -d --wait --wait-timeout 120 toilet-admin
+            # Without a container healthcheck, compose --wait only guarantees running.
+            # Require the actual application's local health endpoint to report UP.
+            attempt=0
+            healthy=false
+            while [ "$attempt" -lt 30 ]; do
+              if health_body=$(curl --fail --silent --max-time 3 "http://127.0.0.1:${{ secrets.ADMIN_PORT }}/actuator/health") &&
+                 printf '%s' "$health_body" | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null; then
+                healthy=true
+                break
+              fi
+              attempt=$((attempt + 1))
+              sleep 2
+            done
+            [ "$healthy" = true ]
+            printf '%s\n' 'Admin application health verified. Rollback materials retained.'
+            # No pruning and no automatic rollback/retry: other operational changes
+            # or a lost SSH connection must be inspected before another deployment.

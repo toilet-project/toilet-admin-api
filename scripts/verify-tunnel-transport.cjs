@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const {execFileSync, spawnSync} = require('node:child_process');
 const yaml = require(process.env.TUNNEL_YAML_MODULE || 'yaml');
 const root = path.resolve(__dirname, '..').replaceAll('\\', '/');
-const baselineCommit = '374705b36e2752a8f8fa3a00ac891c4db2d0af53';
+const baselineCommit = '471dd0cb9a097d00f5a574f9ea01eb7fcd6594a4';
 const baseline = yaml.parse(execFileSync('git', ['-c', 'safe.directory='+root, '-C', root, 'show', baselineCommit+':.github/workflows/deploy.yml'], {encoding:'utf8'}));
 const candidate = yaml.parse(fs.readFileSync(path.join(root,'.github/workflows/deploy.yml'),'utf8'));
 const {jobs:oldJobs,...oldWorkflow}=baseline;

@@ -1,0 +1,32 @@
+name: Deployment safety checks
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/deploy.yml'
+      - '.github/workflows/deployment-safety.yml'
+      - 'scripts/verify-deployment-safety.cjs'
+      - 'docs/deployment-rollback-safety.md'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-deployment-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install parser in temporary workspace
+        shell: bash
+        run: npm install --prefix "$RUNNER_TEMP/deployment-safety" --ignore-scripts --no-audit --no-fund --package-lock=false yaml@2.9.0
+      - name: Validate workflow and ten synthetic deployment scenarios
+        shell: bash
+        env:
+          DEPLOY_YAML_MODULE: ${{ runner.temp }}/deployment-safety/node_modules/yaml
+          DEPLOY_BASH: /bin/bash
+          DEPLOY_PYTHON: /usr/bin/python3
+        run: node scripts/verify-deployment-safety.cjs

@@ -1,0 +1,24 @@
+name: Health response contract
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/com/example/toiletadmin/global/controller/HealthCheckController.java'
+      - 'src/test/java/com/example/toiletadmin/global/controller/HealthCheckControllerTest.java'
+      - '.github/workflows/health-contract.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: |
+          chmod +x gradlew
+          ./gradlew test --tests '*HealthCheckControllerTest' --no-daemon --console=plain

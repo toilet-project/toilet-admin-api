@@ -28,6 +28,7 @@ public class CloudflareUsageService {
     private final String dashboardUrl;
     private final Clock clock;
     private volatile CacheEntry cache;
+    private volatile CloudflareUsageResponse lastSuccessfulUsage;
 
     @Autowired
     public CloudflareUsageService(
@@ -104,8 +105,10 @@ public class CloudflareUsageService {
             String message = maximum >= 100 ? "한도에 도달한 항목이 있습니다."
                     : maximum >= 80 ? "한도의 80% 이상 사용한 항목이 있습니다."
                     : "모든 항목이 한도의 80% 미만입니다.";
-            return new CloudflareUsageResponse(true, status, now, dailyResetAt, dashboardUrl,
+            CloudflareUsageResponse response = new CloudflareUsageResponse(true, status, now, now, dailyResetAt, dashboardUrl,
                     workersMetric, d1Metric, r2Metric, message);
+            lastSuccessfulUsage = response;
+            return response;
         } catch (RuntimeException exception) {
             log.warn("Cloudflare Analytics usage lookup failed: {}", exception.getClass().getSimpleName());
             return unavailable(now, dailyResetAt, "Cloudflare 이용량을 확인하지 못했습니다.");
@@ -143,11 +146,13 @@ public class CloudflareUsageService {
     }
 
     private CloudflareUsageResponse unavailable(Instant now, Instant dailyResetAt, String message) {
-        return new CloudflareUsageResponse(false, "UNAVAILABLE", now, dailyResetAt, dashboardUrl,
-                UsageMetric.of(0, workersDailyLimit, "requests"),
-                UsageMetric.of(0, d1RowsReadDailyLimit, "rows"),
-                UsageMetric.of(0, r2StorageByteLimit, "bytes"),
-                message);
+        CloudflareUsageResponse previous = lastSuccessfulUsage;
+        return new CloudflareUsageResponse(false, "UNAVAILABLE", now,
+                previous == null ? null : previous.lastSuccessfulAt(), dailyResetAt, dashboardUrl,
+                previous == null ? UsageMetric.of(0, workersDailyLimit, "requests") : previous.workersRequests(),
+                previous == null ? UsageMetric.of(0, d1RowsReadDailyLimit, "rows") : previous.d1RowsRead(),
+                previous == null ? UsageMetric.of(0, r2StorageByteLimit, "bytes") : previous.r2StorageBytes(),
+                previous == null ? message : message + " 마지막 성공 조회값을 표시합니다.");
     }
 
     private record CacheEntry(CloudflareUsageResponse response, Instant expiresAt) { }

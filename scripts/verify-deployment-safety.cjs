@@ -26,6 +26,8 @@ const secrets = {
   'secrets.SPRING_DB_USERNAME': 'fixture', 'secrets.SPRING_DB_PASSWORD': 'synthetic-only',
   'secrets.ADMIN_PORT': '8089', 'secrets.KAKAO_REST_API_KEY': 'fixture-rest',
   'secrets.KAKAO_JAVASCRIPT_KEY': 'fixture-js', 'secrets.DOCKERHUB_USERNAME': 'fixture',
+  'secrets.CLOUDFLARE_ACCOUNT_ID': '11111111111111111111111111111111',
+  'secrets.CLOUDFLARE_ANALYTICS_API_TOKEN': 'synthetic-cloudflare-token',
   'github.sha': '1111111111111111111111111111111111111111'
 };
 let script = source.replace(/\$\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => {

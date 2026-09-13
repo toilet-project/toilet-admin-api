@@ -6,6 +6,7 @@ public record CloudflareUsageResponse(
         boolean available,
         String status,
         Instant checkedAt,
+        Instant lastSuccessfulAt,
         Instant dailyResetAt,
         String dashboardUrl,
         UsageMetric workersRequests,

@@ -53,6 +53,7 @@ class CloudflareUsageServiceTest {
         assertThat(first.workersRequests().usedPercent()).isEqualTo(18);
         assertThat(first.d1RowsRead().used()).isEqualTo(620_000);
         assertThat(first.r2StorageBytes().used()).isEqualTo(800_003_000L);
+        assertThat(first.lastSuccessfulAt()).isEqualTo(Instant.parse("2026-09-13T01:30:00Z"));
         assertThat(first.dailyResetAt()).isEqualTo(Instant.parse("2026-09-14T00:00:00Z"));
         assertThat(cached).isSameAs(first);
         verify(client, times(1)).query(any(), any(), any(), any());
@@ -70,6 +71,38 @@ class CloudflareUsageServiceTest {
 
         assertThat(response.available()).isFalse();
         assertThat(response.status()).isEqualTo("UNAVAILABLE");
+        assertThat(response.lastSuccessfulAt()).isNull();
         assertThat(response.message()).contains("연동 설정");
+    }
+
+    @Test
+    void keepsTheLastSuccessfulValuesWhenARefreshFails() throws Exception {
+        CloudflareAnalyticsClient client = mock(CloudflareAnalyticsClient.class);
+        when(client.isConfigured()).thenReturn(true);
+        when(client.query(any(), any(), any(), any()))
+                .thenReturn(objectMapper.readTree("""
+                        {"data":{"viewer":{"accounts":[{
+                          "workersInvocationsAdaptive":[{"sum":{"requests":1200}}],
+                          "d1AnalyticsAdaptiveGroups":[],
+                          "r2StorageAdaptiveGroups":[]
+                        }]}}}
+                        """))
+                .thenThrow(new IllegalStateException("temporary failure"));
+        Clock clock = mock(Clock.class);
+        Instant firstCheck = Instant.parse("2026-09-13T01:30:00Z");
+        when(clock.instant()).thenReturn(firstCheck, firstCheck.plusSeconds(31));
+        CloudflareUsageService service = new CloudflareUsageService(
+                client, true, 30, 100_000, 5_000_000, 10_737_418_240L,
+                "https://dash.cloudflare.com/", clock);
+
+        var successful = service.getUsage();
+        var stale = service.getUsage();
+
+        assertThat(successful.available()).isTrue();
+        assertThat(stale.available()).isFalse();
+        assertThat(stale.workersRequests().used()).isEqualTo(1_200);
+        assertThat(stale.lastSuccessfulAt()).isEqualTo(firstCheck);
+        assertThat(stale.message()).contains("마지막 성공 조회값");
+        verify(client, times(2)).query(any(), any(), any(), any());
     }
 }

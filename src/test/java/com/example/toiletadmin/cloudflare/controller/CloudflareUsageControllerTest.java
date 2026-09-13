@@ -28,7 +28,7 @@ class CloudflareUsageControllerTest {
     void returnsUsageMetricsWithoutExposingCredentials() throws Exception {
         Instant checkedAt = Instant.parse("2026-09-13T01:30:00Z");
         given(cloudflareUsageService.getUsage()).willReturn(new CloudflareUsageResponse(
-                true, "UP", checkedAt, Instant.parse("2026-09-14T00:00:00Z"),
+                true, "UP", checkedAt, checkedAt, Instant.parse("2026-09-14T00:00:00Z"),
                 "https://dash.cloudflare.com/",
                 UsageMetric.of(18_420, 100_000, "requests"),
                 UsageMetric.of(620_000, 5_000_000, "rows"),
@@ -39,6 +39,7 @@ class CloudflareUsageControllerTest {
         mockMvc.perform(get("/api/admin/v1/cloudflare/usage"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.available").value(true))
+                .andExpect(jsonPath("$.lastSuccessfulAt").value("2026-09-13T01:30:00Z"))
                 .andExpect(jsonPath("$.workersRequests.used").value(18420))
                 .andExpect(jsonPath("$.d1RowsRead.limit").value(5000000))
                 .andExpect(jsonPath("$.r2StorageBytes.unit").value("bytes"));

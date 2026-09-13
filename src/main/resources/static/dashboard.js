@@ -179,9 +179,10 @@ async function loadCloudflare() {
       quotaMarkup('D1 행 읽기', data.d1RowsRead),
       quotaMarkup('R2 저장소', data.r2StorageBytes, true),
     ].join('')
+    const lastSuccess = data.lastSuccessfulAt ? ` · 마지막 성공 ${formatDateTime(data.lastSuccessfulAt)}` : ''
     el('cloudflare-note').textContent = data.available
       ? `${data.message} · 일일 한도 09:00 KST 초기화`
-      : data.message
+      : `${data.message}${lastSuccess}`
     return data.available
   } catch (error) {
     el('cloudflare-note').textContent = 'Cloudflare 이용량을 확인하지 못했습니다.'

@@ -175,7 +175,6 @@ async function loadCloudflare() {
     const data = await fetchJson('/api/admin/v1/cloudflare/usage')
     if (data.dashboardUrl) {
       el('cloudflare-link').href = data.dashboardUrl
-      if (el('cloudflare-sidebar-link')) el('cloudflare-sidebar-link').href = data.dashboardUrl
     }
     el('cloudflare-quotas').innerHTML = [
       quotaMarkup('Workers 요청', data.workersRequests),
@@ -285,7 +284,7 @@ async function loadReportReviews(page = 0) {
 }
 
 async function loadCoordinateReviews(page = 0) {
-  const query = new URLSearchParams({ status: 'PENDING', page: String(page), size: String(REVIEW_SIZE) })
+  const query = new URLSearchParams({ page: String(page), size: String(REVIEW_SIZE) })
   const data = await fetchJson(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates?${query}`, { credentials: 'include' })
   el('review-count-coordinates').innerHTML = `${number(data.totalElements)}<small>그룹</small>`
   el('review-note-coordinates').textContent = data.items.length ? `최대 ${number(data.items[0].toiletCount)}개 시설` : '확인할 그룹 없음'

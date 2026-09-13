@@ -44,25 +44,25 @@
       <nav class="admin-nav">
         <div class="admin-nav-group">
           <a class="admin-nav-link is-current" href="/" aria-current="page"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-dashboard"/></svg>운영 홈</a>
-          <a class="admin-nav-link" href="#review-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-inbox"/></svg>통합 업무함</a>
+          <a class="admin-nav-link" href="/inbox.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-inbox"/></svg>통합 업무함</a>
         </div>
         <div class="admin-nav-group">
           <p>데이터 관리</p>
-          <a class="admin-nav-link" href="https://geupddong.com/" target="_blank" rel="noreferrer"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg>화장실 데이터<span class="admin-nav-meta">지도</span></a>
+          <a class="admin-nav-link" href="/toilets.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg>화장실 데이터</a>
           <a class="admin-nav-link" href="/data-quality.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-scan-line"/></svg>데이터 품질</a>
           <a class="admin-nav-link" href="/regions.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg>행정구역 검토</a>
         </div>
         <div class="admin-nav-group">
           <p>서비스 운영</p>
-          <a class="admin-nav-link" href="#service-overview"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>수집·서비스 상태</a>
+          <a class="admin-nav-link" href="/operations.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>수집·서비스 상태</a>
           <a class="admin-nav-link" href="/security.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-users"/></svg>회원·권한</a>
           <a class="admin-nav-link" href="/batch-syncs.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-history"/></svg>운영 기록</a>
         </div>
         <div class="admin-nav-group">
           <p>워크스페이스</p>
-          <a class="admin-nav-link" href="#admin-navigation"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>전체 기능</a>
-          <a id="cloudflare-sidebar-link" class="admin-nav-link" href="https://dash.cloudflare.com/" target="_blank" rel="noreferrer"><svg class="admin-icon" aria-hidden="true"><use href="#icon-cloud"/></svg>Cloudflare<svg class="admin-icon admin-icon-end" aria-hidden="true"><use href="#icon-external"/></svg></a>
-          <span class="admin-nav-link is-disabled" aria-disabled="true"><svg class="admin-icon" aria-hidden="true"><use href="#icon-bell"/></svg>알림 센터<span class="admin-nav-meta">제안</span></span>
+          <a class="admin-nav-link" href="/features.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>전체 기능</a>
+          <a id="cloudflare-sidebar-link" class="admin-nav-link" href="/cloudflare.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-cloud"/></svg>Cloudflare</a>
+          <a class="admin-nav-link" href="/notifications.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-bell"/></svg>알림 센터<span class="admin-nav-meta">기초</span></a>
         </div>
       </nav>
 
@@ -80,7 +80,7 @@
             <label class="admin-search"><svg class="admin-icon" aria-hidden="true"><use href="#icon-search"/></svg><input id="menu-search" type="search" placeholder="메뉴·기능 검색" aria-label="관리자 메뉴 검색" autocomplete="off" /></label>
             <div id="menu-search-results" class="admin-search-results" hidden></div>
           </div>
-          <span class="admin-notification" title="알림 센터는 추가 예정입니다" aria-label="알림 센터 추가 예정"><svg class="admin-icon" aria-hidden="true"><use href="#icon-bell"/></svg><i></i></span>
+          <a class="admin-notification" href="/notifications.html" title="알림 센터" aria-label="알림 센터"><svg class="admin-icon" aria-hidden="true"><use href="#icon-bell"/></svg><i></i></a>
           <button id="refresh" class="home-refresh" type="button"><svg class="admin-icon" aria-hidden="true"><use href="#icon-refresh"/></svg>새로고침</button>
         </div>
       </header>
@@ -94,7 +94,7 @@
       </div>
       <div class="home-header-actions">
         <span class="home-total">등록 화장실 <strong id="home-total-toilets">-</strong>곳</span>
-        <a class="home-outline-link" href="#admin-navigation"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>전체 기능 보기</a>
+        <a class="home-outline-link" href="/features.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>전체 기능 보기</a>
       </div>
     </header>
     <p id="home-status" class="home-status" role="status">운영 데이터를 불러오는 중입니다.</p>
@@ -195,6 +195,6 @@
       </main>
     </div>
   </div>
-  <script src="/dashboard.js?v=4"></script>
+  <script src="/dashboard.js?v=5"></script>
 </body>
 </html>

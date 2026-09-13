@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급똥 관리자 | 운영 홈</title>
-  <link rel="stylesheet" href="/dashboard.css" />
-  <link rel="stylesheet" href="/home.css" />
+  <link rel="stylesheet" href="/dashboard.css?v=2" />
+  <link rel="stylesheet" href="/home.css?v=2" />
 </head>
 <body class="dashboard-home">
   <main id="loading-shell" class="page-loading" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
@@ -18,29 +18,90 @@
     </section>
   </main>
 
-  <main id="dashboard-shell" class="dashboard-shell home-shell" hidden>
+  <div id="dashboard-shell" class="admin-frame" hidden>
+    <svg class="admin-icon-sprite" aria-hidden="true">
+      <symbol id="icon-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+      <symbol id="icon-layout-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
+      <symbol id="icon-inbox" viewBox="0 0 24 24"><path d="M4 4h16l2 12v4H2v-4L4 4Z"/><path d="M2 16h5l2 2h6l2-2h5"/></symbol>
+      <symbol id="icon-map-pinned" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/><circle cx="15" cy="10" r="2"/></symbol>
+      <symbol id="icon-scan-line" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></symbol>
+      <symbol id="icon-activity" viewBox="0 0 24 24"><path d="M3 12h4l2-7 4 14 2-7h6"/></symbol>
+      <symbol id="icon-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+      <symbol id="icon-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+      <symbol id="icon-layout-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
+      <symbol id="icon-cloud" viewBox="0 0 24 24"><path d="M17.5 19H7a5 5 0 1 1 1-9.9A7 7 0 0 1 21 12.5 4.5 4.5 0 0 1 17.5 19Z"/></symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 7h-5V2M4 17h5v5"/><path d="M5.1 9A8 8 0 0 1 18.4 5.6L20 7M4 17l1.6 1.4A8 8 0 0 0 18.9 15"/></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+      <symbol id="icon-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+    </svg>
+    <aside id="admin-navigation" class="admin-sidebar" aria-label="관리자 메뉴">
+      <a class="admin-brand" href="/" aria-label="급똥 관리자 운영 홈">
+        <span class="admin-brand-mark" aria-hidden="true"><svg class="admin-icon"><use href="#icon-map-pin"/></svg></span>
+        <span><strong>급똥</strong><small>WORKSPACE</small></span>
+      </a>
+
+      <nav class="admin-nav">
+        <div class="admin-nav-group">
+          <a class="admin-nav-link is-current" href="/" aria-current="page"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-dashboard"/></svg>운영 홈</a>
+          <a class="admin-nav-link" href="#review-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-inbox"/></svg>통합 업무함</a>
+        </div>
+        <div class="admin-nav-group">
+          <p>데이터 관리</p>
+          <a class="admin-nav-link" href="https://geupddong.com/" target="_blank" rel="noreferrer"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg>화장실 데이터<span class="admin-nav-meta">지도</span></a>
+          <a class="admin-nav-link" href="/data-quality.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-scan-line"/></svg>데이터 품질</a>
+          <a class="admin-nav-link" href="/regions.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg>행정구역 검토</a>
+        </div>
+        <div class="admin-nav-group">
+          <p>서비스 운영</p>
+          <a class="admin-nav-link" href="#service-overview"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>수집·서비스 상태</a>
+          <a class="admin-nav-link" href="/security.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-users"/></svg>회원·권한</a>
+          <a class="admin-nav-link" href="/batch-syncs.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-history"/></svg>운영 기록</a>
+        </div>
+        <div class="admin-nav-group">
+          <p>워크스페이스</p>
+          <a class="admin-nav-link" href="#admin-navigation"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>전체 기능</a>
+          <a id="cloudflare-sidebar-link" class="admin-nav-link" href="https://dash.cloudflare.com/" target="_blank" rel="noreferrer"><svg class="admin-icon" aria-hidden="true"><use href="#icon-cloud"/></svg>Cloudflare<svg class="admin-icon admin-icon-end" aria-hidden="true"><use href="#icon-external"/></svg></a>
+          <span class="admin-nav-link is-disabled" aria-disabled="true"><svg class="admin-icon" aria-hidden="true"><use href="#icon-bell"/></svg>알림 센터<span class="admin-nav-meta">제안</span></span>
+        </div>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        <span class="admin-avatar" aria-hidden="true">운</span>
+        <span><strong>관리자</strong><small>운영 워크스페이스</small></span>
+      </div>
+    </aside>
+
+    <div class="admin-workspace">
+      <header class="admin-topbar">
+        <div class="admin-breadcrumb"><span>워크스페이스</span><i aria-hidden="true">/</i><strong>운영 홈</strong></div>
+        <div class="admin-topbar-actions">
+          <div class="admin-search-wrap">
+            <label class="admin-search"><svg class="admin-icon" aria-hidden="true"><use href="#icon-search"/></svg><input id="menu-search" type="search" placeholder="메뉴·기능 검색" aria-label="관리자 메뉴 검색" autocomplete="off" /></label>
+            <div id="menu-search-results" class="admin-search-results" hidden></div>
+          </div>
+          <span class="admin-notification" title="알림 센터는 추가 예정입니다" aria-label="알림 센터 추가 예정"><svg class="admin-icon" aria-hidden="true"><use href="#icon-bell"/></svg><i></i></span>
+          <button id="refresh" class="home-refresh" type="button"><svg class="admin-icon" aria-hidden="true"><use href="#icon-refresh"/></svg>새로고침</button>
+        </div>
+      </header>
+
+      <main class="dashboard-shell home-shell">
     <header class="home-header">
       <div>
-        <p class="eyebrow">GEUPDDONG ADMIN</p>
+        <p class="eyebrow">WORKSPACE OVERVIEW</p>
         <h1>운영 홈</h1>
         <p>서비스와 수집 상태, 확인할 운영 항목을 한눈에 봅니다.</p>
       </div>
       <div class="home-header-actions">
-        <nav class="home-nav" aria-label="관리자 주요 메뉴">
-          <a href="/reports.html">제보</a>
-          <a href="/data-quality.html">중복 좌표</a>
-          <a href="/regions.html">행정구역</a>
-          <a href="/batch-syncs.html">수집 이력</a>
-          <a href="/security.html">권한·감사</a>
-        </nav>
-        <button id="refresh" class="home-refresh" type="button">새로고침</button>
+        <span class="home-total">등록 화장실 <strong id="home-total-toilets">-</strong>곳</span>
+        <a class="home-outline-link" href="#admin-navigation"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>전체 기능 보기</a>
       </div>
     </header>
     <p id="home-status" class="home-status" role="status">운영 데이터를 불러오는 중입니다.</p>
 
-    <section class="home-top-grid" aria-label="핵심 운영 상태">
+    <section id="service-overview" class="home-top-grid" aria-label="핵심 운영 상태">
       <article class="home-card home-status-card" aria-labelledby="service-title">
-        <div class="home-card-heading"><h2 id="service-title">서비스 상태</h2><span id="service-overall" class="state state-loading">확인 중</span></div>
+        <div class="home-card-heading"><h2 id="service-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>서비스 상태</h2><span id="service-overall" class="state state-loading">확인 중</span></div>
         <dl class="home-definition-list">
           <div><dt>관리자 서비스</dt><dd id="service-admin">확인 중</dd></div>
           <div><dt>공개 API</dt><dd id="service-api">확인 중</dd></div>
@@ -51,7 +112,7 @@
       </article>
 
       <article class="home-card" aria-labelledby="batch-title">
-        <div class="home-card-heading"><h2 id="batch-title">배치 상태</h2><span id="batch-overall" class="state state-loading">확인 중</span></div>
+        <div class="home-card-heading"><h2 id="batch-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-refresh"/></svg>배치 상태</h2><span id="batch-overall" class="state state-loading">확인 중</span></div>
         <div class="home-emphasis"><span>마지막 수집 성공</span><strong id="batch-last">-</strong></div>
         <dl class="home-definition-list compact">
           <div><dt>실행 주기</dt><dd>매일 02:00 KST</dd></div>
@@ -61,7 +122,7 @@
       </article>
 
       <article class="home-card" aria-labelledby="cloudflare-title">
-        <div class="home-card-heading"><h2 id="cloudflare-title">Cloudflare 이용 한도</h2><a id="cloudflare-link" class="home-detail-link" href="https://dash.cloudflare.com/" target="_blank" rel="noreferrer">대시보드 ↗</a></div>
+        <div class="home-card-heading"><h2 id="cloudflare-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-cloud"/></svg>Cloudflare 이용 한도</h2><a id="cloudflare-link" class="home-detail-link" href="https://dash.cloudflare.com/" target="_blank" rel="noreferrer">대시보드 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
         <div id="cloudflare-quotas" class="quota-list" aria-live="polite">
           <div><div><span>Workers 요청</span><strong>-</strong></div><div class="quota-track"><i></i></div></div>
           <div><div><span>D1 행 읽기</span><strong>-</strong></div><div class="quota-track"><i></i></div></div>
@@ -74,7 +135,7 @@
     <section class="home-review-grid" aria-label="검토 현황과 추가 대시보드 영역">
       <article class="home-card review-board" aria-labelledby="review-title">
         <div class="review-heading">
-          <div><h2 id="review-title">검토 현황</h2><p>유형을 선택하면 우선 확인할 항목을 7건씩 표시합니다.</p></div>
+          <div><h2 id="review-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-inbox"/></svg>검토 현황</h2><p>유형을 선택하면 우선 확인할 항목을 7건씩 표시합니다.</p></div>
           <span>현재 기준</span>
         </div>
 
@@ -105,7 +166,7 @@
       </article>
 
       <article class="home-card dashboard-slot" aria-labelledby="dashboard-slot-title">
-        <div class="home-card-heading"><h2 id="dashboard-slot-title">대시보드</h2><span class="home-muted">추가 영역</span></div>
+        <div class="home-card-heading"><h2 id="dashboard-slot-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>대시보드</h2><span class="home-muted">추가 영역</span></div>
         <div class="dashboard-slot-body"><span aria-hidden="true">＋</span><strong>대시보드 카드 영역</strong><p>운영에 필요한 지표를 추가할 수 있습니다.</p></div>
       </article>
     </section>
@@ -113,7 +174,7 @@
     <section class="home-bottom-grid" aria-label="수집 현황">
       <article class="home-card period-card" aria-labelledby="period-title">
         <div class="home-card-heading">
-          <div><h2 id="period-title">수집 요약</h2><p id="period-dates" class="period-dates">-</p></div>
+          <div><h2 id="period-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-dashboard"/></svg>수집 요약</h2><p id="period-dates" class="period-dates">-</p></div>
           <div class="period-switch" role="group" aria-label="수집 요약 기간"><button type="button" data-period="1" aria-pressed="false">1일</button><button type="button" data-period="7" aria-pressed="true">7일</button><button type="button" data-period="30" aria-pressed="false">30일</button></div>
         </div>
         <div class="period-metrics" aria-live="polite">
@@ -126,12 +187,14 @@
       </article>
 
       <article class="home-card recent-card" aria-labelledby="recent-title">
-        <div class="home-card-heading"><h2 id="recent-title">최근 수집 이력</h2><a class="home-detail-link" href="/batch-syncs.html">전체 보기 ↗</a></div>
+        <div class="home-card-heading"><h2 id="recent-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-history"/></svg>최근 수집 이력</h2><a class="home-detail-link" href="/batch-syncs.html">전체 보기 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
         <div class="recent-table-wrap"><table class="recent-table"><caption>최근 배치 실행 결과</caption><thead><tr><th scope="col">완료 시각</th><th scope="col">상태</th><th scope="col">신규</th><th scope="col">수정</th></tr></thead><tbody id="recent-list"><tr><td colspan="4" class="home-empty">이력을 불러오는 중입니다.</td></tr></tbody></table></div>
         <p id="recent-note" class="home-card-note">최근 5회 결과를 확인하고 있습니다.</p>
       </article>
     </section>
-  </main>
-  <script src="/dashboard.js"></script>
+      </main>
+    </div>
+  </div>
+  <script src="/dashboard.js?v=2"></script>
 </body>
 </html>

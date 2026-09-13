@@ -173,7 +173,10 @@ function quotaMarkup(label, metric, bytes = false) {
 async function loadCloudflare() {
   try {
     const data = await fetchJson('/api/admin/v1/cloudflare/usage')
-    if (data.dashboardUrl) el('cloudflare-link').href = data.dashboardUrl
+    if (data.dashboardUrl) {
+      el('cloudflare-link').href = data.dashboardUrl
+      if (el('cloudflare-sidebar-link')) el('cloudflare-sidebar-link').href = data.dashboardUrl
+    }
     el('cloudflare-quotas').innerHTML = [
       quotaMarkup('Workers 요청', data.workersRequests),
       quotaMarkup('D1 행 읽기', data.d1RowsRead),
@@ -372,6 +375,7 @@ async function loadDashboard() {
     const data = await fetchJson(`/api/admin/v1/dashboard?${query}`)
     const batch = data.batch
     const runs = batch.successfulRuns + batch.failedRuns
+    if (batch.totalToiletCount != null) el('home-total-toilets').textContent = number(batch.totalToiletCount)
     el('period-dates').textContent = state.period === 1 ? `${data.to} · 오늘` : `${data.from} – ${data.to} · 최근 ${state.period}일`
     el('period-runs').textContent = number(runs)
     el('period-new').textContent = number(batch.insertedRecords)
@@ -442,6 +446,38 @@ function bindEvents() {
       window.location.assign(row.dataset.href)
     }
   })
+  const menuSearch = el('menu-search')
+  const menuResults = el('menu-search-results')
+  if (menuSearch && menuResults) {
+    const links = [...document.querySelectorAll('.admin-nav-link[href]')]
+    const closeSearch = () => {
+      menuResults.hidden = true
+      menuResults.replaceChildren()
+    }
+    menuSearch.addEventListener('input', () => {
+      const query = menuSearch.value.trim().toLocaleLowerCase('ko-KR')
+      if (!query) return closeSearch()
+      const matches = links.filter((link) => link.textContent.toLocaleLowerCase('ko-KR').includes(query)).slice(0, 7)
+      menuResults.replaceChildren(...(matches.length ? matches.map((link) => {
+        const result = document.createElement('a')
+        result.href = link.href
+        result.textContent = link.textContent.trim()
+        if (link.target) result.target = link.target
+        if (link.rel) result.rel = link.rel
+        return result
+      }) : [Object.assign(document.createElement('span'), { textContent: '일치하는 메뉴가 없습니다.' })]))
+      menuResults.hidden = false
+    })
+    menuSearch.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        menuSearch.value = ''
+        closeSearch()
+      }
+    })
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.admin-search-wrap')) closeSearch()
+    })
+  }
 }
 
 async function bootstrap() {

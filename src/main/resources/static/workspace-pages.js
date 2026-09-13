@@ -30,20 +30,6 @@
     return value === 'UP' || value === 'SUCCESS' ? '정상' : value === 'STALE' ? '지연' : value === 'UNKNOWN' ? '확인 필요' : '이상'
   }
 
-  async function loadInbox() {
-    const targets = [
-      ['inbox-report-count', `${API_BASE}/api/admin/v1/reports/summary`, (data) => data.pendingCount, '건'],
-      ['inbox-quality-count', `${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates?page=0&size=1`, (data) => data.totalElements, '그룹'],
-      ['inbox-region-count', `${API_BASE}/api/admin/v1/regions?status=REVIEW&page=0&size=1`, (data) => data.totalElements, '건'],
-    ]
-    const results = await Promise.allSettled(targets.map(([, url]) => json(url)))
-    results.forEach((result, index) => {
-      const [id, , pick, unit] = targets[index]
-      setText(id, result.status === 'fulfilled' ? `${number(pick(result.value))}${unit}` : '확인 필요')
-    })
-    setText('workspace-status', results.every((result) => result.status === 'fulfilled') ? '현재 검토 대상을 불러왔습니다.' : '권한 또는 연동 상태에 따라 일부 건수는 상세 화면에서 확인해 주세요.')
-  }
-
   async function loadToilets() {
     const day = today()
     try {
@@ -52,7 +38,7 @@
       setText('toilet-last-sync', dateTime(data.batch.lastSuccessAt))
       setText('workspace-status', '현재 등록 데이터 기준입니다.')
     } catch {
-      setText('workspace-status', '등록 현황을 불러오지 못했습니다. 사용자 지도와 데이터 품질 화면은 사용할 수 있습니다.')
+      setText('workspace-status', '등록 현황을 불러오지 못했습니다. 사용자 지도와 중복 좌표 품질 관리 화면은 사용할 수 있습니다.')
     }
   }
 
@@ -121,7 +107,6 @@
       if (!profile.roles?.includes('ADMIN')) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.')
       byId('loading-shell').hidden = true
       main.hidden = false
-      if (page === 'inbox') await loadInbox()
       if (page === 'toilets') await loadToilets()
       if (page === 'operations') await loadOperations()
       if (page === 'cloudflare') await loadCloudflare()

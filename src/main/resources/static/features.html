@@ -6,6 +6,7 @@
   <title>전체 기능 | 급똥 관리자</title>
   <link rel="stylesheet" href="/dashboard.css?v=5" />
   <link rel="stylesheet" href="/admin-shell.css?v=2" />
+  <link rel="stylesheet" href="/admin-session.css?v=1" />
 </head>
 <body class="admin-page">
   <main id="loading-shell" class="page-loading"><span class="loading-spinner"></span><p>불러오는 중...</p></main>
@@ -19,8 +20,8 @@
 
     <section class="feature-directory-summary" aria-label="관리자 기능 요약">
       <span class="feature-summary-icon"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-grid" /></svg></span>
-      <div class="feature-summary-copy"><strong>관리자 워크스페이스</strong><p>운영 확인부터 데이터 검토, 수집 이력, 계정 관리까지 11개 화면을 연결했습니다.</p></div>
-      <dl class="feature-summary-stats"><div><dt>검토·데이터</dt><dd>6</dd></div><div><dt>서비스 운영</dt><dd>3</dd></div><div><dt>계정·알림</dt><dd>2</dd></div></dl>
+      <div class="feature-summary-copy"><strong>관리자 워크스페이스</strong><p>운영 확인부터 데이터 검토, 수집 이력, 회원과 권한 관리까지 11개 내부 화면을 연결했습니다.</p></div>
+      <dl class="feature-summary-stats"><div><dt>운영·현황</dt><dd>4</dd></div><div><dt>데이터 관리</dt><dd>4</dd></div><div><dt>계정·알림</dt><dd>3</dd></div></dl>
     </section>
 
     <section class="feature-groups" aria-label="업무별 기능 목록">
@@ -28,11 +29,10 @@
         <header class="feature-group-head">
           <span class="feature-group-icon" data-tone="green"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-dashboard" /></svg></span>
           <div><h2>빠른 시작</h2><p>오늘 확인할 운영 현황과 검토 업무를 시작합니다.</p></div>
-          <span class="feature-group-count">2</span>
+          <span class="feature-group-count">1</span>
         </header>
         <div class="feature-items">
           <a class="feature-item" href="/"><span class="feature-item-icon" data-tone="green"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-dashboard" /></svg></span><span class="feature-item-copy"><span><strong>운영 홈</strong><em class="feature-tag is-live">운영</em></span><small>서비스·배치·검토·수집 상태를 한눈에 확인</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
-          <a class="feature-item" href="/inbox.html"><span class="feature-item-icon" data-tone="amber"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-inbox" /></svg></span><span class="feature-item-copy"><span><strong>통합 업무함</strong><em class="feature-tag is-live">운영</em></span><small>제보·중복 좌표·행정구역 검토의 공통 시작점</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
         </div>
       </article>
 
@@ -40,11 +40,12 @@
         <header class="feature-group-head">
           <span class="feature-group-icon" data-tone="blue"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-map" /></svg></span>
           <div><h2>데이터 관리</h2><p>공개되는 화장실 데이터와 품질 검토 항목을 관리합니다.</p></div>
-          <span class="feature-group-count">4</span>
+          <span class="feature-group-count">5</span>
         </header>
         <div class="feature-items">
           <a class="feature-item" href="/toilets.html"><span class="feature-item-icon" data-tone="blue"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-map" /></svg></span><span class="feature-item-copy"><span><strong>화장실 데이터</strong><em class="feature-tag is-base">기초</em></span><small>전체 등록 규모와 마지막 데이터 반영 시각 확인</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
-          <a class="feature-item" href="/data-quality.html"><span class="feature-item-icon" data-tone="violet"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-scan" /></svg></span><span class="feature-item-copy"><span><strong>중복 좌표 품질</strong><em class="feature-tag is-live">운영</em></span><small>같은 좌표의 시설을 많은 순으로 검토하고 판정</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
+          <a class="feature-item" href="/reports.html"><span class="feature-item-icon" data-tone="amber"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-inbox" /></svg></span><span class="feature-item-copy"><span><strong>제보 검토</strong><em class="feature-tag is-live">운영</em></span><small>사용자 제보를 접수 순서와 상태별로 확인하고 처리</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
+          <a class="feature-item" href="/data-quality.html"><span class="feature-item-icon" data-tone="violet"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-scan" /></svg></span><span class="feature-item-copy"><span><strong>중복 좌표 품질 관리</strong><em class="feature-tag is-live">운영</em></span><small>같은 좌표의 시설을 많은 순으로 검토하고 판정</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
           <a class="feature-item" href="/regions.html"><span class="feature-item-icon" data-tone="amber"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-map" /></svg></span><span class="feature-item-copy"><span><strong>행정구역 검토</strong><em class="feature-tag is-live">운영</em></span><small>주소·좌표·지역 코드의 판정 근거와 불일치 확인</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
           <a class="feature-item" href="https://geupddong.com/" target="_blank" rel="noreferrer"><span class="feature-item-icon" data-tone="gray"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-map-pin" /></svg></span><span class="feature-item-copy"><span><strong>사용자 지도</strong><em class="feature-tag is-external">외부</em></span><small>실제 사용자에게 보이는 공개 화장실 지도 확인</small></span><span class="feature-arrow" aria-hidden="true">↗</span></a>
         </div>
@@ -67,16 +68,17 @@
         <header class="feature-group-head">
           <span class="feature-group-icon" data-tone="amber"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-users" /></svg></span>
           <div><h2>계정과 알림</h2><p>관리자 접근 권한과 운영 알림을 관리합니다.</p></div>
-          <span class="feature-group-count">2</span>
+          <span class="feature-group-count">3</span>
         </header>
         <div class="feature-items">
-          <a class="feature-item" href="/security.html"><span class="feature-item-icon" data-tone="violet"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-users" /></svg></span><span class="feature-item-copy"><span><strong>회원·권한</strong><em class="feature-tag is-live">운영</em></span><small>ADMIN 역할과 주요 운영 행위 감사 로그 관리</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
+          <a class="feature-item" href="/members.html"><span class="feature-item-icon" data-tone="blue"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-users" /></svg></span><span class="feature-item-copy"><span><strong>회원 관리</strong><em class="feature-tag is-live">운영</em></span><small>가입 회원 검색과 계정 상태, 최근 이용 정보 확인</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
+          <a class="feature-item" href="/permissions.html"><span class="feature-item-icon" data-tone="violet"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-shield" /></svg></span><span class="feature-item-copy"><span><strong>권한 관리</strong><em class="feature-tag is-live">운영</em></span><small>ADMIN 역할 부여·회수와 운영 감사 이력 확인</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
           <a class="feature-item" href="/notifications.html"><span class="feature-item-icon" data-tone="gray"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-bell" /></svg></span><span class="feature-item-copy"><span><strong>알림 센터</strong><em class="feature-tag is-base">기초</em></span><small>서비스 이상·배치 실패·한도 경고를 모을 준비 화면</small></span><span class="feature-arrow" aria-hidden="true">→</span></a>
         </div>
       </article>
     </section>
   </main>
 
-  <script src="/admin-shell.js?v=1"></script><script src="/workspace-pages.js?v=1"></script>
+  <script src="/admin-shell.js?v=2"></script><script src="/admin-session.js?v=1"></script><script src="/workspace-pages.js?v=2"></script>
 </body>
 </html>

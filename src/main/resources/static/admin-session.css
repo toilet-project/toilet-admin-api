@@ -1,0 +1,25 @@
+.admin-session-controls { display: flex; align-items: center; gap: 6px; }
+.admin-session-time { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; padding: 0 9px; border: 1px solid var(--admin-line, #e4ebe6); border-radius: 7px; background: #fff; color: var(--admin-muted, #6c7c74); font-size: 10.5px; white-space: nowrap; }
+.admin-session-time svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.admin-session-time strong { min-width: 36px; color: var(--admin-text, #20372d); font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; }
+.admin-session-controls.is-warning .admin-session-time { border-color: #e9c994; background: #fff9ef; color: #9a651c; }
+.admin-session-controls.is-expired .admin-session-time { border-color: #e2bdb5; background: #fff5f2; color: var(--admin-red, #b75540); }
+.admin-session-action { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; padding: 0 10px; border: 1px solid var(--admin-line, #e4ebe6); border-radius: 7px; background: #fff; color: var(--admin-text, #20372d); font: inherit; font-size: 10.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.admin-session-action:hover { border-color: #b7cfc0; background: var(--admin-tint, #eaf4ed); color: var(--admin-accent, #26734e); }
+.admin-session-action.is-logout { color: var(--admin-muted, #6c7c74); }
+.admin-session-action:disabled { cursor: wait; opacity: .55; }
+.admin-session-message { position: absolute; top: calc(100% + 7px); right: 24px; z-index: 10; padding: 8px 11px; border: 1px solid var(--admin-line, #e4ebe6); border-radius: 8px; background: #fff; box-shadow: 0 8px 22px rgba(27,57,42,.12); color: var(--admin-text, #20372d); font-size: 11px; }
+@media (max-width: 1120px) {
+  .admin-session-time span { display: none; }
+  .admin-session-action { padding: 0 8px; }
+}
+@media (max-width: 760px) {
+  .admin-session-controls { margin-left: auto; }
+  .admin-session-time { padding: 0 7px; }
+  .admin-session-action { min-height: 32px; font-size: 10px; }
+  .admin-session-message { right: 14px; }
+}
+@media (max-width: 540px) {
+  .admin-session-time { display: none; }
+  .admin-session-action { padding: 0 7px; }
+}

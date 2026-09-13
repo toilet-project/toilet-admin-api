@@ -18,6 +18,7 @@
       <symbol id="admin-icon-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></symbol>
       <symbol id="admin-icon-activity" viewBox="0 0 24 24"><path d="M3 12h4l2-7 4 14 2-7h6"/></symbol>
       <symbol id="admin-icon-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+      <symbol id="admin-icon-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></symbol>
       <symbol id="admin-icon-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
       <symbol id="admin-icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
       <symbol id="admin-icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
@@ -27,9 +28,9 @@
     <aside class="admin-sidebar" aria-label="관리자 메뉴">
       <a class="admin-brand" href="/" aria-label="급똥 관리자 운영 홈"><span class="admin-brand-mark">${icon('map-pin')}</span><span><strong>급똥</strong><small>WORKSPACE</small></span></a>
       <nav class="admin-nav" aria-label="업무별 탐색">
-        <div class="admin-nav-group">${nav('home','/','운영 홈','dashboard')}${nav('inbox','/inbox.html','통합 업무함','inbox')}</div>
-        <div class="admin-nav-group"><p>데이터 관리</p>${nav('toilets','/toilets.html','화장실 데이터','map')}${nav('quality','/data-quality.html','데이터 품질','scan')}${nav('regions','/regions.html','행정구역 검토','map')}</div>
-        <div class="admin-nav-group"><p>서비스 운영</p>${nav('operations','/operations.html','수집·서비스 상태','activity')}${nav('security','/security.html','회원·권한','users')}${nav('history','/batch-syncs.html','운영 기록','history')}</div>
+        <div class="admin-nav-group">${nav('home','/','운영 홈','dashboard')}</div>
+        <div class="admin-nav-group"><p>데이터 관리</p>${nav('toilets','/toilets.html','화장실 데이터','map')}${nav('reports','/reports.html','제보 검토','inbox')}${nav('quality','/data-quality.html','중복 좌표 품질 관리','scan')}${nav('regions','/regions.html','행정구역 검토','map')}</div>
+        <div class="admin-nav-group"><p>서비스 운영</p>${nav('operations','/operations.html','수집·서비스 상태','activity')}${nav('members','/members.html','회원 관리','users')}${nav('permissions','/permissions.html','권한 관리','shield')}${nav('history','/batch-syncs.html','배치 실행 이력','history')}</div>
         <div class="admin-nav-group"><p>워크스페이스</p>${nav('features','/features.html','전체 기능','grid')}${nav('cloudflare','/cloudflare.html','Cloudflare','cloud')}${nav('notifications','/notifications.html','알림 센터','bell','기초')}</div>
       </nav>
       <div class="admin-sidebar-footer"><span class="admin-avatar">운</span><span><strong>관리자</strong><small>운영 워크스페이스</small></span></div>

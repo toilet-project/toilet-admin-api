@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const source = join(root, 'src', 'main', 'resources', 'static')
 const outputRoot = join(root, 'build', 'admin-preview-assets')
-const output = join(outputRoot, 'admin')
+const output = join(outputRoot, 'preview')
 
 async function files(directory) {
   const entries = await readdir(directory, { withFileTypes: true })
@@ -18,22 +18,21 @@ async function files(directory) {
 
 export function previewHtml(content) {
   let result = content
-    .replaceAll('returnTo=admin', 'returnTo=preview')
-    .replaceAll('href="/', 'href="/admin/')
-    .replaceAll('src="/', 'src="/admin/')
-    .replace(/url=\/permissions\.html/gi, 'url=/admin/permissions.html')
+    .replaceAll('href="/', 'href="/preview/')
+    .replaceAll('src="/', 'src="/preview/')
+    .replace(/url=\/permissions\.html/gi, 'url=/preview/permissions.html')
 
-  const runtime = '<script src="/admin/admin-preview-runtime.js?v=1"></script>'
+  const runtime = '<script src="/preview/admin-preview-runtime.js?v=2"></script>'
   result = result.replace(/<body([^>]*)>/i, (body) => `${body}\n  ${runtime}`)
   return result
 }
 
 export function previewJavaScript(content) {
   return content
-    .replace(/(["'`])\/([a-z0-9-]+\.html)/gi, '$1/admin/$2')
-    .replaceAll("'/'", "'/admin/'")
-    .replaceAll('"/"', '"/admin/"')
-    .replaceAll('`/`', '`/admin/`')
+    .replace(/(["'`])\/([a-z0-9-]+\.html)/gi, '$1/preview/$2')
+    .replaceAll("'/'", "'/preview/'")
+    .replaceAll('"/"', '"/preview/"')
+    .replaceAll('`/`', '`/preview/`')
 }
 
 await rm(outputRoot, { recursive: true, force: true })
@@ -53,7 +52,7 @@ for (const path of await files(source)) {
   }
 }
 
-await writeFile(join(outputRoot, '_headers'), `/admin/*
+await writeFile(join(outputRoot, '_headers'), `/preview/*
   Cache-Control: no-store
   Content-Security-Policy: default-src 'self'; base-uri 'self'; connect-src 'self' https://api.geupddong.com https://admin.geupddong.com https://*.kakao.com https://*.daum.net https://*.daumcdn.net; font-src 'self' data:; frame-ancestors 'none'; img-src 'self' data: blob: https:; object-src 'none'; script-src 'self' https://dapi.kakao.com; style-src 'self' 'unsafe-inline'; form-action 'none'
   Referrer-Policy: same-origin

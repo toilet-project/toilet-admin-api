@@ -1,8 +1,8 @@
 (() => {
-  const PREVIEW_ORIGIN = 'https://preview.geupddong.com'
+  const PREVIEW_ORIGIN = 'https://admin.geupddong.com'
   const API_ORIGIN = 'https://api.geupddong.com'
   const ADMIN_ORIGIN = 'https://admin.geupddong.com'
-  const PREFIX = '/admin'
+  const PREFIX = '/preview'
 
   if (window.location.origin !== PREVIEW_ORIGIN || !window.location.pathname.startsWith(PREFIX)) return
 
@@ -14,7 +14,6 @@
 
   function requestUrl(input) {
     const value = input instanceof Request ? input.url : String(input)
-    if (value.startsWith('/api/admin/')) return new URL(value, ADMIN_ORIGIN)
     return new URL(value, window.location.href)
   }
 
@@ -81,7 +80,7 @@
     document.querySelectorAll('a[href*="/api/v1/auth/login/"]').forEach((link) => {
       if (link.dataset.previewLoginBound) return
       const loginUrl = new URL(link.href)
-      loginUrl.searchParams.set('returnTo', 'preview')
+      loginUrl.searchParams.set('returnTo', 'admin')
       link.href = loginUrl.toString()
       link.dataset.previewLoginBound = 'true'
       link.addEventListener('click', (event) => {

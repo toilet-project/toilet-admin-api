@@ -6,7 +6,7 @@
   "preview_urls": false,
   "routes": [
     {
-      "pattern": "preview.geupddong.com/admin*",
+      "pattern": "admin.geupddong.com/preview*",
       "zone_name": "geupddong.com"
     }
   ],

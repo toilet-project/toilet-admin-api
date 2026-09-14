@@ -58,21 +58,28 @@ function renderPagination() {
   const current = Math.min(Math.max(page, 0), totalPages - 1)
   const visiblePages = Math.min(5, totalPages)
   const start = Math.min(Math.max(current - Math.floor(visiblePages / 2), 0), totalPages - visiblePages)
-  const append = (label, targetPage, disabled = false, number = false) => {
+  const icons = {
+    first:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 7-5 5 5 5M18 7l-5 5 5 5"/></svg>',
+    previous:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7-5 5 5 5"/></svg>',
+    next:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 5 5-5 5"/></svg>',
+    last:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 7 5 5-5 5M13 7l5 5-5 5"/></svg>'
+  }
+  const append = (label, targetPage, disabled = false, number = false, iconName = null) => {
     const node = document.createElement('button')
     node.type = 'button'
-    node.textContent = label
     node.className = number ? 'quality-page-number' : 'quality-page-move'
     node.disabled = disabled
+    if (iconName) { node.innerHTML = icons[iconName]; node.setAttribute('aria-label', label); node.title = label }
+    else node.textContent = label
     if (number && targetPage === current) node.setAttribute('aria-current', 'page')
     if (!disabled) node.addEventListener('click', () => void loadGroups(targetPage))
     target.append(node)
   }
-  append('맨앞', 0, current === 0)
-  append('이전', current - 1, current === 0)
+  append('맨앞', 0, current === 0, false, 'first')
+  append('이전', current - 1, current === 0, false, 'previous')
   for (let targetPage = start; targetPage < start + visiblePages; targetPage += 1) append(String(targetPage + 1), targetPage, targetPage === current, true)
-  append('다음', current + 1, current === totalPages - 1)
-  append('맨뒤', totalPages - 1, current === totalPages - 1)
+  append('다음', current + 1, current === totalPages - 1, false, 'next')
+  append('맨뒤', totalPages - 1, current === totalPages - 1, false, 'last')
 }
 
 function renderGroups() {

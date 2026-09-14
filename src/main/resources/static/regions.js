@@ -55,21 +55,28 @@ function pagination(id, data, load) {
   const current = Math.min(Math.max(data.page, 0), total - 1)
   const visiblePages = Math.min(5, total)
   const start = Math.min(Math.max(current - Math.floor(visiblePages / 2), 0), total - visiblePages)
-  const append = (label, next, disabled = false, number = false) => {
+  const icons = {
+    first:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 7-5 5 5 5M18 7l-5 5 5 5"/></svg>',
+    previous:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7-5 5 5 5"/></svg>',
+    next:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 5 5-5 5"/></svg>',
+    last:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 7 5 5-5 5M13 7l5 5-5 5"/></svg>'
+  }
+  const append = (label, next, disabled = false, number = false, iconName = null) => {
     const node = document.createElement('button')
     node.type = 'button'
-    node.textContent = label
     node.className = number ? 'region-page-number' : 'region-page-move'
     node.disabled = disabled
+    if (iconName) { node.innerHTML = icons[iconName]; node.setAttribute('aria-label', label); node.title = label }
+    else node.textContent = label
     if (number && next === current) node.setAttribute('aria-current', 'page')
     if (!disabled) node.addEventListener('click', () => load(next))
     target.append(node)
   }
-  append('맨앞', 0, current === 0)
-  append('이전', current - 1, current === 0)
+  append('맨앞', 0, current === 0, false, 'first')
+  append('이전', current - 1, current === 0, false, 'previous')
   for (let next = start; next < start + visiblePages; next += 1) append(String(next + 1), next, next === current, true)
-  append('다음', current + 1, current === total - 1)
-  append('맨뒤', total - 1, current === total - 1)
+  append('다음', current + 1, current === total - 1, false, 'next')
+  append('맨뒤', total - 1, current === total - 1, false, 'last')
 }
 
 function assessment(value) {

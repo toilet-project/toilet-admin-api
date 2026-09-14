@@ -291,7 +291,7 @@ async function saveGroupReview(group) {
   } catch (error) {
     window.alert(error.message)
   } finally {
-    if (coordinateEditorState) syncCoordinateGroupComposer()
+    if (coordinateEditorState) syncCoordinateGroupSelection()
     else button.disabled = false
   }
 }
@@ -354,48 +354,31 @@ function coordinateMarkerOptions(point) {
   return [...options.values()]
 }
 
-function clearCoordinateGroupTargets(clearName = true) {
+function clearCoordinateGroupSelection() {
   const state = coordinateEditorState
   if (!state) return
-  state.selectedToilets = new Map([[state.toilet.id, state.toilet]])
   state.activeDisplayGroupId = null
-  state.markerOptions = []
-  if (clearName && el('coordinate-display-group-name')) el('coordinate-display-group-name').value = ''
-  syncCoordinateGroupComposer()
+  state.activeDisplayGroupName = ''
+  syncCoordinateGroupSelection()
 }
 
-function syncCoordinateGroupComposer() {
+function syncCoordinateGroupSelection() {
   const state = coordinateEditorState
   if (!state) return
-  const selected = [...state.selectedToilets.values()]
-  const targetItems = selected.filter((item) => Number(item.id) !== Number(state.toilet.id))
-  const selectedGroupIds = [...new Set(targetItems.map((item) => item.displayGroupId).filter(Boolean).map(Number))]
-  state.activeDisplayGroupId = selectedGroupIds.length === 1 ? selectedGroupIds[0] : null
-  const groupName = el('coordinate-display-group-name')
-  if (state.activeDisplayGroupId && groupName && !groupName.value.trim()) {
-    groupName.value = targetItems.find((item) => Number(item.displayGroupId) === state.activeDisplayGroupId)?.displayGroupName || ''
-  }
-  const list = el('coordinate-group-selection')
-  if (list) {
-    list.innerHTML = selected.map((item) => `<span${Number(item.id) === Number(state.toilet.id) ? ' class="is-current"' : ''}>${escapeHtml(item.name || '이름 없는 화장실')} <b>#${item.id}</b></span>`).join('')
-  }
-  const count = el('coordinate-group-count')
-  if (count) count.textContent = targetItems.length ? `${selected.length}개 그룹 대상` : '보정 대상 1개'
-  const hint = el('coordinate-group-hint')
-  if (hint) hint.textContent = targetItems.length
-    ? '좌표 저장과 동시에 선택한 화장실을 같은 지도 이름으로 묶습니다.'
-    : '지도에서 화장실 마커를 선택하면 그룹 대상을 추가할 수 있습니다.'
   const save = el('save-coordinate')
   if (save) {
-    save.textContent = targetItems.length ? '좌표 저장 및 그룹 지정' : '확정 좌표 저장'
-    save.disabled = targetItems.length > 0 && !groupName?.value.trim()
+    save.textContent = state.activeDisplayGroupId
+      ? `좌표 저장 및 ‘${state.activeDisplayGroupName}’ 편입`
+      : '확정 좌표 저장'
   }
-  state.markerOptions.forEach((option, index) => {
-    const checkbox = document.querySelector(`[data-coordinate-marker-option="${index}"]`)
-    if (checkbox) checkbox.checked = option.toilets.every((item) => state.selectedToilets.has(Number(item.id)))
+  document.querySelectorAll('[data-coordinate-display-group]').forEach((button) => {
+    const selected = Number(button.dataset.coordinateDisplayGroup) === Number(state.activeDisplayGroupId)
+    button.classList.toggle('is-selected', selected)
+    button.textContent = selected ? '편입 선택됨' : '이 그룹에 편입'
   })
   state.toiletOverlays.forEach(({ point, button }) => {
-    button.classList.toggle('is-selected', point.toilets.some((item) => state.selectedToilets.has(Number(item.id))))
+    const selected = point.toilets.some((item) => Number(item.displayGroupId) === Number(state.activeDisplayGroupId))
+    button.classList.toggle('is-selected', Boolean(state.activeDisplayGroupId) && selected)
   })
 }
 
@@ -416,35 +399,30 @@ async function openCoordinateMarkerCard(point) {
   const sequence = state.markerCardSequence = (state.markerCardSequence || 0) + 1
   state.setDraft(new kakao.maps.LatLng(point.latitude, point.longitude))
   state.map.panTo(new kakao.maps.LatLng(point.latitude, point.longitude))
-  clearCoordinateGroupTargets()
+  clearCoordinateGroupSelection()
   const card = el('coordinate-marker-card')
   card.hidden = false
   card.innerHTML = '<p class="status">화장실 주소를 확인하는 중입니다.</p>'
   const address = await coordinateToiletAddress(point.toilets[0].id)
   if (!coordinateEditorState || sequence !== coordinateEditorState.markerCardSequence || !el('coordinate-marker-card')) return
-  state.markerOptions = coordinateMarkerOptions(point)
+  const options = coordinateMarkerOptions(point)
+  const confirmedGroups = options.filter((option) => option.displayGroupId)
+  const ordinaryToilets = options.filter((option) => !option.displayGroupId).flatMap((option) => option.toilets)
   card.innerHTML = `
-    <div class="coordinate-marker-card-head"><div><span>선택한 위치의 화장실</span><strong>${escapeHtml(address)}</strong></div><button id="coordinate-marker-card-close" type="button" aria-label="마커 선택 닫기">×</button></div>
-    <div class="coordinate-marker-options">${state.markerOptions.map((option, index) => `<label><input data-coordinate-marker-option="${index}" type="checkbox" /><span><strong>${escapeHtml(option.displayName)}</strong><small>${option.toilets.length > 1 ? `${option.toilets.length}개 시설` : `ID ${option.toilets[0].id}`}</small></span></label>`).join('')}</div>`
+    <div class="coordinate-marker-card-head"><div><span>이 위치의 화장실</span><strong>${escapeHtml(address)}</strong></div><button id="coordinate-marker-card-close" type="button" aria-label="마커 정보 닫기">×</button></div>
+    ${confirmedGroups.length ? `<div class="coordinate-marker-groups"><span>관리자 확정 그룹</span>${confirmedGroups.map((option) => `<article><div><strong>${escapeHtml(option.displayName)}</strong><small>${option.toilets.length.toLocaleString()}개 화장실</small></div><button data-coordinate-display-group="${option.displayGroupId}" type="button">이 그룹에 편입</button></article>`).join('')}</div>` : ''}
+    ${ordinaryToilets.length ? `<div class="coordinate-marker-toilets">${ordinaryToilets.map((item) => `<div><strong>${escapeHtml(item.name || '이름 없는 화장실')}</strong><small>ID ${item.id}</small></div>`).join('')}</div>` : ''}`
   el('coordinate-marker-card-close').addEventListener('click', () => {
     card.hidden = true
-    clearCoordinateGroupTargets()
   })
-  state.markerOptions.forEach((option, index) => {
-    const checkbox = document.querySelector(`[data-coordinate-marker-option="${index}"]`)
-    checkbox.addEventListener('change', () => {
-      option.toilets.forEach((item) => {
-        if (checkbox.checked) state.selectedToilets.set(Number(item.id), item)
-        else state.selectedToilets.delete(Number(item.id))
-      })
-      syncCoordinateGroupComposer()
+  confirmedGroups.forEach((option) => {
+    document.querySelector(`[data-coordinate-display-group="${option.displayGroupId}"]`)?.addEventListener('click', () => {
+      state.activeDisplayGroupId = Number(option.displayGroupId)
+      state.activeDisplayGroupName = option.displayName
+      syncCoordinateGroupSelection()
     })
   })
-  if (state.markerOptions.length === 1) {
-    state.markerOptions[0].toilets.forEach((item) => state.selectedToilets.set(Number(item.id), item))
-    if (!el('coordinate-display-group-name').value.trim()) el('coordinate-display-group-name').value = state.markerOptions[0].displayName
-  }
-  syncCoordinateGroupComposer()
+  syncCoordinateGroupSelection()
 }
 
 function clearCoordinateToiletOverlays() {
@@ -483,11 +461,11 @@ async function loadCoordinateMapToilets() {
     const toilets = (payload.toilets || []).filter((item) => Number(item.id) !== Number(state.toilet.id))
     coordinatePointGroups(toilets).forEach((point) => {
       const button = document.createElement('button')
-      const representative = point.toilets[0]
+      const representative = point.toilets.find((item) => item.displayGroupId) || point.toilets[0]
       const displayName = representative.displayGroupName || representative.name || '공중화장실'
       button.type = 'button'
-      button.className = 'quality-map-toilet-marker'
-      button.setAttribute('aria-label', `${displayName}${point.toilets.length > 1 ? ` 외 ${point.toilets.length - 1}개` : ''} 그룹 대상 선택`)
+      button.className = `quality-map-toilet-marker${representative.displayGroupId ? ' has-confirmed-group' : ''}`
+      button.setAttribute('aria-label', `${displayName}${point.toilets.length > 1 ? ` 외 ${point.toilets.length - 1}개` : ''} 정보 보기`)
       button.innerHTML = `<span class="quality-map-toilet-pin"><img src="/toilet-marker-logo.svg" alt="" /></span><span class="quality-map-toilet-name">${escapeHtml(displayName)}${point.toilets.length > 1 ? `<b>+${point.toilets.length - 1}</b>` : ''}</span>`
       button.addEventListener('click', (event) => {
         event.preventDefault()
@@ -500,9 +478,9 @@ async function loadCoordinateMapToilets() {
       })
       state.toiletOverlays.push({ overlay, button, point })
     })
-    syncCoordinateGroupComposer()
+    syncCoordinateGroupSelection()
     if (mapStatus) mapStatus.textContent = toilets.length
-      ? `현재 지도 영역 화장실 ${toilets.length.toLocaleString()}개 · 마커를 누르면 이름과 주소를 확인하고 그룹 대상으로 선택할 수 있습니다.`
+      ? `현재 지도 영역 화장실 ${toilets.length.toLocaleString()}개`
       : '현재 지도 영역에 등록된 다른 화장실이 없습니다.'
   } catch (error) {
     if (coordinateEditorState && requestSequence === coordinateEditorState.toiletRequestSequence && mapStatus) {
@@ -518,30 +496,33 @@ function searchCoordinatePlace(event) {
   const status = el('coordinate-search-status')
   const query = input?.value.trim()
   if (!state || !query) return
-  status.textContent = '주소와 장소를 검색하는 중입니다.'
-  const applyResult = (latitude, longitude, address, label) => {
+  status.hidden = true
+  status.textContent = ''
+  const applyResult = (latitude, longitude, address) => {
     if (!coordinateEditorState) return
-    clearCoordinateGroupTargets()
+    clearCoordinateGroupSelection()
     el('coordinate-marker-card').hidden = true
     const position = new kakao.maps.LatLng(Number(latitude), Number(longitude))
     state.map.setLevel(3)
     state.map.panTo(position)
     state.setDraft(position, address)
-    status.textContent = `‘${label || query}’ 위치로 이동했습니다. 지도를 눌러 정확한 위치를 조정할 수 있습니다.`
   }
   state.geocoder.addressSearch(query, (addresses, addressStatus) => {
     if (!coordinateEditorState) return
     if (addressStatus === kakao.maps.services.Status.OK && addresses.length) {
       const result = addresses[0]
-      applyResult(result.y, result.x, result.road_address?.address_name || result.address_name, result.address_name)
+      applyResult(result.y, result.x, result.road_address?.address_name || result.address_name)
       return
     }
     state.places.keywordSearch(query, (places, placeStatus) => {
       if (!coordinateEditorState) return
       if (placeStatus === kakao.maps.services.Status.OK && places.length) {
         const result = places[0]
-        applyResult(result.y, result.x, result.road_address_name || result.address_name, result.place_name)
-      } else status.textContent = '검색 결과가 없습니다. 주소나 장소명을 조금 더 구체적으로 입력해 주세요.'
+        applyResult(result.y, result.x, result.road_address_name || result.address_name)
+      } else {
+        status.hidden = false
+        status.textContent = '검색 결과가 없습니다. 주소나 장소명을 조금 더 구체적으로 입력해 주세요.'
+      }
     })
   })
 }
@@ -555,25 +536,24 @@ async function openCoordinateEditor(toilet) {
   coordinateDraft = null
   editor.innerHTML = `
     <header class="quality-pane-head is-map-editor">
-      <div><span>좌표 보정</span><h2>${escapeHtml(toilet.name)}</h2><p>지도를 클릭하거나 핀을 움직여 확정 좌표를 지정합니다.</p></div>
+      <div><span>좌표 보정</span><h2>${escapeHtml(toilet.name)}</h2></div>
       <button id="coordinate-editor-close" class="icon-button" type="button" aria-label="좌표 보정 닫기">×</button>
     </header>
-    <div class="quality-map-context"><div><span>기존 등록 좌표</span><strong>${escapeHtml(coordinate(toilet.latitude, toilet.longitude))}</strong><small>${escapeHtml(toilet.roadAddress || toilet.jibunAddress || '주소 정보 없음')}</small></div><button id="coordinate-show-origin" type="button">기존 위치 보기</button></div>
-    <div class="coordinate-map-search"><form id="coordinate-place-search"><input id="coordinate-place-query" type="search" autocomplete="off" placeholder="주소 또는 장소명 검색" /><button type="submit">검색</button></form><p id="coordinate-search-status">검색하면 해당 위치로 이동하고 주변 화장실을 다시 표시합니다.</p></div>
-    <div id="quality-coordinate-map" class="quality-coordinate-map"><p>지도를 불러오는 중입니다.</p></div>
-    <p id="coordinate-map-status" class="coordinate-map-status" aria-live="polite">현재 지도 영역의 화장실을 불러오는 중입니다.</p>
-    <section id="coordinate-marker-card" class="coordinate-marker-card" aria-label="선택한 위치의 화장실" hidden></section>
+    <div class="coordinate-map-search"><form id="coordinate-place-search"><input id="coordinate-place-query" type="search" autocomplete="off" placeholder="주소 또는 장소명 검색" /><button type="submit">검색</button><button id="coordinate-show-origin" class="is-secondary" type="button">기존 위치 보기</button></form><p id="coordinate-search-status" role="alert" hidden></p></div>
+    <div class="coordinate-map-stage">
+      <div id="quality-coordinate-map" class="quality-coordinate-map"><p>지도를 불러오는 중입니다.</p></div>
+      <p id="coordinate-map-status" class="coordinate-map-status" aria-live="polite">현재 지도 영역의 화장실을 불러오는 중입니다.</p>
+      <section id="coordinate-marker-card" class="coordinate-marker-card" aria-label="선택한 위치의 화장실" hidden></section>
+    </div>
     <div class="coordinate-form">
       <label><span>선택 좌표</span><strong id="coordinate-draft-value">${escapeHtml(coordinate(toilet.latitude, toilet.longitude))}</strong></label>
       <label><span>확인 주소</span><input id="coordinate-road-address" maxlength="255" value="${escapeHtml(toilet.roadAddress || toilet.jibunAddress || '')}" placeholder="좌표에서 확인한 주소" readonly title="저장 시 서버가 좌표로 도로명·지번주소를 확인합니다." /></label>
       <label class="coordinate-note-field"><span>보정 사유</span><input id="coordinate-note" maxlength="500" placeholder="보정 사유를 직접 입력하거나 아래 항목을 추가하세요." /><span class="coordinate-note-actions"><button type="button" data-coordinate-note="지도 확인">+ 지도 확인</button><button type="button" data-coordinate-note="거리뷰 확인">+ 거리뷰 확인</button><button type="button" data-coordinate-note="주소 확인">+ 주소 확인</button></span></label>
-      <section class="coordinate-group-composer" aria-label="마커 그룹 지정"><div><span>마커 그룹 지정</span><strong id="coordinate-group-count">보정 대상 1개</strong></div><div id="coordinate-group-selection" class="coordinate-group-selection"></div><input id="coordinate-display-group-name" maxlength="100" placeholder="사용자 지도에 표시할 그룹 이름" /><p id="coordinate-group-hint">지도에서 화장실 마커를 선택하면 그룹 대상을 추가할 수 있습니다.</p></section>
       <button id="save-coordinate" class="coordinate-save-button" type="button">확정 좌표 저장</button>
     </div>`
   el('coordinate-editor-close').addEventListener('click', resetCoordinateEditor)
   document.querySelectorAll('[data-coordinate-note]').forEach((button) => button.addEventListener('click', () => appendCoordinateNote(button.dataset.coordinateNote)))
   el('coordinate-place-search').addEventListener('submit', searchCoordinatePlace)
-  el('coordinate-display-group-name').addEventListener('input', syncCoordinateGroupComposer)
   try {
     await loadKakaoMaps()
     if (sequence !== coordinateEditorSequence || !el('quality-coordinate-map')) return
@@ -590,8 +570,8 @@ async function openCoordinateEditor(toilet) {
     const originOverlay = new kakao.maps.CustomOverlay({ map, position: initial, content: originBadge, yAnchor: 1.8, zIndex: 1 })
     coordinateDraft = { latitude: Number(toilet.latitude), longitude: Number(toilet.longitude) }
     coordinateEditorState = {
-      toilet, map, marker, geocoder, places, originOverlay, selectedToilets: new Map([[toilet.id, toilet]]),
-      activeDisplayGroupId: null, markerOptions: [], toiletOverlays: [], toiletRequestSequence: 0,
+      toilet, map, marker, geocoder, places, originOverlay,
+      activeDisplayGroupId: null, activeDisplayGroupName: '', toiletOverlays: [], toiletRequestSequence: 0,
       geocodeSequence: 0, markerCardSequence: 0, mapIdleTimer: null, setDraft: null
     }
     const update = (position, knownAddress) => {
@@ -610,12 +590,12 @@ async function openCoordinateEditor(toilet) {
     }
     coordinateEditorState.setDraft = update
     kakao.maps.event.addListener(marker, 'dragend', () => {
-      clearCoordinateGroupTargets()
+      clearCoordinateGroupSelection()
       el('coordinate-marker-card').hidden = true
       update(marker.getPosition())
     })
     kakao.maps.event.addListener(map, 'click', (event) => {
-      clearCoordinateGroupTargets()
+      clearCoordinateGroupSelection()
       el('coordinate-marker-card').hidden = true
       update(event.latLng)
     })
@@ -626,7 +606,7 @@ async function openCoordinateEditor(toilet) {
     })
     el('coordinate-show-origin').addEventListener('click', () => map.panTo(initial))
     el('save-coordinate').addEventListener('click', () => void saveCoordinate(toilet.id))
-    syncCoordinateGroupComposer()
+    syncCoordinateGroupSelection()
     await loadCoordinateMapToilets()
   } catch (error) {
     const mapTarget = el('quality-coordinate-map')
@@ -638,25 +618,15 @@ async function saveCoordinate(toiletId) {
   if (!coordinateDraft) return
   const roadAddress = el('coordinate-road-address').value.trim()
   const state = coordinateEditorState
-  const selectedIds = state ? [...state.selectedToilets.keys()] : [toiletId]
-  const grouping = selectedIds.length > 1
-  const displayGroupName = el('coordinate-display-group-name')?.value.trim() || ''
-  if (grouping && !displayGroupName) {
-    window.alert('사용자 지도에 표시할 그룹 이름을 입력해 주세요.')
-    return
-  }
-  const confirmation = grouping
-    ? `이 좌표를 저장하고 ${selectedIds.length}개 화장실을 ‘${displayGroupName}’ 이름으로 묶을까요? 변경 전·후 위치는 이력에 남습니다.`
+  const joiningGroup = Boolean(state?.activeDisplayGroupId)
+  const confirmation = joiningGroup
+    ? `이 좌표를 저장하고 ‘${state.activeDisplayGroupName}’ 그룹에 편입할까요? 변경 전·후 위치는 이력에 남습니다.`
     : '이 좌표를 관리자 확정 위치로 저장할까요? 변경 전·후 위치는 이력에 남습니다.'
   if (!window.confirm(confirmation)) return
   const button = el('save-coordinate')
   button.disabled = true
   try {
-    const displayGroup = grouping ? {
-      displayGroupId: state.activeDisplayGroupId,
-      displayGroupName,
-      displayGroupToiletIds: selectedIds
-    } : {}
+    const displayGroup = joiningGroup ? { displayGroupId: state.activeDisplayGroupId } : {}
     const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/toilets/${toiletId}/coordinates`, {
       method: 'POST',
       credentials: 'include',

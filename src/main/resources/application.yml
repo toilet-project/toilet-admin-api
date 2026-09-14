@@ -36,6 +36,18 @@ kakao:
 operations:
   api-health-url: ${OPERATIONS_API_HEALTH_URL:https://api.geupddong.com/api/health}
 
+cloudflare:
+  analytics:
+    enabled: ${CLOUDFLARE_ANALYTICS_ENABLED:false}
+    endpoint: ${CLOUDFLARE_ANALYTICS_ENDPOINT:https://api.cloudflare.com/client/v4/graphql}
+    account-id: ${CLOUDFLARE_ACCOUNT_ID:}
+    api-token: ${CLOUDFLARE_ANALYTICS_API_TOKEN:}
+    cache-seconds: ${CLOUDFLARE_ANALYTICS_CACHE_SECONDS:300}
+    workers-daily-limit: ${CLOUDFLARE_WORKERS_DAILY_LIMIT:100000}
+    d1-rows-read-daily-limit: ${CLOUDFLARE_D1_ROWS_READ_DAILY_LIMIT:5000000}
+    r2-storage-byte-limit: ${CLOUDFLARE_R2_STORAGE_BYTE_LIMIT:10737418240}
+    dashboard-url: ${CLOUDFLARE_DASHBOARD_URL:https://dash.cloudflare.com/}
+
 management:
   endpoints:
     web:

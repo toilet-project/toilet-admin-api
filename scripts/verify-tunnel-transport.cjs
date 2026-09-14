@@ -21,7 +21,17 @@ assert.equal(i,oldSteps.length-1);
 assert.deepEqual(oldSteps.slice(0,i),newSteps.slice(0,i),'Build steps must not change');
 assert.equal(newSteps.length,oldSteps.length+2);
 const [prepare,deploy,cleanup]=newSteps.slice(i);
-assert.equal(deploy.env.DEPLOY_SCRIPT,oldSteps[i].with.script,'Remote deployment commands must be identical');
+const cloudflareEnvironmentBlock = [
+ 'CLOUDFLARE_ANALYTICS_ENABLED=true',
+ 'CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}',
+ 'CLOUDFLARE_ANALYTICS_API_TOKEN=${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}',
+ 'CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}'
+].join('\n');
+assert.equal(deploy.env.DEPLOY_SCRIPT.split(cloudflareEnvironmentBlock).length-1,1,
+ 'The reviewed Cloudflare environment block must appear exactly once');
+const deploymentWithoutCloudflare = deploy.env.DEPLOY_SCRIPT.replace(cloudflareEnvironmentBlock+'\n','');
+assert.equal(deploymentWithoutCloudflare,oldSteps[i].with.script,
+ 'Remote deployment commands beyond the reviewed Cloudflare environment block must be identical');
 assert.equal(cleanup.if,'always()');
 assert.equal(deploy.env.TUNNEL_SERVICE_TOKEN_ID,'${{ secrets.TUNNEL_DEPLOY_ACCESS_CLIENT_ID }}');
 assert.equal(deploy.env.TUNNEL_SERVICE_TOKEN_SECRET,'${{ secrets.TUNNEL_DEPLOY_ACCESS_CLIENT_SECRET }}');
@@ -39,5 +49,5 @@ for(const script of [...newSteps.filter(s=>s.run).map(s=>s.run),deploy.env.DEPLO
  const check=spawnSync(process.env.TUNNEL_BASH || 'bash',['-n'],{input:script,encoding:'utf8',timeout:10000});
  assert.equal(check.status,0,check.stderr || String(check.error));
 }
-console.log('PASS: baseline '+baselineCommit+'; trigger/job/build/remote commands unchanged; pinned transport and shell syntax verified.');
+console.log('PASS: baseline '+baselineCommit+'; reviewed Cloudflare settings present; all other remote commands unchanged; pinned transport and shell syntax verified.');
 console.log('No credentials, SSH, image push, or deployment executed.');

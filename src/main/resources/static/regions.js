@@ -1,13 +1,29 @@
 const $ = (id) => document.getElementById(id)
 const API = 'https://api.geupddong.com'
-const labels = { VERIFIED:'검증 통과', MISMATCH:'지역 불일치', ADDRESS_UNVERIFIED:'주소 검증 불확실', REVERSE_FAILED:'역조회·코드 충돌', NO_COORDINATE:'좌표 미입력', STALE:'재판정 대기', UNASSESSED:'최초 판정 대기' }
+const labels = { VERIFIED:'확정', MISMATCH:'지역 불일치', ADDRESS_UNVERIFIED:'주소 불확실', REVERSE_FAILED:'역조회 실패', NO_COORDINATE:'좌표 없음', STALE:'재판정 대기', UNASSESSED:'최초 판정 대기' }
+const reasonLabels = {
+  ADDRESS_REGION_CONFLICT:'공공데이터 주소와 좌표의 행정구역이 서로 다릅니다.',
+  RECHECK_MANUAL_REVIEW:'주소 재검색 결과만으로 어느 시·군·구인지 확정할 수 없습니다.',
+  INSUFFICIENT_ADDRESS_EVIDENCE:'주소에 시·군·구를 판별할 정보가 부족합니다.',
+  RECHECK_PROVIDER_FAILURE:'주소를 다시 확인하는 과정에서 지도 응답을 받지 못했습니다.',
+  FORWARD_PROVIDER_FAILURE:'주소를 좌표로 찾는 과정에서 지도 응답을 받지 못했습니다.',
+  FORWARD_ROAD_PROVIDER_FAILURE:'도로명주소 검색에 실패해 자동 판정을 완료하지 못했습니다.',
+  NO_UNIQUE_ADDRESS_RESULT:'주소 검색 결과가 없거나 여러 개라 좌표를 정할 수 없습니다.',
+  PARTIAL_COORDINATE:'위도와 경도 중 하나만 저장되어 있습니다.',
+  INVALID_COORDINATE:'저장된 좌표 범위를 확인해야 합니다.',
+  ADDRESS_CORROBORATED:'공공데이터 주소와 좌표 기준 행정구역이 일치합니다.',
+  STRUCTURED_ADDRESS_CORROBORATED:'주소를 다시 검색해 좌표 기준 행정구역과 일치함을 확인했습니다.'
+}
+const checkLabels = { MATCH:'일치', MISMATCH:'불일치', UNKNOWN:'판단 불가' }
+const sourceLabels = { PUBLIC_DATA:'공공데이터포털', ADMIN_CONFIRMED:'관리자 보정 데이터' }
 const escape = (value) => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))
 const address = (location) => location?.roadAddress?.trim() || location?.jibunAddress?.trim() || '주소 정보 없음'
 const valid = (location) => location?.latitude != null && location?.longitude != null && String(location.latitude).trim() !== '' && String(location.longitude).trim() !== '' && Number.isFinite(Number(location.latitude)) && Number.isFinite(Number(location.longitude))
 const coordinate = (location) => valid(location) ? `${Number(location.latitude).toFixed(7)}, ${Number(location.longitude).toFixed(7)}` : '좌표 없음'
 const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short', timeZone:'Asia/Seoul' }).format(new Date(value)) : '판정 이력 없음'
 const badge = (status) => `<span class="region-badge ${status === 'VERIFIED' ? 'verified' : ''}">${escape(labels[status] || status)}</span>`
-let page = 0, selected = null, listSequence = 0, detailSequence = 0, historySequence = 0, mapReady, searchTimer, saving = false
+const icon = (name) => ({ source:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM9 11h6M9 15h6M9 7h3"/></svg>', logic:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h7M5 12h4M5 17h7M15 6l4 4-7 7-4 1 1-4z"/></svg>', final:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12z"/><path d="m9 10 2 2 4-4"/></svg>', map:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>' }[name] || '')
+let page = 0, selected = null, listSequence = 0, detailSequence = 0, historySequence = 0, mapReady, searchTimer, optionTimer, saving = false
 const initialToiletId = Number(new URLSearchParams(window.location.search).get('toiletId'))
 
 function showLogin(status) {
@@ -26,7 +42,7 @@ async function request(path, options = {}) {
   if (response.status === 401 || response.status === 403) showLogin(response.status)
   if (!response.ok) {
     const body = await response.json().catch(() => null)
-    throw new Error(response.status === 409 ? '위치나 주소가 변경되었습니다. 새로고침 후 다시 확인해 주세요.' : body?.message || '요청에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    throw new Error(response.status === 409 ? '다른 작업에서 주소나 위치가 변경되었습니다. 새로고침 후 다시 확인해 주세요.' : body?.message || '요청에 실패했습니다. 잠시 후 다시 시도해 주세요.')
   }
   return response.json()
 }
@@ -43,32 +59,97 @@ function pagination(id, data, load) {
   }
 }
 
+function assessment(value) {
+  if (!value) return {}
+  try { return JSON.parse(value) } catch { return {} }
+}
+
+function sourceRegion(addressValue) {
+  const words = String(addressValue || '').trim().split(/\s+/).filter(Boolean)
+  if (words.length < 2) return '지역 정보를 읽지 못함'
+  if (words[1].endsWith('시') && words[2]?.endsWith('구')) return `${words[0]} ${words[1]} ${words[2]}`
+  return `${words[0]} ${words[1]}`
+}
+
+function regionName(region) {
+  if (!region) return '시·군·구 미결정'
+  if (!region.sigunguName) return region.sidoName || '시·군·구 미결정'
+  return `${region.sidoName || ''} ${region.sigunguName}`.trim()
+}
+
+function itemRegion(item) {
+  return item?.sigunguCode ? { sidoName:item.sidoName, sidoCode:item.sidoCode, sigunguName:item.sigunguName, sigunguCode:item.sigunguCode, cityName:item.cityName, districtName:item.districtName } : null
+}
+
+function conciseReason(item, data) {
+  if (item.status === 'STALE') return '주소 또는 좌표가 바뀌어 다시 판정해야 합니다.'
+  if (item.status === 'UNASSESSED') return '아직 자동 판정이 실행되지 않았습니다.'
+  if (item.status === 'NO_COORDINATE') return '좌표가 없어 주소만으로 확인해야 합니다.'
+  return reasonLabels[data.reason || item.reason] || '주소와 좌표 근거를 비교해 최종 지역을 선택해 주세요.'
+}
+
 async function loadList(nextPage = 0) {
   const sequence = ++listSequence
-  $('region-status').textContent = '목록을 불러오는 중…'
+  $('region-status').textContent = '검토 목록을 불러오는 중…'
   try {
-    const query = new URLSearchParams({ status:$('region-filter').value, keyword:$('region-search').value.trim(), page:String(nextPage), size:'20' })
+    const query = new URLSearchParams({ status:$('region-filter').value, keyword:$('region-search').value.trim(), page:String(nextPage), size:'15' })
     const data = await request(`/api/admin/v1/regions?${query}`)
     if (sequence !== listSequence || !$('auth-shell').hidden) return
     page = data.page
     $('region-list').replaceChildren()
     for (const item of data.items) {
+      const original = sourceRegion(item.location?.roadAddress || item.location?.jibunAddress)
       const button = document.createElement('button')
-      button.type = 'button'; button.className = 'region-item'; button.dataset.id = item.toiletId
+      button.type = 'button'
+      button.className = 'region-item'
+      button.dataset.id = item.toiletId
       button.setAttribute('aria-pressed', String(selected === item.toiletId))
-      button.innerHTML = `${badge(item.status)}<strong>${escape(item.name || '이름 없는 화장실')}</strong><small>${escape(address(item.location))}</small><small>#${item.toiletId} · ${escape(date(item.checkedAt))}</small>`
+      button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span>`
       button.addEventListener('click', () => { if (!saving) void loadDetail(item.toiletId) })
       $('region-list').append(button)
     }
-    $('region-status').textContent = `${data.totalElements.toLocaleString()}건 · 오래된 판정부터 표시`
-    if (!data.items.length) $('region-list').textContent = '조건에 맞는 화장실이 없습니다.'
+    $('region-status').innerHTML = `<strong>${data.totalElements.toLocaleString()}건</strong><span>확정이 필요한 항목을 오래된 판정부터 표시합니다.</span>`
+    if (!data.items.length) $('region-list').innerHTML = '<p class="region-list-empty">조건에 맞는 화장실이 없습니다.</p>'
     pagination('region-pages', data, loadList)
   } catch (error) { if (sequence === listSequence) $('region-status').textContent = error.message }
 }
 
-function evidence(value) {
-  if (!value) return '판정 근거 없음'
-  try { return JSON.stringify(JSON.parse(value), null, 2) } catch { return String(value) }
+function detailMarkup(detail) {
+  const item = detail.toilet
+  const data = assessment(detail.evidenceJson)
+  const automatic = data.region || (!detail.confirmation ? itemRegion(item) : null)
+  const sourceRoad = item.location?.roadAddress || '-'
+  const sourceJibun = item.location?.jibunAddress || '-'
+  const sourceHint = sourceRegion(item.location?.roadAddress || item.location?.jibunAddress)
+  const finalRegion = detail.confirmation?.region
+  const reason = conciseReason(item, data)
+  return `<header class="region-detail-head"><div><span class="region-detail-kicker">TOILET #${item.toiletId}${item.managementNumber ? ` · ${escape(item.managementNumber)}` : ''}</span><h2>${escape(item.name || '이름 없는 화장실')}</h2></div>${badge(item.status)}</header>
+    <section class="region-evidence-grid" aria-label="행정구역 판정 근거">
+      <article class="region-evidence-card source"><header><span class="region-evidence-icon">${icon('source')}</span><div><small>공공데이터 저장값</small><strong>${escape(sourceHint)}</strong></div></header><dl><dt>도로명</dt><dd>${escape(sourceRoad)}</dd><dt>지번</dt><dd>${escape(sourceJibun)}</dd></dl><p>${escape(sourceLabels[detail.dataSource] || detail.dataSource || '공공데이터')}에서 수집된 현재 주소입니다.</p></article>
+      <article class="region-evidence-card logic"><header><span class="region-evidence-icon">${icon('logic')}</span><div><small>우리 판정 로직</small><strong>${escape(regionName(automatic))}</strong></div></header><div class="region-checks"><span class="${data.roadCheck === 'MISMATCH' ? 'bad' : ''}">도로명 ${escape(checkLabels[data.roadCheck] || '판정 전')}</span><span class="${data.jibunCheck === 'MISMATCH' ? 'bad' : ''}">지번 ${escape(checkLabels[data.jibunCheck] || '판정 전')}</span></div><p>${escape(reason)}</p></article>
+      <article class="region-evidence-card final ${finalRegion ? 'confirmed' : ''}"><header><span class="region-evidence-icon">${icon('final')}</span><div><small>서비스에 사용할 값</small><strong id="region-final-preview">${escape(regionName(finalRegion))}</strong></div></header><p>${finalRegion ? `${escape(date(detail.confirmation.confirmedAt))} 관리자 확정` : '아래에서 시·군·구를 선택하면 서비스 데이터에 반영됩니다.'}</p>${finalRegion ? `<small class="region-confirmed-note">${escape(detail.confirmation.note)}</small>` : ''}</article>
+    </section>
+    <section class="region-decision-layout">
+      <article class="region-decision-card">
+        <header class="region-section-head"><span>${icon('final')}</span><div><small>FINAL DISTRICT</small><h3>최종 시·군·구 지정</h3></div></header>
+        <p class="region-decision-guide">주소 원문과 좌표 판정을 비교한 뒤 실제 서비스에 저장할 지역을 선택하세요.</p>
+        <div id="region-recommendation" class="region-recommendation"></div>
+        <label class="region-option-search"><span>다른 시·군·구 찾기</span><div><input id="region-option-search" type="search" maxlength="50" autocomplete="off" placeholder="예: 하남시, 수원시 팔달구"/><button id="region-option-find" type="button">검색</button></div></label>
+        <div id="region-option-results" class="region-option-results"></div>
+        <div id="region-choice" class="region-choice"><small>선택된 지역</small><strong>시·군·구를 선택해 주세요.</strong></div>
+        <label class="region-note"><span>확정 근거</span><textarea id="region-note" maxlength="500" rows="2" placeholder="확인한 근거를 간단히 남겨 주세요.">${escape(detail.confirmation?.note || '')}</textarea></label>
+        <div class="region-note-actions"><button type="button">공공데이터 주소 확인</button><button type="button">지도 위치 확인</button><button type="button">관할 행정구역 확인</button></div>
+        <p id="region-confirm-status" class="status" role="status"></p>
+        <button id="region-confirm" class="region-confirm-button" type="button" disabled>시·군·구 확정</button>
+      </article>
+      <article class="region-map-card">
+        <header class="region-section-head"><span>${icon('map')}</span><div><small>LOCATION CHECK</small><h3>지도에서 위치 확인</h3></div></header>
+        <div class="region-map-toolbar"><input id="region-map-search" aria-label="지도 주소 검색" placeholder="도로명 또는 지번주소 검색"/><button id="region-map-find" type="button">검색</button><button id="region-reset" class="secondary" type="button">현재 위치</button></div>
+        <div id="region-candidates" class="region-candidates"></div><div id="region-map" class="region-map"></div>
+        <details class="region-coordinate-edit"><summary>좌표 자체가 잘못된 경우 수정</summary><strong id="region-draft">저장할 위치를 지도에서 선택해 주세요.</strong><label>수정 사유<textarea id="region-coordinate-note" maxlength="500" rows="2"></textarea></label><p id="region-save-status" class="status" role="status"></p><button id="region-save" type="button" disabled>확정 좌표 저장</button></details>
+      </article>
+    </section>
+    <details id="region-technical" class="region-technical"><summary>기술 정보와 판정 이력</summary><div class="region-technical-grid"><dl><dt>최근 판정</dt><dd>${escape(date(item.checkedAt))}</dd><dt>자동 판정 상태</dt><dd>${escape(labels[item.assessmentStatus] || item.assessmentStatus || '-')}</dd><dt>판정 코드</dt><dd>${escape(data.reason || item.reason || '-')}</dd><dt>평가 좌표</dt><dd>${escape(coordinate({latitude:detail.evaluatedLatitude, longitude:detail.evaluatedLongitude}))}</dd></dl><pre>${escape(detail.evidenceJson || '원본 응답 없음')}</pre></div><h3>판정 이력</h3><div id="region-history"><p class="status">열면 판정 이력을 불러옵니다.</p></div><nav id="region-history-pages" class="report-pagination" aria-label="판정 이력 페이지"></nav></details>`
 }
 
 async function loadDetail(id) {
@@ -80,28 +161,97 @@ async function loadDetail(id) {
   const sequence = ++detailSequence
   document.querySelectorAll('.region-item').forEach(node => node.setAttribute('aria-pressed', String(Number(node.dataset.id) === id)))
   const target = $('region-detail')
-  target.innerHTML = '<p class="status">상세를 불러오는 중…</p>'
+  target.innerHTML = '<p class="status">판정 근거를 불러오는 중…</p>'
   try {
     const detail = await request(`/api/admin/v1/regions/${id}`)
     if (sequence !== detailSequence) return
-    const item = detail.toilet
-    target.innerHTML = `<h2>${escape(item.name || '이름 없는 화장실')}</h2>${badge(item.status)}
-      <dl><dt>관리번호</dt><dd>${escape(item.managementNumber || '-')}</dd><dt>현재 도로명</dt><dd>${escape(item.location.roadAddress || '-')}</dd><dt>현재 지번</dt><dd>${escape(item.location.jibunAddress || '-')}</dd><dt>현재 좌표</dt><dd>${escape(coordinate(item.location))}</dd><dt>최근 판정</dt><dd>${escape(date(item.checkedAt))}</dd><dt>판정 사유</dt><dd>${escape(item.reason || '-')}</dd></dl>
-      <details><summary>최근 판정 당시 지역·주소·원본 근거</summary><p>현재 위치와 달라졌다면 아래는 이전 판정 자료이며 현재 확정 지역이 아닙니다.</p><dl><dt>판정 상태</dt><dd>${escape(item.assessmentStatus || '-')}</dd><dt>시·도</dt><dd>${escape(item.sidoName || '-')} / ${escape(item.sidoCode || '-')}</dd><dt>시·군·구</dt><dd>${escape(item.sigunguName || '-')} / ${escape(item.sigunguCode || '-')}</dd><dt>시 → 구</dt><dd>${escape(item.cityName || '-')} → ${escape(item.districtName || '-')}</dd><dt>당시 좌표</dt><dd>${escape(coordinate(detail.assessedSource))}</dd><dt>당시 주소</dt><dd>${escape(address(detail.assessedSource))}</dd></dl><pre>${escape(evidence(detail.evidenceJson))}</pre></details>
-      <fieldset><legend>관리자 확정 위치</legend><p>주황색 핀은 저장할 위치, 초록색 핀은 현재 위치입니다. 좌표가 없으면 검색 결과를 선택하거나 지도를 클릭해야 합니다.</p><div class="region-map-toolbar"><input id="region-map-search" aria-label="지도 주소 검색" placeholder="도로명 또는 지번주소 검색"/><button id="region-map-find" type="button">검색</button><button id="region-reset" type="button" aria-label="기존 좌표로 초기화">↻</button></div><div id="region-candidates"></div><div id="region-map" class="region-map"></div><strong id="region-draft"></strong><label>수정 사유 (필수)<textarea id="region-note" maxlength="500" rows="2"></textarea></label><p id="region-save-status" class="status" role="status"></p><button id="region-save" type="button" disabled>확정 좌표 저장</button></fieldset>
-      <h3>판정 이력</h3><div id="region-history"></div><nav id="region-history-pages" class="report-pagination" aria-label="판정 이력 페이지"></nav>`
-    void loadHistory(id, 0, sequence)
+    target.innerHTML = detailMarkup(detail)
+    mountDecision(detail, sequence)
+    mountTechnical(id, sequence)
+    await mountMap(detail.toilet, sequence)
     if (window.matchMedia('(max-width: 900px)').matches) target.scrollIntoView({ block:'start', behavior:'smooth' })
-    await mountMap(item, sequence)
   } catch (error) { if (sequence === detailSequence) target.textContent = error.message }
+}
+
+function mountDecision(detail, sequence) {
+  const item = detail.toilet
+  const data = assessment(detail.evidenceJson)
+  const automatic = data.region || (!detail.confirmation ? itemRegion(item) : null)
+  const sourceHint = sourceRegion(item.location?.roadAddress || item.location?.jibunAddress)
+  let chosen = detail.confirmation?.region || null
+  let optionSequence = 0
+  const live = () => sequence === detailSequence && selected === item.toiletId
+  const update = () => {
+    $('region-choice').innerHTML = `<small>선택된 지역</small><strong>${escape(regionName(chosen))}</strong>${chosen?.sigunguCode ? `<span>법정동 시·군·구 코드 ${escape(chosen.sigunguCode)}</span>` : ''}`
+    $('region-final-preview').textContent = regionName(chosen)
+    $('region-confirm').disabled = !chosen?.sigunguCode || !$('region-note').value.trim() || saving
+  }
+  const select = region => { chosen = region; update(); document.querySelectorAll('.region-option-button').forEach(node => node.classList.toggle('is-selected', node.dataset.code === region.sigunguCode)) }
+  if (automatic?.sigunguCode) {
+    $('region-recommendation').innerHTML = `<span>빠른 후보</span><button type="button" class="region-option-button"><strong>좌표 판정 · ${escape(regionName(automatic))}</strong><small>${escape(automatic.sigunguCode)} · 이 값 선택</small></button>${sourceHint !== '지역 정보를 읽지 못함' ? `<button id="region-source-find" type="button" class="region-option-button is-source"><strong>공공데이터 주소 · ${escape(sourceHint)}</strong><small>일치 후보 찾기</small></button>` : ''}`
+    $('region-recommendation').querySelector('button').addEventListener('click', () => select(automatic))
+  } else {
+    $('region-recommendation').innerHTML = '<span>좌표 역조회 결과</span><p>추천할 수 있는 시·군·구가 없습니다. 직접 검색해 선택해 주세요.</p>'
+  }
+  const searchOptions = async () => {
+    const keyword = $('region-option-search').value.trim()
+    const requestSequence = ++optionSequence
+    $('region-option-results').textContent = keyword ? '지역을 찾는 중…' : ''
+    if (!keyword) return
+    try {
+      const options = await request(`/api/admin/v1/regions/options?${new URLSearchParams({ keyword, limit:'20' })}`)
+      if (!live() || requestSequence !== optionSequence) return
+      $('region-option-results').replaceChildren()
+      for (const option of options) {
+        const button = document.createElement('button')
+        button.type = 'button'; button.className = 'region-option-button'; button.dataset.code = option.region.sigunguCode
+        button.innerHTML = `<strong>${escape(regionName(option.region))}</strong><small>${escape(option.region.sigunguCode)}</small>`
+        button.addEventListener('click', () => select(option.region))
+        $('region-option-results').append(button)
+      }
+      if (!options.length) $('region-option-results').textContent = '일치하는 시·군·구가 없습니다.'
+    } catch (error) { if (live()) $('region-option-results').textContent = error.message }
+  }
+  $('region-option-find').addEventListener('click', searchOptions)
+  if ($('region-source-find')) $('region-source-find').addEventListener('click', () => { $('region-option-search').value = sourceHint; void searchOptions() })
+  $('region-option-search').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); void searchOptions() } })
+  $('region-option-search').addEventListener('input', () => { clearTimeout(optionTimer); optionTimer = setTimeout(searchOptions, 300) })
+  $('region-note').addEventListener('input', update)
+  document.querySelectorAll('.region-note-actions button').forEach(button => button.addEventListener('click', () => {
+    const note = $('region-note')
+    const text = button.textContent.trim()
+    if (!note.value.split(' · ').includes(text)) note.value = note.value.trim() ? `${note.value.trim()} · ${text}` : text
+    update()
+  }))
+  $('region-confirm').addEventListener('click', async () => {
+    const note = $('region-note').value.trim()
+    if (!chosen?.sigunguCode || !note || saving) return
+    saving = true; update(); $('region-confirm-status').textContent = '시·군·구를 저장하는 중…'
+    try {
+      await request(`/api/admin/v1/regions/${item.toiletId}/district`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ sigunguCode:chosen.sigunguCode, note, expectedLocation:item.location }) })
+      saving = false
+      await loadDetail(item.toiletId)
+      await loadList(page)
+      if (selected === item.toiletId && $('region-confirm-status')) $('region-confirm-status').textContent = `${regionName(chosen)}로 확정했습니다.`
+    } catch (error) { if (live()) $('region-confirm-status').textContent = error.message }
+    finally { saving = false; if (live() && $('region-confirm')) update() }
+  })
+  update()
+}
+
+function mountTechnical(id, sequence) {
+  let loaded = false
+  $('region-technical').addEventListener('toggle', () => {
+    if ($('region-technical').open && !loaded) { loaded = true; void loadHistory(id, 0, sequence) }
+  })
 }
 
 async function loadHistory(id, nextPage, sequence) {
   const historyRequest = ++historySequence
   try {
-    const data = await request(`/api/admin/v1/regions/${id}/history?page=${nextPage}&size=10`)
+    const data = await request(`/api/admin/v1/regions/${id}/history?page=${nextPage}&size=5`)
     if (sequence !== detailSequence || historyRequest !== historySequence) return
-    $('region-history').innerHTML = data.items.map(item => `<article class="region-history-item">${badge(item.status)}<p>${escape(date(item.checkedAt))} · ${escape(item.algorithmVersion)}</p><p>${escape(item.reason)}</p><details><summary>판정 근거</summary><pre>${escape(evidence(item.evidenceJson))}</pre></details></article>`).join('') || '<p>판정 이력이 없습니다.</p>'
+    $('region-history').innerHTML = data.items.map(item => `<article class="region-history-item">${badge(item.status)}<div><strong>${escape(date(item.checkedAt))}</strong><p>${escape(reasonLabels[item.reason] || item.reason)}</p></div></article>`).join('') || '<p class="status">판정 이력이 없습니다.</p>'
     pagination('region-history-pages', data, p => loadHistory(id, p, sequence))
   } catch (error) { if (sequence === detailSequence && historyRequest === historySequence) $('region-history').textContent = error.message }
 }
@@ -132,6 +282,7 @@ async function mountMap(item, sequence) {
     const pin = (color) => new K.MarkerImage(`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="38"><path d="M12 11V36" stroke="${color}" stroke-width="3"/><circle cx="12" cy="10" r="8" fill="${color}" stroke="white" stroke-width="2"/></svg>`)}`, new K.Size(24,38), { offset:new K.Point(12,36) })
     if (valid(item.location)) new K.Marker({ map, position:initial, image:pin('#157d48'), title:'현재 위치' })
     const marker = new K.Marker({ position:initial, draggable:true, image:pin('#ee872c'), title:'저장할 위치' })
+    marker.setZIndex(20)
     let draft = null, draftAddress = '', lookupSequence = 0, searchSequence = 0
     const reset = () => { if (saving) return; ++lookupSequence; ++searchSequence; draft = null; draftAddress = ''; marker.setMap(null); map.setCenter(initial); map.setLevel(valid(item.location) ? 3 : 12); $('region-save').disabled = true; $('region-candidates').replaceChildren(); $('region-draft').textContent = '저장할 위치를 지도에서 선택해 주세요.' }
     reset()
@@ -140,14 +291,15 @@ async function mountMap(item, sequence) {
       const lookup = ++lookupSequence
       draft = { latitude:position.getLat(), longitude:position.getLng() }
       draftAddress = ''
-      marker.setPosition(position); marker.setMap(map)
+      marker.setPosition(position); marker.setMap(map); marker.setZIndex(20)
       $('region-save').disabled = true
+      $('region-coordinate-edit').open = true
       $('region-draft').textContent = `${coordinate(draft)} · 주소 확인 중…`
       geocoder.coord2Address(draft.longitude, draft.latitude, (results, status) => {
         if (!live() || lookup !== lookupSequence) return
         const result = results?.[0]
         draftAddress = status === K.services.Status.OK ? result?.road_address?.address_name || result?.address?.address_name || '' : ''
-        $('region-draft').textContent = `${coordinate(draft)} · ${draftAddress || '주소를 확인하지 못했습니다. 다른 위치를 선택해 주세요.'}`
+        $('region-draft').textContent = `${coordinate(draft)} · ${draftAddress || '주소를 확인하지 못했습니다.'}`
         $('region-save').disabled = !draftAddress
       })
     }
@@ -163,31 +315,28 @@ async function mountMap(item, sequence) {
       geocoder.addressSearch(text, (results, status) => {
         if (!live() || search !== searchSequence || saving) return
         $('region-candidates').replaceChildren()
-        if (status !== K.services.Status.OK || !results?.length) { $('region-candidates').textContent = '검색 결과가 없습니다. 주소를 바꾸거나 지도를 클릭해 주세요.'; return }
-        for (const result of results.slice(0, 5)) {
+        if (status !== K.services.Status.OK || !results?.length) { $('region-candidates').textContent = '검색 결과가 없습니다.'; return }
+        for (const result of results.slice(0, 4)) {
           const button = document.createElement('button'); button.type = 'button'; button.textContent = result.address_name
-          button.addEventListener('click', () => { if (saving) return; const point = new K.LatLng(Number(result.y), Number(result.x)); map.setCenter(point); map.setLevel(3); choose(point) })
+          button.addEventListener('click', () => { if (saving) return; const point = new K.LatLng(Number(result.y), Number(result.x)); map.setCenter(point); map.setLevel(3) })
           $('region-candidates').append(button)
         }
       })
     })
     $('region-save').addEventListener('click', async () => {
-      const note = $('region-note').value.trim()
+      const note = $('region-coordinate-note').value.trim()
       if (!draft || !draftAddress || saving) return
       if (!note) { $('region-save-status').textContent = '수정 사유를 입력해 주세요.'; return }
-      if (!window.confirm(`${item.name}\n${coordinate(draft)}\n${draftAddress}\n이 위치로 확정할까요? 서버에서 두 주소를 다시 확인하고 이력을 남깁니다.`)) return
-      saving = true
-      $('region-save').disabled = true
+      saving = true; $('region-save').disabled = true
       try {
         await request(`/api/admin/v1/regions/${item.toiletId}/coordinates`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ...draft, note, expectedLocation:item.location }) })
         saving = false
         await loadDetail(item.toiletId)
         await loadList(page)
-        if (live() || selected === item.toiletId) $('region-save-status').textContent = '좌표와 주소를 저장했습니다. 새로고침으로 자동 재판정 결과를 확인해 주세요.'
       } catch (error) { if (live()) { $('region-save-status').textContent = error.message; $('region-save').disabled = false } }
       finally { saving = false }
     })
-  } catch (error) { if (live()) { $('region-map').textContent = error.message; $('region-save-status').textContent = '지도 로딩 실패로 저장할 수 없습니다. 새로고침해 주세요.' } }
+  } catch (error) { if (live()) $('region-map').innerHTML = `<p>${escape(error.message)}</p>` }
 }
 
 async function start() {

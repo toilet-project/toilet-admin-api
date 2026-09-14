@@ -3,12 +3,14 @@ package com.example.toiletadmin.cloudflare.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -21,7 +23,7 @@ class CloudflareUsageServiceTest {
     void combinesCloudflareUsageAndCachesTheResult() throws Exception {
         CloudflareAnalyticsClient client = mock(CloudflareAnalyticsClient.class);
         when(client.isConfigured()).thenReturn(true);
-        when(client.query(any(), any(), any(), any())).thenReturn(objectMapper.readTree("""
+        when(client.query(any(), any(), any(), any(), any())).thenReturn(objectMapper.readTree("""
                 {
                   "data": {"viewer": {"accounts": [{
                     "workersInvocationsAdaptive": [
@@ -41,7 +43,7 @@ class CloudflareUsageServiceTest {
                 """));
         Clock clock = Clock.fixed(Instant.parse("2026-09-13T01:30:00Z"), ZoneOffset.UTC);
         CloudflareUsageService service = new CloudflareUsageService(
-                client, true, 300, 100_000, 5_000_000, 10_737_418_240L,
+                client, true, 300, "Workers Paid", 29, 10_000_000, 25_000_000_000L, 10_000_000_000L,
                 "https://dash.cloudflare.com/", clock);
 
         var first = service.getUsage();
@@ -49,14 +51,22 @@ class CloudflareUsageServiceTest {
 
         assertThat(first.available()).isTrue();
         assertThat(first.status()).isEqualTo("UP");
+        assertThat(first.planLabel()).isEqualTo("Workers Paid");
         assertThat(first.workersRequests().used()).isEqualTo(18_420);
-        assertThat(first.workersRequests().usedPercent()).isEqualTo(18);
+        assertThat(first.workersRequests().limit()).isEqualTo(10_000_000);
+        assertThat(first.workersRequests().usedPercent()).isZero();
         assertThat(first.d1RowsRead().used()).isEqualTo(620_000);
         assertThat(first.r2StorageBytes().used()).isEqualTo(800_003_000L);
         assertThat(first.lastSuccessfulAt()).isEqualTo(Instant.parse("2026-09-13T01:30:00Z"));
-        assertThat(first.dailyResetAt()).isEqualTo(Instant.parse("2026-09-14T00:00:00Z"));
+        assertThat(first.usagePeriodStart()).isEqualTo(Instant.parse("2026-08-29T00:00:00Z"));
+        assertThat(first.usagePeriodEnd()).isEqualTo(Instant.parse("2026-09-28T00:00:00Z"));
         assertThat(cached).isSameAs(first);
-        verify(client, times(1)).query(any(), any(), any(), any());
+        verify(client, times(1)).query(
+                eq(Instant.parse("2026-08-29T00:00:00Z")),
+                eq(Instant.parse("2026-09-13T01:30:00Z")),
+                eq(LocalDate.parse("2026-08-29")),
+                eq(LocalDate.parse("2026-09-13")),
+                eq(Instant.parse("2026-09-11T01:30:00Z")));
     }
 
     @Test
@@ -64,7 +74,7 @@ class CloudflareUsageServiceTest {
         CloudflareAnalyticsClient client = mock(CloudflareAnalyticsClient.class);
         Clock clock = Clock.fixed(Instant.parse("2026-09-13T01:30:00Z"), ZoneOffset.UTC);
         CloudflareUsageService service = new CloudflareUsageService(
-                client, false, 300, 100_000, 5_000_000, 10_737_418_240L,
+                client, false, 300, "Workers Paid", 29, 10_000_000, 25_000_000_000L, 10_000_000_000L,
                 "https://dash.cloudflare.com/", clock);
 
         var response = service.getUsage();
@@ -79,7 +89,7 @@ class CloudflareUsageServiceTest {
     void keepsTheLastSuccessfulValuesWhenARefreshFails() throws Exception {
         CloudflareAnalyticsClient client = mock(CloudflareAnalyticsClient.class);
         when(client.isConfigured()).thenReturn(true);
-        when(client.query(any(), any(), any(), any()))
+        when(client.query(any(), any(), any(), any(), any()))
                 .thenReturn(objectMapper.readTree("""
                         {"data":{"viewer":{"accounts":[{
                           "workersInvocationsAdaptive":[{"sum":{"requests":1200}}],
@@ -92,7 +102,7 @@ class CloudflareUsageServiceTest {
         Instant firstCheck = Instant.parse("2026-09-13T01:30:00Z");
         when(clock.instant()).thenReturn(firstCheck, firstCheck.plusSeconds(31));
         CloudflareUsageService service = new CloudflareUsageService(
-                client, true, 30, 100_000, 5_000_000, 10_737_418_240L,
+                client, true, 30, "Workers Paid", 29, 10_000_000, 25_000_000_000L, 10_000_000_000L,
                 "https://dash.cloudflare.com/", clock);
 
         var successful = service.getUsage();
@@ -103,6 +113,29 @@ class CloudflareUsageServiceTest {
         assertThat(stale.workersRequests().used()).isEqualTo(1_200);
         assertThat(stale.lastSuccessfulAt()).isEqualTo(firstCheck);
         assertThat(stale.message()).contains("마지막 성공 조회값");
-        verify(client, times(2)).query(any(), any(), any(), any());
+        verify(client, times(2)).query(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void treatsIncludedUsageOverageAsCostWarningInsteadOfServiceOutage() throws Exception {
+        CloudflareAnalyticsClient client = mock(CloudflareAnalyticsClient.class);
+        when(client.isConfigured()).thenReturn(true);
+        when(client.query(any(), any(), any(), any(), any())).thenReturn(objectMapper.readTree("""
+                {"data":{"viewer":{"accounts":[{
+                  "workersInvocationsAdaptive":[{"sum":{"requests":12000000}}],
+                  "d1AnalyticsAdaptiveGroups":[],
+                  "r2StorageAdaptiveGroups":[]
+                }]}}}
+                """));
+        Clock clock = Clock.fixed(Instant.parse("2026-09-13T01:30:00Z"), ZoneOffset.UTC);
+        CloudflareUsageService service = new CloudflareUsageService(
+                client, true, 300, "Workers Paid", 29, 10_000_000, 25_000_000_000L, 10_000_000_000L,
+                "https://dash.cloudflare.com/", clock);
+
+        var response = service.getUsage();
+
+        assertThat(response.status()).isEqualTo("WARN");
+        assertThat(response.workersRequests().usedPercent()).isEqualTo(120);
+        assertThat(response.message()).contains("과금");
     }
 }

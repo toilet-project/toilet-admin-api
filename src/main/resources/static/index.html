@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급똥 관리자 | 운영 홈</title>
   <link rel="stylesheet" href="/dashboard.css?v=4" />
-  <link rel="stylesheet" href="/home.css?v=4" />
+  <link rel="stylesheet" href="/home.css?v=5" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
 </head>
 <body class="dashboard-home">
@@ -125,11 +125,11 @@
       </article>
 
       <article class="home-card" aria-labelledby="cloudflare-title">
-        <div class="home-card-heading"><h2 id="cloudflare-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-cloud"/></svg>Cloudflare 이용 한도</h2><a id="cloudflare-link" class="home-detail-link" href="https://dash.cloudflare.com/" target="_blank" rel="noreferrer">대시보드 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
+        <div class="home-card-heading"><h2 id="cloudflare-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-cloud"/></svg>Cloudflare 이용량</h2><a id="cloudflare-link" class="home-detail-link" href="https://dash.cloudflare.com/" target="_blank" rel="noreferrer">대시보드 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
         <div id="cloudflare-quotas" class="quota-list" aria-live="polite">
-          <div><div><span>Workers 요청</span><strong>-</strong></div><div class="quota-track"><i></i></div></div>
-          <div><div><span>D1 행 읽기</span><strong>-</strong></div><div class="quota-track"><i></i></div></div>
-          <div><div><span>R2 저장소</span><strong>-</strong></div><div class="quota-track"><i></i></div></div>
+          <div><div><span>Workers 요청 · 월</span><strong>-</strong></div><div class="quota-track"><i></i></div></div>
+          <div><div><span>D1 행 읽기 · 월</span><strong>-</strong></div><div class="quota-track"><i></i></div></div>
+          <div><div><span>R2 현재 저장량</span><strong>-</strong></div><div class="quota-track"><i></i></div></div>
         </div>
         <p id="cloudflare-note" class="home-card-note">이용량을 확인하고 있습니다.</p>
       </article>
@@ -198,6 +198,6 @@
       </main>
     </div>
   </div>
-  <script src="/admin-session.js?v=2"></script><script src="/dashboard.js?v=6"></script>
+  <script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=7"></script>
 </body>
 </html>

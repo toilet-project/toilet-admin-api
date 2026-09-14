@@ -15,13 +15,13 @@ import tools.jackson.databind.JsonNode;
 public class CloudflareAnalyticsClient {
 
     private static final String QUERY = """
-            query AdminUsage($accountTag: string!, $dayStart: Time!, $now: Time!, $date: Date!, $storageStart: Time!) {
+            query AdminUsage($accountTag: string!, $periodStart: Time!, $now: Time!, $dateStart: Date!, $dateEnd: Date!, $storageStart: Time!) {
               viewer {
                 accounts(filter: {accountTag: $accountTag}) {
-                  workersInvocationsAdaptive(limit: 10000, filter: {datetime_geq: $dayStart, datetime_leq: $now}) {
+                  workersInvocationsAdaptive(limit: 10000, filter: {datetime_geq: $periodStart, datetime_leq: $now}) {
                     sum { requests }
                   }
-                  d1AnalyticsAdaptiveGroups(limit: 10000, filter: {date_geq: $date, date_leq: $date}) {
+                  d1AnalyticsAdaptiveGroups(limit: 10000, filter: {date_geq: $dateStart, date_leq: $dateEnd}) {
                     sum { rowsRead }
                   }
                   r2StorageAdaptiveGroups(limit: 10000, filter: {datetime_geq: $storageStart, datetime_leq: $now}, orderBy: [datetime_DESC]) {
@@ -54,7 +54,7 @@ public class CloudflareAnalyticsClient {
         return !accountId.isBlank() && !apiToken.isBlank();
     }
 
-    public JsonNode query(Instant dayStart, Instant now, LocalDate utcDate, Instant storageStart) {
+    public JsonNode query(Instant periodStart, Instant now, LocalDate periodStartDate, LocalDate currentDate, Instant storageStart) {
         return restClient.post()
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -62,9 +62,10 @@ public class CloudflareAnalyticsClient {
                         "query", QUERY,
                         "variables", Map.of(
                                 "accountTag", accountId,
-                                "dayStart", dayStart.toString(),
+                                "periodStart", periodStart.toString(),
                                 "now", now.toString(),
-                                "date", utcDate.toString(),
+                                "dateStart", periodStartDate.toString(),
+                                "dateEnd", currentDate.toString(),
                                 "storageStart", storageStart.toString()
                         )
                 ))

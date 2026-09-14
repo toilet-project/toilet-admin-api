@@ -5,7 +5,7 @@ import { previewHtml, previewJavaScript } from './build-admin-preview.mjs'
 
 test('moves static navigation and assets below the isolated admin preview path', () => {
   const html = previewHtml('<body><a href="/reports.html">검토</a><script src="/dashboard.js"></script><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">로그인</a></body>')
-  assert.match(html, /src="\/preview\/admin-preview-runtime\.js\?v=2"/)
+  assert.match(html, /src="\/preview\/admin-preview-runtime\.js\?v=3"/)
   assert.match(html, /href="\/preview\/reports\.html"/)
   assert.match(html, /src="\/preview\/dashboard\.js"/)
   assert.match(html, /returnTo=admin/)

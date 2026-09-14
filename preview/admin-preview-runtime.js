@@ -99,11 +99,11 @@
           try {
             const returned = new URL(popup.location.href)
             if (returned.origin !== PREVIEW_ORIGIN || returned.pathname.startsWith(PREFIX)) return
-            const succeeded = returned.searchParams.get('login') === 'success'
+            const failed = returned.searchParams.get('login') === 'failed' || returned.searchParams.has('error')
             popup.close()
             window.clearInterval(timer)
-            if (succeeded) window.location.reload()
-            else notice('로그인이 완료되지 않았습니다. 다시 시도해 주세요.')
+            if (failed) notice('로그인이 완료되지 않았습니다. 다시 시도해 주세요.')
+            else window.location.reload()
           } catch {
             // The provider and API pages are cross-origin until OAuth returns to the preview origin.
           }

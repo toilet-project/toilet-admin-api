@@ -26,4 +26,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
       - name: Verify Cloudflare usage integration
-        run: ./gradlew test --tests 'com.example.toiletadmin.cloudflare.*' --no-daemon --console=plain
+        run: |
+          chmod +x gradlew
+          ./gradlew test --tests 'com.example.toiletadmin.cloudflare.*' --no-daemon --console=plain

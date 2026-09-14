@@ -124,7 +124,7 @@ body.region-page { overflow: hidden; }
 .admin-page .region-candidates { display: flex; max-height: 76px; margin-top: 6px; overflow-x: auto; gap: 5px; }
 .admin-page .region-candidates:empty { display: none; }
 .admin-page .region-candidates button { flex: 0 0 auto; padding: 6px 8px; border: 1px solid #d4e4d8; background: #f5faf6; color: #355b43; font-size: 10px; }
-.admin-page .region-map { display: grid; height: clamp(330px,34dvh,440px); min-height: 330px; margin-top: 8px; overflow: hidden; place-items: center; border: 1px solid #d7e4da; border-radius: 9px; background: #edf3ef; }
+.admin-page .region-map { display: grid; height: clamp(330px,33dvh,430px); min-height: 330px; margin-top: 8px; overflow: hidden; place-items: center; border: 1px solid #d7e4da; border-radius: 9px; background: #edf3ef; }
 .admin-page .region-map > p { color: var(--admin-muted); font-size: 12px; }
 .admin-page .region-coordinate-edit { margin-top: 8px; border-top: 1px solid var(--admin-line); }
 .admin-page .region-coordinate-edit summary { padding: 9px 1px 4px; color: var(--admin-accent); cursor: pointer; font-size: 11px; font-weight: 700; }

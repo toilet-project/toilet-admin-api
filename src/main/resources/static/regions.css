@@ -93,6 +93,9 @@ body.region-page { overflow: hidden; }
 .admin-page .region-section-head { display: flex; align-items: center; gap: 9px; }
 .admin-page .region-section-head > div { display: grid; gap: 1px; }
 .admin-page .region-section-head h3 { margin: 0; color: var(--admin-text); font-size: 15px; font-weight: 700; }
+.admin-page .region-map-heading-row { display: flex; min-width: 0; align-items: baseline; gap: 18px; }
+.admin-page .region-map-searched-address { min-width: 0; overflow: hidden; color: #c66a27; font-size: 10.5px; font-weight: 700; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .region-map-searched-address[hidden] { display: none; }
 .admin-page .region-decision-guide { margin: 11px 0; color: var(--admin-muted); font-size: 11.5px; line-height: 1.5; }
 .admin-page .region-recommendation { display: grid; gap: 6px; }
 .admin-page .region-recommendation > span, .admin-page .region-option-search > span, .admin-page .region-note > span { color: #536a5d; font-size: 11px; font-weight: 700; }

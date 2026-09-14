@@ -165,7 +165,7 @@ function detailMarkup(detail) {
         <button id="region-confirm" class="region-confirm-button" type="button" disabled>시·군·구 확정</button>
       </article>
       <article class="region-map-card">
-        <header class="region-section-head"><span>${icon('map')}</span><div><small>LOCATION CHECK</small><h3>지도에서 위치 확인</h3></div></header>
+        <header class="region-section-head"><span>${icon('map')}</span><div><small>LOCATION CHECK</small><div class="region-map-heading-row"><h3>지도에서 위치 확인</h3><span id="region-map-searched-address" class="region-map-searched-address" aria-live="polite" hidden></span></div></div></header>
         <div class="region-map-search-shell"><div class="region-map-toolbar"><input id="region-map-search" aria-label="지도 주소 검색" autocomplete="off" placeholder="주소 또는 장소명 검색"/><button id="region-map-find" type="button">검색</button><button id="region-reset" class="secondary" type="button">현재 위치</button></div><div id="region-candidates" class="region-candidates" role="listbox" aria-label="연관 위치" aria-live="polite"></div></div><div id="region-map" class="region-map"></div>
         <details class="region-coordinate-edit"><summary>좌표 자체가 잘못된 경우 수정</summary><strong id="region-draft">저장할 위치를 지도에서 선택해 주세요.</strong><label>수정 사유<textarea id="region-coordinate-note" maxlength="500" rows="2"></textarea></label><p id="region-save-status" class="status" role="status"></p><button id="region-save" type="button" disabled>확정 좌표 저장</button></details>
       </article>
@@ -308,7 +308,14 @@ async function mountMap(item, sequence) {
     marker.setZIndex(20)
     searchMarker.setZIndex(30)
     let draft = null, draftAddress = '', lookupSequence = 0, searchSequence = 0, searchTimer
-    const reset = () => { if (saving) return; window.clearTimeout(searchTimer); ++lookupSequence; ++searchSequence; draft = null; draftAddress = ''; marker.setMap(null); searchMarker.setMap(null); map.setCenter(initial); map.setLevel(valid(item.location) ? 3 : 12); $('region-map-search').value = ''; $('region-save').disabled = true; $('region-candidates').replaceChildren(); $('region-draft').textContent = '저장할 위치를 지도에서 선택해 주세요.' }
+    const searchedAddress = result => result?.road_address_name || result?.road_address?.address_name || result?.address_name || ''
+    const updateSearchedAddress = value => {
+      const target = $('region-map-searched-address')
+      target.textContent = value
+      target.title = value
+      target.hidden = !value
+    }
+    const reset = () => { if (saving) return; window.clearTimeout(searchTimer); ++lookupSequence; ++searchSequence; draft = null; draftAddress = ''; marker.setMap(null); searchMarker.setMap(null); map.setCenter(initial); map.setLevel(valid(item.location) ? 3 : 12); $('region-map-search').value = ''; $('region-save').disabled = true; $('region-candidates').replaceChildren(); $('region-draft').textContent = '저장할 위치를 지도에서 선택해 주세요.'; updateSearchedAddress('') }
     reset()
     const choose = position => {
       if (!live() || saving) return
@@ -337,6 +344,7 @@ async function mountMap(item, sequence) {
       searchMarker.setZIndex(30)
       map.setLevel(3)
       map.panTo(point)
+      updateSearchedAddress(searchedAddress(result))
       $('region-candidates').replaceChildren()
     }
     const showSearchResults = (results, type, moveFirst) => {
@@ -347,7 +355,7 @@ async function mountMap(item, sequence) {
       if (moveFirst) { moveToSearchResult(matches[0]); return }
       for (const result of matches) {
         const name = type === 'place' ? result.place_name : result.address_name
-        const foundAddress = type === 'place' ? result.road_address_name || result.address_name : result.address_name
+        const foundAddress = searchedAddress(result)
         const button = document.createElement('button')
         button.type = 'button'
         button.role = 'option'

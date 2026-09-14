@@ -1,7 +1,6 @@
 const el = (id) => document.getElementById(id)
 const API_BASE = 'https://api.geupddong.com'
-const REVIEW_SIZE = 7
-const KST_OFFSET = 9 * 60 * 60 * 1000
+const REVIEW_SIZE = AdminHomeModel.REVIEW_SIZE
 const number = (value) => new Intl.NumberFormat('ko-KR').format(value ?? 0)
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character])
 
@@ -51,6 +50,13 @@ function formatDateTime(value) {
   }).format(parsed) : '-'
 }
 
+function formatMonthDay(value) {
+  const parsed = parseKoreanDate(value)
+  return parsed ? new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit',
+  }).format(parsed) : '-'
+}
+
 function formatAge(value) {
   const parsed = parseKoreanDate(value)
   if (!parsed) return '-'
@@ -80,11 +86,8 @@ function periodRange(days) {
   return { from: seoulDateValue(from), to: seoulDateValue(today) }
 }
 
-function nextBatchTime() {
-  const now = new Date()
-  const korean = new Date(now.getTime() + KST_OFFSET)
-  let next = new Date(Date.UTC(korean.getUTCFullYear(), korean.getUTCMonth(), korean.getUTCDate(), -7, 0, 0))
-  if (next <= now) next = new Date(next.getTime() + 86400000)
+function nextBatchTime(now = new Date()) {
+  const next = AdminHomeModel.nextBatchInstant(now)
   return new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(next)
@@ -158,16 +161,17 @@ async function loadOperations() {
 
 function formatBytes(value) {
   const bytes = Number(value || 0)
-  if (bytes < 1024 ** 2) return `${Math.round(bytes / 1024)} KB`
-  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`
-  return `${(bytes / 1024 ** 3).toFixed(2)} GB`
+  if (bytes < 1000) return `${bytes} B`
+  if (bytes < 1000 ** 2) return `${Math.round(bytes / 1000)} kB`
+  if (bytes < 1000 ** 3) return `${(bytes / 1000 ** 2).toFixed(1)} MB`
+  return `${(bytes / 1000 ** 3).toFixed(2)} GB`
 }
 
 function quotaMarkup(label, metric, bytes = false) {
   const used = bytes ? formatBytes(metric.used) : number(metric.used)
   const limit = bytes ? formatBytes(metric.limit) : number(metric.limit)
   const level = metric.usedPercent >= 100 ? 'is-critical' : metric.usedPercent >= 80 ? 'is-high' : ''
-  return `<div><div><span>${label}</span><strong>${used} <small>/ ${limit}</small></strong></div><div class="quota-track ${level}" role="progressbar" aria-label="${label} 이용률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${metric.usedPercent}"><i style="width:${metric.usedPercent}%"></i></div></div>`
+  return `<div><div><span>${label}</span><strong>${used} <small>/ ${limit} · ${metric.usedPercent}%</small></strong></div><div class="quota-track ${level}" role="progressbar" aria-label="${label} 이용률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${metric.usedPercent}"><i style="width:${Math.min(metric.usedPercent, 100)}%"></i></div></div>`
 }
 
 async function loadCloudflare() {
@@ -177,13 +181,14 @@ async function loadCloudflare() {
       el('cloudflare-link').href = data.dashboardUrl
     }
     el('cloudflare-quotas').innerHTML = [
-      quotaMarkup('Workers 요청', data.workersRequests),
-      quotaMarkup('D1 행 읽기', data.d1RowsRead),
-      quotaMarkup('R2 저장소', data.r2StorageBytes, true),
+      quotaMarkup('Workers 요청 · 월', data.workersRequests),
+      quotaMarkup('D1 행 읽기 · 월', data.d1RowsRead),
+      quotaMarkup('R2 현재 저장량', data.r2StorageBytes, true),
     ].join('')
     const lastSuccess = data.lastSuccessfulAt ? ` · 마지막 성공 ${formatDateTime(data.lastSuccessfulAt)}` : ''
+    const period = `${formatMonthDay(data.usagePeriodStart)}–${formatMonthDay(data.usagePeriodEnd)}`
     el('cloudflare-note').textContent = data.available
-      ? `${data.message} · 일일 한도 09:00 KST 초기화`
+      ? `${data.planLabel} · ${period} 청구 주기 · ${formatDateTime(data.checkedAt)} 조회 · ${data.message}`
       : `${data.message}${lastSuccess}`
     return data.available
   } catch (error) {
@@ -210,17 +215,17 @@ function itemAddress(item) {
 
 function reviewRow(type, item) {
   if (type === 'reports') return {
-    href: `/reports.html?reportId=${encodeURIComponent(item.id)}`,
+    href: AdminHomeModel.reviewHref(type, item),
     cells: [item.toiletName || `화장실 #${item.toiletId}`, reportTypeLabel(item.reportType), formatDateTime(item.createdAt), formatAge(item.createdAt)],
     danger: ageHours(item.createdAt) >= 48,
   }
   if (type === 'coordinates') return {
-    href: `/data-quality.html?groupKey=${encodeURIComponent(item.groupKey)}`,
+    href: AdminHomeModel.reviewHref(type, item),
     cells: [item.representativeName || '이름 없는 화장실', item.region || '-', item.pendingReportCount ? `${number(item.pendingReportCount)}건` : '없음', `${number(item.toiletCount)}개`],
     danger: false,
   }
   return {
-    href: `/regions.html?toiletId=${encodeURIComponent(item.toiletId)}`,
+    href: AdminHomeModel.reviewHref(type, item),
     cells: [item.name || `화장실 #${item.toiletId}`, regionReason(item), itemAddress(item), formatAge(item.checkedAt)],
     danger: ageHours(item.checkedAt) >= 48,
   }
@@ -251,8 +256,9 @@ function renderReview() {
     updateReviewPagination({ page: 0, totalPages: 0 })
     return
   }
-  const start = data.page * REVIEW_SIZE
-  el('review-range').textContent = data.totalElements ? `${start + 1}–${Math.min(start + data.items.length, data.totalElements)} / ${number(data.totalElements)}${type === 'coordinates' ? '그룹' : '건'}` : '0건'
+  const page = AdminHomeModel.reviewPage(data.totalElements, data.page, data.items.length)
+  const start = page.start
+  el('review-range').textContent = data.totalElements ? `${page.first}–${page.last} / ${number(data.totalElements)}${type === 'coordinates' ? '그룹' : '건'}` : '0건'
   const rows = data.items.map((item, index) => {
     const row = reviewRow(type, item)
     return `<tr tabindex="0" data-href="${escapeHtml(row.href)}" aria-label="${escapeHtml(row.cells[0])} 상세 보기"><td>${start + index + 1}</td><td><strong>${escapeHtml(row.cells[0])}</strong></td><td><span class="review-kind">${escapeHtml(row.cells[1])}</span></td><td><span class="review-context">${escapeHtml(row.cells[2])}</span></td><td><span class="${row.danger ? 'review-attention' : ''}">${escapeHtml(row.cells[3])}</span></td></tr>`

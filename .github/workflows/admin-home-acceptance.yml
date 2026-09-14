@@ -1,0 +1,29 @@
+name: Admin Home Acceptance
+
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify responsive dashboard contracts
+        run: node scripts/verify-admin-home.cjs
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Verify Cloudflare usage integration
+        run: ./gradlew test --tests 'com.example.toiletadmin.cloudflare.*' --no-daemon --console=plain

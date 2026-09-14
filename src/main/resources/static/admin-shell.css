@@ -10,18 +10,6 @@
   --admin-red: #b75540;
 }
 
-@view-transition { navigation: auto; }
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 120ms;
-  animation-timing-function: ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) { animation-duration: 0s; }
-}
-
 body.admin-page { background: var(--admin-bg); color: var(--admin-text); font: 400 13px/1.5 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif; }
 body.admin-page button, body.admin-page input, body.admin-page select, body.admin-page textarea { font: inherit; }
 .admin-page .admin-frame { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }

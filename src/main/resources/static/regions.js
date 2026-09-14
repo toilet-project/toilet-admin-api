@@ -8,6 +8,7 @@ const coordinate = (location) => valid(location) ? `${Number(location.latitude).
 const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short', timeZone:'Asia/Seoul' }).format(new Date(value)) : '판정 이력 없음'
 const badge = (status) => `<span class="region-badge ${status === 'VERIFIED' ? 'verified' : ''}">${escape(labels[status] || status)}</span>`
 let page = 0, selected = null, listSequence = 0, detailSequence = 0, historySequence = 0, mapReady, searchTimer, saving = false
+const initialToiletId = Number(new URLSearchParams(window.location.search).get('toiletId'))
 
 function showLogin(status) {
   $('loading-shell').hidden = true
@@ -73,6 +74,9 @@ function evidence(value) {
 async function loadDetail(id) {
   if (saving) return
   selected = id
+  const url = new URL(window.location.href)
+  url.searchParams.set('toiletId', String(id))
+  window.history.replaceState(null, '', url)
   const sequence = ++detailSequence
   document.querySelectorAll('.region-item').forEach(node => node.setAttribute('aria-pressed', String(Number(node.dataset.id) === id)))
   const target = $('region-detail')
@@ -196,6 +200,7 @@ async function start() {
     $('region-search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { if (!saving) void loadList(0) }, 250) })
     $('region-refresh').addEventListener('click', () => { if (saving) return; void loadList(page); if (selected != null) void loadDetail(selected) })
     await loadList()
+    if (Number.isSafeInteger(initialToiletId) && initialToiletId > 0) await loadDetail(initialToiletId)
   } catch { showLogin(401) }
 }
 void start()

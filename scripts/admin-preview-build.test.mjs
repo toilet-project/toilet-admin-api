@@ -26,3 +26,9 @@ test('deployment route is limited to the preview path on the admin host', async 
   assert.equal(config.workers_dev, false)
   assert.equal(config.preview_urls, false)
 })
+
+test('preview CSP permits Kakao Maps SDK dependencies', async () => {
+  const headers = await readFile(new URL('../build/admin-preview-assets/_headers', import.meta.url), 'utf8')
+  assert.match(headers, /script-src[^\n]*https:\/\/dapi\.kakao\.com/)
+  assert.match(headers, /script-src[^\n]*https:\/\/\*\.daumcdn\.net/)
+})

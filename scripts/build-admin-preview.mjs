@@ -54,7 +54,7 @@ for (const path of await files(source)) {
 
 await writeFile(join(outputRoot, '_headers'), `/preview/*
   Cache-Control: no-store
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; connect-src 'self' https://api.geupddong.com https://admin.geupddong.com https://*.kakao.com https://*.daum.net https://*.daumcdn.net; font-src 'self' data:; frame-ancestors 'none'; img-src 'self' data: blob: https:; object-src 'none'; script-src 'self' https://dapi.kakao.com; style-src 'self' 'unsafe-inline'; form-action 'none'
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; connect-src 'self' https://api.geupddong.com https://admin.geupddong.com https://*.kakao.com https://*.daum.net https://*.daumcdn.net; font-src 'self' data:; frame-ancestors 'none'; img-src 'self' data: blob: https:; object-src 'none'; script-src 'self' https://dapi.kakao.com https://*.kakao.com https://*.daum.net https://*.daumcdn.net; style-src 'self' 'unsafe-inline'; form-action 'none'
   Referrer-Policy: same-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY

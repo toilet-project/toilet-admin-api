@@ -92,7 +92,7 @@
       })
       const link = byId('cloudflare-dashboard-link')
       if (link && data.dashboardUrl) link.href = data.dashboardUrl
-      setText('workspace-status', `${dateTime(data.queriedAt)} 기준 이용량입니다.`)
+      setText('workspace-status', `${dateTime(data.lastSuccessfulAt || data.checkedAt)} 기준 이용량입니다.`)
     } catch {
       setText('workspace-status', 'Cloudflare 이용량을 불러오지 못했습니다.')
     }

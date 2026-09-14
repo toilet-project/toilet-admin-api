@@ -668,6 +668,7 @@ async function openCoordinateEditor(toilet) {
     mapElement.replaceChildren()
     const map = new kakao.maps.Map(mapElement, { center: initial, level: 3 })
     const marker = new kakao.maps.Marker({ map, position: initial, draggable: true, title: '보정할 좌표' })
+    marker.setZIndex(20)
     const geocoder = new kakao.maps.services.Geocoder()
     const places = new kakao.maps.services.Places()
     const originBadge = document.createElement('span')

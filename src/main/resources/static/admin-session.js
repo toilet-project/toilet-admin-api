@@ -21,6 +21,7 @@
   const logoutButton = controls.querySelector('[data-session-logout]')
   let expiresAt = null
   let messageTimer = 0
+  let expiryRedirectStarted = false
 
   function showMessage(message) {
     let target = document.querySelector('.admin-session-message')
@@ -39,8 +40,17 @@
   function setExpiry(value) {
     const parsed = new Date(value)
     expiresAt = Number.isNaN(parsed.getTime()) ? null : parsed.getTime()
+    expiryRedirectStarted = false
     controls.hidden = false
     render()
+  }
+
+  function redirectToLogin() {
+    if (expiryRedirectStarted) return
+    expiryRedirectStarted = true
+    extendButton.disabled = true
+    extendButton.textContent = '세션 만료'
+    window.setTimeout(() => window.location.reload(), 150)
   }
 
   function render() {
@@ -54,7 +64,10 @@
     remaining.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
     controls.classList.toggle('is-warning', seconds > 0 && seconds <= 300)
     controls.classList.toggle('is-expired', seconds === 0)
-    if (seconds === 0) remaining.textContent = '만료'
+    if (seconds === 0) {
+      remaining.textContent = '만료'
+      redirectToLogin()
+    }
   }
 
   async function profile() {
@@ -67,6 +80,10 @@
   }
 
   extendButton.addEventListener('click', async () => {
+    if (expiresAt == null || expiresAt <= Date.now()) {
+      redirectToLogin()
+      return
+    }
     extendButton.disabled = true
     extendButton.textContent = '연장 중…'
     try {

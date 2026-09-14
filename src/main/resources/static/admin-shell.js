@@ -76,18 +76,20 @@
 
   const pageCache = new Map()
   const pageStyleNames = new Set(['home.css', 'regions.css'])
-  const routeNames = new Set(['/', '/toilets', '/reports', '/data-quality', '/regions', '/operations', '/members', '/permissions', '/batch-syncs', '/features', '/cloudflare', '/notifications'])
+  const rootRoute = String.fromCharCode(47)
+  const routeNames = new Set([rootRoute, '/toilets', '/reports', '/data-quality', '/regions', '/operations', '/members', '/permissions', '/batch-syncs', '/features', '/cloudflare', '/notifications'])
   let navigationSequence = 0
   let visibilityObserver = null
 
   const normalizedRoute = (pathname) => {
-    const withoutPreview = pathname.replace(/^\/preview(?=\/|$)/, '') || '/'
-    const withoutDocument = withoutPreview.replace(/\/index\.html$/, '/').replace(/\.html$/, '')
-    return withoutDocument.length > 1 ? withoutDocument.replace(/\/$/, '') : '/'
+    const withoutPreview = pathname.replace(/^\/preview(?=\/|$)/, '') || rootRoute
+    const withoutDocument = withoutPreview.replace(/\/index\.html$/, rootRoute).replace(/\.html$/, '')
+    return withoutDocument.length > 1 ? withoutDocument.replace(/\/$/, '') : rootRoute
   }
   const routeUrl = (value) => new URL(value, window.location.href)
   const isInternalRoute = (url) => url.origin === window.location.origin && routeNames.has(normalizedRoute(url.pathname))
   const routeKey = (url) => `${url.origin}${url.pathname}`
+  const assetName = (pathname) => pathname.slice(pathname.lastIndexOf(rootRoute) + 1)
 
   const observeVisibility = (target) => {
     visibilityObserver?.disconnect()
@@ -136,7 +138,7 @@
   const loadRouteStyles = async (nextDocument, destination) => {
     const requested = [...nextDocument.querySelectorAll('link[rel="stylesheet"][href]')]
       .map(link => styleUrl(link, destination))
-    const requiredPageStyles = new Set(requested.filter(url => pageStyleNames.has(url.pathname.split('/').pop())).map(url => url.pathname))
+    const requiredPageStyles = new Set(requested.filter(url => pageStyleNames.has(assetName(url.pathname))).map(url => url.pathname))
     const loading = requested.map(url => {
       const exists = [...document.querySelectorAll('link[rel="stylesheet"][href]')].some(link => new URL(link.href).pathname === url.pathname)
       if (exists) return Promise.resolve()
@@ -144,7 +146,7 @@
         const link = document.createElement('link')
         link.rel = 'stylesheet'
         link.href = url.href
-        if (pageStyleNames.has(url.pathname.split('/').pop())) link.dataset.adminRouteStyle = 'true'
+        if (pageStyleNames.has(assetName(url.pathname))) link.dataset.adminRouteStyle = 'true'
         link.onload = resolve
         link.onerror = () => reject(new Error(`${url.pathname} 스타일을 불러오지 못했습니다.`))
         document.head.append(link)
@@ -158,7 +160,7 @@
 
   const pageScripts = (nextDocument, destination) => [...nextDocument.querySelectorAll('script[src]')]
     .map(script => new URL(script.getAttribute('src'), destination))
-    .filter(url => !['admin-shell.js', 'admin-session.js'].includes(url.pathname.split('/').pop()))
+    .filter(url => !['admin-shell.js', 'admin-session.js'].includes(assetName(url.pathname)))
 
   const executePageScripts = async (nextDocument, destination, sequence) => {
     for (const original of pageScripts(nextDocument, destination)) {
@@ -241,7 +243,7 @@
   frame.addEventListener('focusin', (event) => { const link = event.target.closest('a[href]'); if (link) warm(link) })
 
   document.querySelectorAll('link[rel="stylesheet"][href]').forEach((link) => {
-    if (pageStyleNames.has(new URL(link.href).pathname.split('/').pop())) link.dataset.adminRouteStyle = 'true'
+    if (pageStyleNames.has(assetName(new URL(link.href).pathname))) link.dataset.adminRouteStyle = 'true'
   })
   ensureIconAliases()
   observeVisibility(main)

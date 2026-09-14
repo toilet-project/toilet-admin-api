@@ -23,7 +23,7 @@
 @media (max-width: 760px) { .quality-workspace, .quality-detail { padding: 16px; }.quality-toolbar { align-items: stretch; flex-direction: column; }.quality-toolbar > * { width: 100%; }.quality-layout { min-height: 0; }.quality-list-item { grid-template-columns: 34px minmax(0, 1fr); }.quality-side { grid-column: 2; grid-auto-flow: column; justify-content: start; justify-items: start; }.quality-coordinate-map { height: 270px; } }
 
 /* Duplicate-coordinate workbench */
-.admin-page .quality-shell { max-width: none; padding-right: 0; padding-left: 0; }
+.admin-page .dashboard-shell.quality-shell { max-width: none; padding-right: 0; padding-left: 0; }
 .admin-page .quality-page-header { width: min(calc(100% - 56px), 1424px); margin-right: auto; margin-bottom: 18px; margin-left: auto; }
 .admin-page .quality-workspace { width: calc(100% - 32px); margin: 14px auto 0; padding: 18px; }
 .admin-page .quality-toolbar { gap: 8px; padding: 9px; }

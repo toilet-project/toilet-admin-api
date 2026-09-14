@@ -67,7 +67,7 @@
   })
   input.addEventListener('keydown', (event) => { if (event.key === 'Escape') { input.value = ''; close() } })
   document.addEventListener('pointerdown', (event) => { if (!event.target.closest('.admin-search-wrap')) close() })
-})()
+})();
 
 (() => {
   const frame = document.querySelector('.admin-frame')

@@ -116,6 +116,10 @@ jobs:
             KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}
             KAKAO_JAVASCRIPT_KEY=${{ secrets.KAKAO_JAVASCRIPT_KEY }}
             OPERATIONS_API_HEALTH_URL=https://api.geupddong.com/api/health
+            CLOUDFLARE_ANALYTICS_ENABLED=true
+            CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+            CLOUDFLARE_ANALYTICS_API_TOKEN=${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
+            CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
             EOF
 
             cat <<EOF > docker-compose.yml

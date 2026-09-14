@@ -121,9 +121,10 @@
 .admin-page .quality-map-toilet-marker.has-confirmed-group .quality-map-toilet-name { border-color: #87b697; background: rgba(243,250,245,.97); }
 .admin-page .quality-map-toilet-marker.is-selected .quality-map-toilet-pin { background: #d56b2b; }
 .admin-page .quality-map-toilet-marker.is-selected .quality-map-toilet-name { border-color: #d79d75; background: #fff8f2; }
-.admin-page .coordinate-marker-card { position: absolute; right: 12px; bottom: 12px; width: min(390px, calc(100% - 24px)); max-height: 245px; overflow-y: auto; border: 1px solid #c4dbcb; border-radius: 10px; background: rgba(248,251,249,.98); box-shadow: 0 10px 26px rgba(22,62,38,.16); z-index: 4; }
+.admin-page .coordinate-marker-card { position: absolute; right: 12px; bottom: 12px; width: min(450px, calc(100% - 24px)); max-height: 330px; overflow-y: auto; border: 1px solid #c4dbcb; border-radius: 10px; background: rgba(248,251,249,.98); box-shadow: 0 10px 26px rgba(22,62,38,.16); scrollbar-color: #afbeb4 transparent; scrollbar-width: thin; z-index: 4; }
 .admin-page .coordinate-marker-card[hidden] { display: none; }
-.admin-page .coordinate-marker-card-head { display: flex; position: sticky; top: 0; padding: 8px 9px; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #dce8df; background: #f7faf8; z-index: 1; }
+.admin-page .coordinate-marker-card-sticky { position: sticky; top: 0; border-bottom: 1px solid #dce8df; background: rgba(247,250,248,.99); z-index: 2; }
+.admin-page .coordinate-marker-card-head { display: flex; padding: 8px 9px; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .admin-page .coordinate-marker-card-head > div { display: grid; min-width: 0; gap: 2px; }
 .admin-page .coordinate-marker-card-head span { color: var(--admin-accent); font-size: 8.5px; font-weight: 800; }
 .admin-page .coordinate-marker-card-head strong { overflow: hidden; color: var(--admin-text); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
@@ -133,15 +134,34 @@
 .admin-page .coordinate-close-button::before { transform: rotate(45deg); }
 .admin-page .coordinate-close-button::after { transform: rotate(-45deg); }
 .admin-page .coordinate-close-button:hover { border-color: #9fc3ab; background: #f1f7f3; color: var(--admin-accent); }
+.admin-page .coordinate-marker-direction { display: grid; margin: 0; padding: 7px 9px; border: 0; border-top: 1px solid #e4ebe6; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.admin-page .coordinate-marker-direction legend { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.admin-page .coordinate-marker-direction label { display: flex; min-width: 0; min-height: 31px; padding: 0 8px; align-items: center; gap: 6px; border: 1px solid #d5e2d9; border-radius: 7px; background: #fff; color: #4f6257; font-size: 8.8px; font-weight: 700; cursor: pointer; }
+.admin-page .coordinate-marker-direction label:has(input:checked) { border-color: #72aa84; background: #eaf5ed; color: #14613a; box-shadow: inset 0 0 0 1px rgba(33,128,74,.07); }
+.admin-page .coordinate-marker-direction input { width: 13px; height: 13px; flex: 0 0 auto; margin: 0; accent-color: var(--admin-accent); cursor: pointer; }
+.admin-page .coordinate-marker-direction span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .coordinate-marker-group-composer { display: grid; padding: 7px 9px 8px; border-top: 1px solid #e4ebe6; grid-template-columns: auto auto minmax(90px, 1fr) auto; align-items: center; gap: 5px; }
+.admin-page .coordinate-marker-group-composer button { min-height: 30px; padding: 0 9px; border: 1px solid var(--admin-accent); border-radius: 7px; background: var(--admin-accent); color: #fff; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
+.admin-page .coordinate-marker-group-composer button.is-secondary { border-color: #b7d1bf; background: #fff; color: var(--admin-accent); }
+.admin-page .coordinate-marker-group-composer button.is-secondary.is-selected { border-color: var(--admin-accent); background: #e9f5ed; }
+.admin-page .coordinate-marker-group-composer button:disabled { border-color: #d6e0d9; background: #e4ebe6; color: #87948c; cursor: default; }
+.admin-page .coordinate-marker-group-composer > strong { min-width: 52px; color: var(--admin-text); font-size: 9px; text-align: center; white-space: nowrap; }
+.admin-page .coordinate-marker-group-composer input { width: 100%; min-width: 0; min-height: 30px; padding: 0 8px; border: 1px solid #9fc3ab; border-radius: 7px; outline: 0; background: #fff; color: var(--admin-text); font: inherit; font-size: 9.5px; }
+.admin-page .coordinate-marker-group-composer input:focus { border-color: var(--admin-accent); box-shadow: 0 0 0 2px rgba(33,128,74,.12); }
 .admin-page .coordinate-marker-groups, .admin-page .coordinate-marker-toilets { display: grid; gap: 5px; padding: 7px 9px; }
 .admin-page .coordinate-marker-groups { border-bottom: 1px solid #e0e9e3; }
 .admin-page .coordinate-marker-groups > span { color: var(--admin-accent); font-size: 8.5px; font-weight: 800; }
-.admin-page .coordinate-marker-groups article, .admin-page .coordinate-marker-toilets > div { display: flex; min-width: 0; padding: 7px 8px; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid #e0e9e3; border-radius: 7px; background: #fff; }
-.admin-page .coordinate-marker-groups article > div, .admin-page .coordinate-marker-toilets > div { min-width: 0; }
+.admin-page .coordinate-marker-groups article { display: flex; min-width: 0; padding: 7px 8px; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid #e0e9e3; border-radius: 7px; background: #fff; }
+.admin-page .coordinate-marker-toilets > article { display: grid; min-width: 0; padding: 7px 8px; border: 1px solid #e0e9e3; border-radius: 7px; background: #fff; grid-template-columns: 17px minmax(0, 1fr); align-items: center; gap: 7px; }
+.admin-page .coordinate-marker-toilets > article.is-checked { border-color: #84b393; background: #f0f8f3; }
+.admin-page .coordinate-marker-groups article > div, .admin-page .coordinate-marker-toilets > article > div { min-width: 0; }
+.admin-page .coordinate-marker-toilet-check { display: grid; width: 17px; height: 22px; place-items: center; cursor: pointer; }
+.admin-page .coordinate-marker-toilet-check input { width: 14px; height: 14px; margin: 0; accent-color: var(--admin-accent); cursor: pointer; }
 .admin-page .coordinate-marker-groups strong, .admin-page .coordinate-marker-toilets strong { display: block; overflow: hidden; color: var(--admin-text); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .admin-page .coordinate-marker-groups small, .admin-page .coordinate-marker-toilets small { display: block; margin-top: 2px; color: var(--admin-muted); font-size: 8.5px; }
 .admin-page .coordinate-marker-groups button { min-height: 29px; flex: 0 0 auto; padding: 0 9px; border: 1px solid #9cc4a9; border-radius: 7px; background: #f2f8f4; color: var(--admin-accent); font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
 .admin-page .coordinate-marker-groups button.is-selected { border-color: var(--admin-accent); background: var(--admin-accent); color: #fff; }
+.admin-page .coordinate-marker-empty { margin: 0; padding: 13px 10px; color: var(--admin-muted); font-size: 9.5px; text-align: center; }
 .admin-page .coordinate-form { display: grid; flex: 0 0 auto; margin: 0; padding: 12px; border-top: 0; grid-template-columns: minmax(125px, .6fr) minmax(190px, 1.3fr) minmax(135px, auto); gap: 9px; align-items: end; }
 .admin-page .coordinate-form > label:nth-child(2) { grid-column: 2 / 4; }
 .admin-page .coordinate-form label { display: grid; min-width: 0; gap: 4px; color: var(--admin-muted); font-size: 9.5px; }
@@ -170,6 +190,11 @@
   .admin-page .coordinate-form > label:nth-child(2), .admin-page .coordinate-note-field, .admin-page .coordinate-save-button { grid-column: auto; }
   .admin-page .coordinate-map-search form { grid-template-columns: minmax(0, 1fr) auto; }
   .admin-page .coordinate-map-search button.is-secondary { grid-column: 1 / -1; }
+  .admin-page .coordinate-marker-group-composer { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .admin-page .coordinate-marker-group-composer > strong { text-align: left; }
+  .admin-page .coordinate-marker-group-composer input { grid-column: 1 / 3; }
+  .admin-page .coordinate-marker-group-composer #coordinate-marker-group-create { grid-column: 3; }
+  .admin-page .coordinate-marker-direction { grid-template-columns: 1fr; }
   .admin-page .coordinate-map-stage { min-height: 360px; }
   .admin-page .coordinate-editor { min-height: 700px; }
 }

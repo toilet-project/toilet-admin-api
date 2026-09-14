@@ -119,11 +119,13 @@ body.region-page { overflow: hidden; }
 .admin-page .region-confirm-button { width: 100%; min-height: 41px; margin-top: 4px; border-radius: 8px; font-size: 12px; }
 .admin-page .region-confirm-button:disabled, .admin-page .region-detail button:disabled { cursor: default; opacity: .45; }
 .admin-page .region-map-card { display: flex; flex-direction: column; }
+.admin-page .region-map-search-shell { position: relative; z-index: 5; }
 .admin-page .region-map-toolbar { display: grid; margin-top: 11px; grid-template-columns: minmax(0,1fr) auto auto; gap: 6px; }
 .admin-page .region-map-toolbar button.secondary { border: 1px solid #cbded1; background: #fff; color: var(--admin-accent); }
-.admin-page .region-candidates { display: flex; max-height: 76px; margin-top: 6px; overflow-x: auto; gap: 5px; }
+.admin-page .region-candidates { display: grid; position: absolute; top: calc(100% + 5px); right: 0; left: 0; max-height: 206px; gap: 3px; overflow-y: auto; padding: 6px; border: 1px solid #c9ddd0; border-radius: 9px; background: rgba(255,255,255,.98); box-shadow: 0 12px 28px rgba(25,61,40,.15); color: var(--admin-muted); font-size: 11px; }
 .admin-page .region-candidates:empty { display: none; }
-.admin-page .region-candidates button { flex: 0 0 auto; padding: 6px 8px; border: 1px solid #d4e4d8; background: #f5faf6; color: #355b43; font-size: 10px; }
+.admin-page .region-candidates button { width: 100%; min-height: 34px; padding: 0 9px; overflow: hidden; border: 0; border-radius: 6px; background: transparent; color: #355b43; font-size: 10.5px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .region-candidates button:hover, .admin-page .region-candidates button:focus-visible { outline: 0; background: #edf6f0; color: #155f38; }
 .admin-page .region-map { display: grid; height: clamp(330px,33dvh,430px); min-height: 330px; margin-top: 8px; overflow: hidden; place-items: center; border: 1px solid #d7e4da; border-radius: 9px; background: #edf3ef; }
 .admin-page .region-map > p { color: var(--admin-muted); font-size: 12px; }
 .admin-page .region-coordinate-edit { margin-top: 8px; border-top: 1px solid var(--admin-line); }

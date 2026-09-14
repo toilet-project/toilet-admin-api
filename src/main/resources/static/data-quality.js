@@ -55,17 +55,24 @@ function renderPagination() {
   const target = el('quality-pagination')
   target.replaceChildren()
   if (totalPages <= 1) return
-  ;[['이전', page > 0, page - 1], [`${page + 1} / ${totalPages}`, false], ['다음', page < totalPages - 1, page + 1]].forEach(([label, enabled, targetPage], index) => {
-    const node = document.createElement(index === 1 ? 'span' : 'button')
+  const current = Math.min(Math.max(page, 0), totalPages - 1)
+  const visiblePages = Math.min(5, totalPages)
+  const start = Math.min(Math.max(current - Math.floor(visiblePages / 2), 0), totalPages - visiblePages)
+  const append = (label, targetPage, disabled = false, number = false) => {
+    const node = document.createElement('button')
+    node.type = 'button'
     node.textContent = label
-    if (index !== 1) {
-      node.type = 'button'
-      node.className = 'secondary-button'
-      node.disabled = !enabled
-      node.addEventListener('click', () => void loadGroups(targetPage))
-    }
+    node.className = number ? 'quality-page-number' : 'quality-page-move'
+    node.disabled = disabled
+    if (number && targetPage === current) node.setAttribute('aria-current', 'page')
+    if (!disabled) node.addEventListener('click', () => void loadGroups(targetPage))
     target.append(node)
-  })
+  }
+  append('맨앞', 0, current === 0)
+  append('이전', current - 1, current === 0)
+  for (let targetPage = start; targetPage < start + visiblePages; targetPage += 1) append(String(targetPage + 1), targetPage, targetPage === current, true)
+  append('다음', current + 1, current === totalPages - 1)
+  append('맨뒤', totalPages - 1, current === totalPages - 1)
 }
 
 function renderGroups() {

@@ -159,8 +159,7 @@ function detailMarkup(detail) {
       </article>
       <article class="region-map-card">
         <header class="region-section-head"><span>${icon('map')}</span><div><small>LOCATION CHECK</small><h3>지도에서 위치 확인</h3></div></header>
-        <div class="region-map-toolbar"><input id="region-map-search" aria-label="지도 주소 검색" placeholder="도로명 또는 지번주소 검색"/><button id="region-map-find" type="button">검색</button><button id="region-reset" class="secondary" type="button">현재 위치</button></div>
-        <div id="region-candidates" class="region-candidates"></div><div id="region-map" class="region-map"></div>
+        <div class="region-map-search-shell"><div class="region-map-toolbar"><input id="region-map-search" aria-label="지도 주소 검색" autocomplete="off" placeholder="주소 또는 장소명 검색"/><button id="region-map-find" type="button">검색</button><button id="region-reset" class="secondary" type="button">현재 위치</button></div><div id="region-candidates" class="region-candidates" role="listbox" aria-label="연관 위치" aria-live="polite"></div></div><div id="region-map" class="region-map"></div>
         <details class="region-coordinate-edit"><summary>좌표 자체가 잘못된 경우 수정</summary><strong id="region-draft">저장할 위치를 지도에서 선택해 주세요.</strong><label>수정 사유<textarea id="region-coordinate-note" maxlength="500" rows="2"></textarea></label><p id="region-save-status" class="status" role="status"></p><button id="region-save" type="button" disabled>확정 좌표 저장</button></details>
       </article>
     </section>
@@ -301,8 +300,8 @@ async function mountMap(item, sequence) {
     const searchMarker = new K.Marker({ position:initial, image:pin('#356ad7'), title:'검색 위치' })
     marker.setZIndex(20)
     searchMarker.setZIndex(30)
-    let draft = null, draftAddress = '', lookupSequence = 0, searchSequence = 0
-    const reset = () => { if (saving) return; ++lookupSequence; ++searchSequence; draft = null; draftAddress = ''; marker.setMap(null); searchMarker.setMap(null); map.setCenter(initial); map.setLevel(valid(item.location) ? 3 : 12); $('region-save').disabled = true; $('region-candidates').replaceChildren(); $('region-draft').textContent = '저장할 위치를 지도에서 선택해 주세요.' }
+    let draft = null, draftAddress = '', lookupSequence = 0, searchSequence = 0, searchTimer
+    const reset = () => { if (saving) return; window.clearTimeout(searchTimer); ++lookupSequence; ++searchSequence; draft = null; draftAddress = ''; marker.setMap(null); searchMarker.setMap(null); map.setCenter(initial); map.setLevel(valid(item.location) ? 3 : 12); $('region-map-search').value = ''; $('region-save').disabled = true; $('region-candidates').replaceChildren(); $('region-draft').textContent = '저장할 위치를 지도에서 선택해 주세요.' }
     reset()
     const choose = position => {
       if (!live() || saving) return
@@ -331,42 +330,51 @@ async function mountMap(item, sequence) {
       searchMarker.setZIndex(30)
       map.setLevel(3)
       map.panTo(point)
+      $('region-candidates').replaceChildren()
     }
-    const showSearchResults = (results, type) => {
+    const showSearchResults = (results, type, moveFirst) => {
       const candidates = $('region-candidates')
       candidates.replaceChildren()
       const matches = results.slice(0, 5)
       if (!matches.length) { candidates.textContent = '검색 결과가 없습니다.'; return }
-      moveToSearchResult(matches[0])
+      if (moveFirst) { moveToSearchResult(matches[0]); return }
       for (const result of matches) {
         const name = type === 'place' ? result.place_name : result.address_name
         const foundAddress = type === 'place' ? result.road_address_name || result.address_name : result.address_name
         const button = document.createElement('button')
         button.type = 'button'
+        button.role = 'option'
         button.textContent = type === 'place' && foundAddress ? `${name} · ${foundAddress}` : name
         button.title = button.textContent
         button.addEventListener('click', () => { if (!saving) moveToSearchResult(result) })
         candidates.append(button)
       }
     }
-    const searchMap = () => {
+    const searchMap = (moveFirst = true) => {
       if (saving) return
       const text = $('region-map-search').value.trim()
-      if (!text) return
+      window.clearTimeout(searchTimer)
+      if (text.length < 2) { ++searchSequence; $('region-candidates').replaceChildren(); return }
       const search = ++searchSequence
-      $('region-candidates').textContent = '주소 검색 중…'
+      $('region-candidates').textContent = '연관 위치를 찾는 중…'
       geocoder.addressSearch(text, (results, status) => {
         if (!live() || search !== searchSequence || saving) return
-        if (status === K.services.Status.OK && results?.length) { showSearchResults(results, 'address'); return }
+        if (status === K.services.Status.OK && results?.length) { showSearchResults(results, 'address', moveFirst); return }
         places.keywordSearch(text, (placeResults, placeStatus) => {
           if (!live() || search !== searchSequence || saving) return
-          if (placeStatus === K.services.Status.OK && placeResults?.length) showSearchResults(placeResults, 'place')
+          if (placeStatus === K.services.Status.OK && placeResults?.length) showSearchResults(placeResults, 'place', moveFirst)
           else { $('region-candidates').replaceChildren(); $('region-candidates').textContent = '검색 결과가 없습니다.' }
         }, { size:5 })
       })
     }
-    $('region-map-find').addEventListener('click', searchMap)
-    $('region-map-search').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchMap() } })
+    $('region-map-find').addEventListener('click', () => searchMap(true))
+    $('region-map-search').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchMap(true) } })
+    $('region-map-search').addEventListener('input', () => {
+      window.clearTimeout(searchTimer)
+      const text = $('region-map-search').value.trim()
+      if (text.length < 2) { ++searchSequence; $('region-candidates').replaceChildren(); return }
+      searchTimer = window.setTimeout(() => searchMap(false), 280)
+    })
     $('region-save').addEventListener('click', async () => {
       const note = $('region-coordinate-note').value.trim()
       if (!draft || !draftAddress || saving) return

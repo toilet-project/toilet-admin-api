@@ -1,6 +1,5 @@
 (() => {
   const API_BASE = 'https://api.geupddong.com'
-  const PREVIEW_TTL = 30 * 60 * 1000
   const actions = document.querySelector('.admin-topbar-actions')
   if (!actions || actions.querySelector('.admin-session-controls')) return
 
@@ -59,10 +58,6 @@
   }
 
   async function profile() {
-    if (window.PREVIEW_DATA) {
-      setExpiry(Date.now() + PREVIEW_TTL)
-      return true
-    }
     const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })
     if (!response.ok) return false
     const data = await response.json()
@@ -75,12 +70,8 @@
     extendButton.disabled = true
     extendButton.textContent = '연장 중…'
     try {
-      if (window.PREVIEW_DATA) {
-        setExpiry(Date.now() + PREVIEW_TTL)
-      } else {
-        const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, { method: 'POST', credentials: 'include' })
-        if (!response.ok || !await profile()) throw new Error('refresh failed')
-      }
+      const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, { method: 'POST', credentials: 'include' })
+      if (!response.ok || !await profile()) throw new Error('refresh failed')
       extendButton.textContent = '연장 완료'
       showMessage('로그인 시간이 30분으로 연장됐습니다.')
     } catch {
@@ -95,22 +86,9 @@
     logoutButton.disabled = true
     logoutButton.textContent = '로그아웃 중…'
     try {
-      if (window.PREVIEW_DATA) {
-        document.querySelector('.admin-frame')?.setAttribute('hidden', '')
-        const auth = document.getElementById('auth-shell')
-        document.getElementById('loading-shell')?.setAttribute('hidden', '')
-        if (auth) {
-          auth.hidden = false
-          const title = document.getElementById('auth-title')
-          const description = document.getElementById('auth-description')
-          if (title) title.textContent = '로그아웃되었습니다'
-          if (description) description.textContent = '다시 확인하려면 관리자 계정으로 로그인해 주세요.'
-        }
-        return
-      }
       await fetch(`${API_BASE}/api/v1/auth/logout`, { method: 'POST', credentials: 'include' })
     } finally {
-      if (!window.PREVIEW_DATA) window.location.assign('/')
+      window.location.assign('/')
     }
   })
 

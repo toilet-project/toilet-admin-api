@@ -23,7 +23,7 @@ const coordinate = (location) => valid(location) ? `${Number(location.latitude).
 const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short', timeZone:'Asia/Seoul' }).format(new Date(value)) : '판정 이력 없음'
 const badge = (status) => `<span class="region-badge ${status === 'VERIFIED' ? 'verified' : ''}">${escape(labels[status] || status)}</span>`
 const icon = (name) => ({ source:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM9 11h6M9 15h6M9 7h3"/></svg>', logic:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h7M5 12h4M5 17h7M15 6l4 4-7 7-4 1 1-4z"/></svg>', final:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12z"/><path d="m9 10 2 2 4-4"/></svg>', map:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>' }[name] || '')
-let page = 0, selected = null, listSequence = 0, detailSequence = 0, historySequence = 0, mapReady, searchTimer, optionTimer, saving = false
+let page = 0, selected = null, listSequence = 0, detailSequence = 0, historySequence = 0, mapReady, optionTimer, saving = false
 const initialToiletId = Number(new URLSearchParams(window.location.search).get('toiletId'))
 
 function showLogin(status) {
@@ -93,7 +93,7 @@ async function loadList(nextPage = 0) {
   $('region-workspace').setAttribute('aria-busy', 'true')
   $('region-status').textContent = '검토 목록을 불러오는 중…'
   try {
-    const query = new URLSearchParams({ status:$('region-filter').value, keyword:$('region-search').value.trim(), page:String(nextPage), size:'15' })
+    const query = new URLSearchParams({ status:$('region-filter').value, page:String(nextPage), size:'15' })
     const data = await request(`/api/admin/v1/regions?${query}`)
     if (sequence !== listSequence || !$('auth-shell').hidden) return
     page = data.page
@@ -105,7 +105,7 @@ async function loadList(nextPage = 0) {
       button.className = 'region-item'
       button.dataset.id = item.toiletId
       button.setAttribute('aria-pressed', String(selected === item.toiletId))
-      button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span>`
+      button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-meta"><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span></span>`
       button.addEventListener('click', () => { if (!saving) void loadDetail(item.toiletId) })
       $('region-list').append(button)
     }
@@ -348,7 +348,6 @@ async function start() {
     $('loading-shell').hidden = true
     $('region-shell').hidden = false
     $('region-filter').addEventListener('change', () => { if (!saving) void loadList(0) })
-    $('region-search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { if (!saving) void loadList(0) }, 250) })
     $('region-refresh').addEventListener('click', () => { if (saving) return; void loadList(page); if (selected != null) void loadDetail(selected) })
     await loadList()
     if (Number.isSafeInteger(initialToiletId) && initialToiletId > 0) await loadDetail(initialToiletId)

@@ -11,6 +11,9 @@ let searchTimer
 let kakaoMapsReady
 let coordinateDraft = null
 let coordinateEditorSequence = 0
+let selectedToiletIds = new Set()
+let activeDisplayGroupId = null
+let currentGroupToilets = []
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character])
 const statusLabel = (status) => ({ PENDING: '미확인', NEEDS_CORRECTION: '보정 필요', CONFIRMED_SHARED: '실제 공동 위치' })[status] || status
@@ -75,7 +78,80 @@ function renderGroups() {
 }
 
 function toiletMarkup(item) {
-  return `<article class="quality-toilet" data-toilet-row="${item.id}"><div><strong>${escapeHtml(item.name || '이름 없는 화장실')}</strong><span>${escapeHtml(item.toiletType || '구분 없음')} · ID ${item.id}${item.managementNumber ? ` · 관리번호 ${escapeHtml(item.managementNumber)}` : ''}</span><small>${escapeHtml(item.roadAddress || item.jibunAddress || '주소 정보 없음')}</small></div><div class="quality-toilet-actions"><i>${escapeHtml(item.coordinateSource || '출처 미상')}</i><button class="secondary-button coordinate-edit" data-toilet-id="${item.id}" type="button">좌표 보정</button></div></article>`
+  const displayGroup = item.displayGroupId
+    ? `<button class="quality-display-group-chip" data-display-group-id="${item.displayGroupId}" type="button" title="이 그룹의 화장실 선택">${escapeHtml(item.displayGroupName)}</button>`
+    : ''
+  return `<article class="quality-toilet" data-toilet-row="${item.id}"><label class="quality-toilet-check"><input class="quality-toilet-selector" data-toilet-id="${item.id}" type="checkbox" aria-label="${escapeHtml(item.name || '이름 없는 화장실')} 선택" /><span aria-hidden="true"></span></label><div class="quality-toilet-main"><strong>${escapeHtml(item.name || '이름 없는 화장실')}</strong><span>ID ${item.id}</span></div>${displayGroup}<button class="secondary-button coordinate-edit" data-toilet-id="${item.id}" type="button">좌표</button></article>`
+}
+
+function groupMembers(displayGroupId) {
+  return currentGroupToilets.filter((item) => Number(item.displayGroupId) === Number(displayGroupId))
+}
+
+function syncDisplayGroupComposer() {
+  const selected = currentGroupToilets.filter((item) => selectedToiletIds.has(item.id))
+  document.querySelectorAll('.quality-toilet-selector').forEach((checkbox) => {
+    checkbox.checked = selectedToiletIds.has(Number(checkbox.dataset.toiletId))
+    checkbox.closest('.quality-toilet')?.classList.toggle('is-checked', checkbox.checked)
+  })
+  const selectAll = el('quality-select-all')
+  if (selectAll) {
+    selectAll.checked = currentGroupToilets.length > 0 && selected.length === currentGroupToilets.length
+    selectAll.indeterminate = selected.length > 0 && selected.length < currentGroupToilets.length
+  }
+  const selectionText = el('quality-selection-count')
+  if (selectionText) selectionText.textContent = selected.length ? `${selected.length}개 선택` : '선택 없음'
+
+  const groupIds = [...new Set(selected.map((item) => item.displayGroupId).filter(Boolean))]
+  const exactGroup = groupIds.length === 1
+    && selected.length === groupMembers(groupIds[0]).length
+    && selected.every((item) => Number(item.displayGroupId) === Number(groupIds[0]))
+  if (!activeDisplayGroupId && exactGroup) activeDisplayGroupId = Number(groupIds[0])
+  const activeGroup = activeDisplayGroupId ? groupMembers(activeDisplayGroupId) : []
+  const activeGroupName = activeGroup[0]?.displayGroupName || ''
+  const nameInput = el('display-group-name')
+  if (activeDisplayGroupId && nameInput && !nameInput.value && document.activeElement !== nameInput) nameInput.value = activeGroupName
+  const saveButton = el('save-display-group')
+  if (saveButton) {
+    saveButton.disabled = selected.length < 2 || !nameInput?.value.trim()
+    saveButton.textContent = activeDisplayGroupId ? '그룹 수정' : '그룹 지정'
+  }
+  const deleteButton = el('delete-display-group')
+  if (deleteButton) deleteButton.hidden = !activeDisplayGroupId
+  const hint = el('display-group-hint')
+  if (hint) hint.textContent = activeDisplayGroupId
+    ? `‘${activeGroupName}’ 그룹의 이름과 구성원을 수정할 수 있습니다.`
+    : selected.length >= 2 ? '입력한 이름이 사용자 지도에 대표 이름으로 표시됩니다.' : '함께 표시할 화장실을 2개 이상 선택하세요.'
+}
+
+function bindDisplayGroupControls(group) {
+  document.querySelectorAll('.quality-toilet-selector').forEach((checkbox) => checkbox.addEventListener('change', () => {
+    const toiletId = Number(checkbox.dataset.toiletId)
+    if (checkbox.checked) selectedToiletIds.add(toiletId)
+    else selectedToiletIds.delete(toiletId)
+    syncDisplayGroupComposer()
+  }))
+  document.querySelectorAll('.quality-display-group-chip').forEach((button) => button.addEventListener('click', () => {
+    activeDisplayGroupId = Number(button.dataset.displayGroupId)
+    const members = groupMembers(activeDisplayGroupId)
+    selectedToiletIds = new Set(members.map((item) => item.id))
+    el('display-group-name').value = members[0]?.displayGroupName || ''
+    syncDisplayGroupComposer()
+  }))
+  el('quality-select-all').addEventListener('change', (event) => {
+    selectedToiletIds = event.target.checked ? new Set(currentGroupToilets.map((item) => item.id)) : new Set()
+    syncDisplayGroupComposer()
+  })
+  el('clear-toilet-selection').addEventListener('click', () => {
+    selectedToiletIds = new Set()
+    activeDisplayGroupId = null
+    el('display-group-name').value = ''
+    syncDisplayGroupComposer()
+  })
+  el('display-group-name').addEventListener('input', syncDisplayGroupComposer)
+  el('save-display-group').addEventListener('click', () => void saveDisplayGroup(group))
+  el('delete-display-group').addEventListener('click', () => void deleteDisplayGroup(group))
+  syncDisplayGroupComposer()
 }
 
 function revisionMarkup(item, names) {
@@ -88,6 +164,9 @@ async function selectGroup(groupKey) {
   url.searchParams.set('groupKey', groupKey)
   window.history.replaceState(null, '', url)
   resetCoordinateEditor()
+  selectedToiletIds = new Set()
+  activeDisplayGroupId = null
+  currentGroupToilets = []
   renderGroups()
   const detail = el('quality-detail')
   detail.innerHTML = '<p class="status quality-panel-loading">그룹 화장실을 불러오는 중입니다.</p>'
@@ -95,6 +174,7 @@ async function selectGroup(groupKey) {
     const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates/${encodeURIComponent(groupKey)}`, { credentials: 'include' })
     if (!response.ok) throw new Error('중복 좌표 상세를 불러오지 못했습니다.')
     const data = await response.json()
+    currentGroupToilets = data.toilets
     const names = new Map(data.toilets.map((item) => [item.id, item.name]))
     const reports = data.pendingReports.length
       ? `<section class="quality-reports"><strong>대기 중인 위치 제보 ${data.pendingReports.length}건</strong>${data.pendingReports.map((report) => `<a href="/reports.html?reportId=${report.reportId}">${escapeHtml(report.toiletName)} · ${escapeHtml(date(report.createdAt))}</a>`).join('')}</section>`
@@ -114,15 +194,64 @@ async function selectGroup(groupKey) {
       </section>
       ${reports}
       <section class="quality-toilets-section">
-        <div class="quality-list-label"><strong>등록 화장실</strong><span>좌표를 수정할 항목을 선택하세요.</span></div>
+        <div class="quality-list-label"><strong>등록 화장실</strong><span>체크한 항목을 하나의 이름으로 묶을 수 있습니다.</span></div>
+        <section class="quality-display-group-box" aria-label="지도 노출 그룹 지정">
+          <div class="quality-selection-bar"><label><input id="quality-select-all" type="checkbox" /><span>전체 선택</span></label><strong id="quality-selection-count">선택 없음</strong><button id="clear-toilet-selection" type="button">선택 해제</button></div>
+          <div class="quality-display-group-form"><input id="display-group-name" maxlength="100" placeholder="지도에 표시할 이름 (예: XXX문화원)" /><button id="save-display-group" type="button" disabled>그룹 지정</button></div>
+          <div class="quality-display-group-help"><p id="display-group-hint">함께 표시할 화장실을 2개 이상 선택하세요.</p><button id="delete-display-group" type="button" hidden>그룹 해제</button></div>
+        </section>
         <div class="quality-toilets">${data.toilets.map(toiletMarkup).join('')}</div>
       </section>
       <details class="quality-history"><summary>좌표 수정 이력 <strong>${data.revisions.length}건</strong></summary>${revisions}</details>`
     el('quality-detail-close').addEventListener('click', closeDetail)
     el('save-group-review').addEventListener('click', () => void saveGroupReview(data.group))
+    bindDisplayGroupControls(data.group)
     detail.querySelectorAll('.coordinate-edit').forEach((button) => button.addEventListener('click', () => void openCoordinateEditor(data.toilets.find((item) => item.id === Number(button.dataset.toiletId)))))
   } catch (error) {
     detail.innerHTML = `<p class="status is-error quality-panel-loading">${escapeHtml(error.message)}</p>`
+  }
+}
+
+async function saveDisplayGroup(group) {
+  const displayName = el('display-group-name').value.trim()
+  const toiletIds = [...selectedToiletIds]
+  if (toiletIds.length < 2 || !displayName) return
+  const button = el('save-display-group')
+  button.disabled = true
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates/${encodeURIComponent(group.groupKey)}/display-group`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ displayGroupId: activeDisplayGroupId, displayName, toiletIds })
+    })
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) throw new Error(payload?.error?.message || payload?.message || '지도 노출 그룹을 저장하지 못했습니다.')
+    await selectGroup(group.groupKey)
+  } catch (error) {
+    window.alert(error.message)
+  } finally {
+    if (el('save-display-group')) el('save-display-group').disabled = false
+  }
+}
+
+async function deleteDisplayGroup(group) {
+  if (!activeDisplayGroupId || !window.confirm('이 지도 노출 그룹을 해제할까요? 원본 화장실 데이터는 삭제되지 않습니다.')) return
+  const button = el('delete-display-group')
+  button.disabled = true
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/display-groups/${activeDisplayGroupId}`, {
+      method: 'DELETE', credentials: 'include'
+    })
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null)
+      throw new Error(payload?.error?.message || payload?.message || '지도 노출 그룹을 해제하지 못했습니다.')
+    }
+    await selectGroup(group.groupKey)
+  } catch (error) {
+    window.alert(error.message)
+  } finally {
+    if (el('delete-display-group')) el('delete-display-group').disabled = false
   }
 }
 
@@ -131,6 +260,9 @@ function closeDetail() {
   const url = new URL(window.location.href)
   url.searchParams.delete('groupKey')
   window.history.replaceState(null, '', url)
+  selectedToiletIds = new Set()
+  activeDisplayGroupId = null
+  currentGroupToilets = []
   el('quality-detail').innerHTML = detailPlaceholder()
   resetCoordinateEditor()
   renderGroups()

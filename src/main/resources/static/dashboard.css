@@ -59,14 +59,30 @@
 .admin-page .quality-list-label { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px 7px; }
 .admin-page .quality-list-label strong { font-size: 11px; font-weight: 600; }
 .admin-page .quality-list-label span { color: var(--admin-muted); font-size: 9.5px; }
+.admin-page .quality-display-group-box { display: grid; flex: 0 0 auto; gap: 7px; margin-bottom: 8px; padding: 9px; border: 1px solid #dce9e0; border-radius: 9px; background: #f7faf8; }
+.admin-page .quality-selection-bar { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.admin-page .quality-selection-bar label { display: inline-flex; align-items: center; gap: 5px; color: var(--admin-text); font-size: 10px; font-weight: 600; cursor: pointer; }
+.admin-page .quality-selection-bar input, .admin-page .quality-toilet-check input { width: 15px; height: 15px; margin: 0; accent-color: var(--admin-accent); cursor: pointer; }
+.admin-page .quality-selection-bar strong { margin-left: auto; color: var(--admin-accent); font-size: 10px; font-weight: 700; }
+.admin-page .quality-selection-bar button, .admin-page .quality-display-group-help button { padding: 0; border: 0; background: transparent; color: var(--admin-muted); font: inherit; font-size: 9px; text-decoration: underline; cursor: pointer; }
+.admin-page .quality-display-group-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.admin-page .quality-display-group-form input { min-width: 0; min-height: 35px; padding: 0 9px; border: 1px solid #cfe0d4; border-radius: 7px; background: #fff; color: var(--admin-text); font: inherit; font-size: 10.5px; }
+.admin-page .quality-display-group-form button { min-height: 35px; padding: 0 11px; border: 1px solid var(--admin-accent); border-radius: 7px; background: var(--admin-accent); color: #fff; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+.admin-page .quality-display-group-form button:disabled { border-color: #d7e1da; background: #dfe7e2; color: #86948b; cursor: default; }
+.admin-page .quality-display-group-help { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; }
+.admin-page .quality-display-group-help p { min-width: 0; margin: 0; overflow: hidden; color: var(--admin-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .quality-display-group-help button { flex: 0 0 auto; color: #b5543d; }
 .admin-page .quality-toilets { min-height: 0; overflow-y: auto; gap: 5px; padding-right: 3px; scrollbar-color: #b8c5bd transparent; scrollbar-width: thin; }
-.admin-page .quality-toilet { min-height: 57px; flex: 0 0 auto; align-items: center; padding: 8px 9px; border-radius: 8px; }
+.admin-page .quality-toilet { display: grid; min-height: 51px; flex: 0 0 auto; padding: 7px 8px; border-radius: 8px; grid-template-columns: 20px minmax(0, 1fr) auto auto; align-items: center; gap: 7px; }
+.admin-page .quality-toilet.is-checked { border-color: #89b999; background: #f1f8f3; }
 .admin-page .quality-toilet.is-editing { border-color: #d29c72; background: #fff8f2; }
-.admin-page .quality-toilet > div:first-child { gap: 2px; }
+.admin-page .quality-toilet-check { display: grid; width: 20px; height: 28px; place-items: center; cursor: pointer; }
+.admin-page .quality-toilet-main { display: grid; min-width: 0; gap: 3px; }
+.admin-page .quality-toilet-main strong, .admin-page .quality-toilet-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-page .quality-toilet strong { font-size: 11.5px; }
-.admin-page .quality-toilet span, .admin-page .quality-toilet small { font-size: 9.5px; }
-.admin-page .quality-toilet-actions i { font-size: 8.5px; }
-.admin-page .quality-toilet-actions .secondary-button { min-height: 32px; padding: 0 9px; font-size: 10px; }
+.admin-page .quality-toilet span { color: var(--admin-muted); font-size: 9.5px; }
+.admin-page .quality-display-group-chip { max-width: 92px; padding: 4px 6px; overflow: hidden; border: 1px solid #bcd8c5; border-radius: 999px; background: #eef7f1; color: #237144; font: inherit; font-size: 8.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.admin-page .quality-toilet > .coordinate-edit { min-height: 30px; padding: 0 8px; font-size: 9.5px; }
 .admin-page .quality-history { flex: 0 0 auto; margin-top: 8px; border-top: 1px solid var(--admin-line); background: #fbfcfb; }
 .admin-page .quality-history summary { padding: 9px 12px; color: var(--admin-muted); cursor: pointer; font-size: 10px; }
 .admin-page .quality-history summary strong { color: var(--admin-text); font-weight: 600; }
@@ -104,7 +120,9 @@
   .admin-page .quality-stack { height: auto; grid-template-columns: 1fr; }
   .admin-page .quality-list-column, .admin-page .quality-detail { min-height: 390px; }
   .admin-page .quality-review-box, .admin-page .coordinate-form { grid-template-columns: 1fr; }
-  .admin-page .quality-toilet { align-items: stretch; flex-direction: column; }
+  .admin-page .quality-toilet { grid-template-columns: 20px minmax(0, 1fr) auto; }
+  .admin-page .quality-display-group-chip { grid-column: 2; justify-self: start; }
+  .admin-page .quality-toilet > .coordinate-edit { grid-column: 3; grid-row: 1 / span 2; }
   .admin-page .coordinate-form button { grid-column: auto; }
   .admin-page .coordinate-editor { min-height: 560px; }
 }

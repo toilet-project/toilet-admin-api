@@ -5,7 +5,7 @@ import { previewHtml, previewJavaScript } from './build-admin-preview.mjs'
 
 test('moves static navigation and assets below the isolated admin preview path', () => {
   const html = previewHtml('<body><a href="/reports.html">검토</a><script src="/dashboard.js"></script><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">로그인</a></body>')
-  assert.match(html, /src="\/preview\/admin-preview-runtime\.js\?v=4"/)
+  assert.match(html, /src="\/preview\/admin-preview-runtime\.js\?v=5"/)
   assert.match(html, /href="\/preview\/reports\.html"/)
   assert.match(html, /src="\/preview\/dashboard\.js"/)
   assert.match(html, /returnTo=adminPreview/)
@@ -15,6 +15,13 @@ test('preview login uses a full-page OAuth flow that returns directly to the pre
   const runtime = await readFile(new URL('../preview/admin-preview-runtime.js', import.meta.url), 'utf8')
   assert.match(runtime, /returnTo', 'adminPreview'/)
   assert.doesNotMatch(runtime, /window\.open\(/)
+})
+
+test('display-group demo stays scoped to an explicit preview query and never claims an operational write', async () => {
+  const runtime = await readFile(new URL('../preview/admin-preview-runtime.js', import.meta.url), 'utf8')
+  assert.match(runtime, /get\('demo'\) === 'display-group'/)
+  assert.match(runtime, /운영 데이터에는 반영되지 않습니다/)
+  assert.match(runtime, /if \(!DISPLAY_GROUP_DEMO \|\| target\.origin !== API_ORIGIN\) return null/)
 })
 
 test('moves JavaScript page navigation without rewriting API paths', () => {

@@ -344,8 +344,8 @@ async function mountMap(item, sequence) {
         const button = document.createElement('button')
         button.type = 'button'
         button.role = 'option'
-        button.textContent = type === 'place' && foundAddress ? `${name} · ${foundAddress}` : name
-        button.title = button.textContent
+        button.textContent = name
+        button.title = foundAddress && foundAddress !== name ? `${name} · ${foundAddress}` : name
         button.addEventListener('click', () => { if (!saving) moveToSearchResult(result) })
         candidates.append(button)
       }

@@ -99,7 +99,10 @@
 .admin-page .quality-pane-head.is-map-editor { padding: 15px 16px 13px; }
 .admin-page .coordinate-map-search { display: grid; flex: 0 0 auto; gap: 4px; padding: 9px 12px 0; }
 .admin-page .coordinate-map-search form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; }
-.admin-page .coordinate-map-search input { min-width: 0; min-height: 35px; border-radius: 7px; font-size: 10.5px; }
+.admin-page .coordinate-map-search input { min-width: 0; min-height: 35px; padding: 0 11px; border: 1px solid #8fb99c; border-radius: 7px; outline: 0; background: #fbfefc; box-shadow: inset 0 0 0 1px rgba(255,255,255,.75); color: var(--admin-text); font: inherit; font-size: 10.5px; transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; }
+.admin-page .coordinate-map-search input::placeholder { color: #718077; opacity: 1; }
+.admin-page .coordinate-map-search input:hover { border-color: #6ca37e; background: #fff; }
+.admin-page .coordinate-map-search input:focus { border-color: var(--admin-accent); background: #fff; box-shadow: 0 0 0 3px rgba(33,128,74,.13); }
 .admin-page .coordinate-map-search button { min-height: 35px; padding: 0 13px; border: 1px solid var(--admin-accent); border-radius: 7px; background: var(--admin-accent); color: #fff; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
 .admin-page .coordinate-map-search button.is-secondary { border-color: #cfe0d4; background: #fff; color: var(--admin-accent); }
 .admin-page .coordinate-map-search p { margin: 0; color: #b24d37; font-size: 9px; line-height: 1.45; }
@@ -125,6 +128,11 @@
 .admin-page .coordinate-marker-card-head span { color: var(--admin-accent); font-size: 8.5px; font-weight: 800; }
 .admin-page .coordinate-marker-card-head strong { overflow: hidden; color: var(--admin-text); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .admin-page .coordinate-marker-card-head button { width: 25px; height: 25px; flex: 0 0 auto; border: 1px solid #d3e1d7; border-radius: 50%; background: #fff; color: var(--admin-muted); cursor: pointer; }
+.admin-page .coordinate-close-button { display: grid; position: relative; padding: 0; place-items: center; appearance: none; }
+.admin-page .coordinate-close-button::before, .admin-page .coordinate-close-button::after { position: absolute; width: 10px; height: 1px; border-radius: 999px; background: currentColor; content: ''; }
+.admin-page .coordinate-close-button::before { transform: rotate(45deg); }
+.admin-page .coordinate-close-button::after { transform: rotate(-45deg); }
+.admin-page .coordinate-close-button:hover { border-color: #9fc3ab; background: #f1f7f3; color: var(--admin-accent); }
 .admin-page .coordinate-marker-groups, .admin-page .coordinate-marker-toilets { display: grid; gap: 5px; padding: 7px 9px; }
 .admin-page .coordinate-marker-groups { border-bottom: 1px solid #e0e9e3; }
 .admin-page .coordinate-marker-groups > span { color: var(--admin-accent); font-size: 8.5px; font-weight: 800; }

@@ -134,7 +134,7 @@ function detailMarkup(detail) {
         <header class="region-section-head"><span>${icon('final')}</span><div><small>FINAL DISTRICT</small><h3>최종 시·군·구 지정</h3></div></header>
         <p class="region-decision-guide">주소 원문과 좌표 판정을 비교한 뒤 실제 서비스에 저장할 지역을 선택하세요.</p>
         <div id="region-recommendation" class="region-recommendation"></div>
-        <label class="region-option-search"><span>다른 시·군·구 찾기</span><div><input id="region-option-search" type="search" maxlength="50" autocomplete="off" placeholder="예: 하남시, 수원시 팔달구"/><button id="region-option-find" type="button">검색</button></div></label>
+        <label class="region-option-search"><span>다른 시·군·구 찾기</span><div><input id="region-option-search" type="search" maxlength="50" autocomplete="off" placeholder="예: 서울특별시 동대문구, 11230"/><button id="region-option-find" type="button">검색</button></div></label>
         <div id="region-option-results" class="region-option-results"></div>
         <div id="region-choice" class="region-choice"><small>선택된 지역</small><strong>시·군·구를 선택해 주세요.</strong></div>
         <label class="region-note"><span>확정 근거</span><textarea id="region-note" maxlength="500" rows="2" placeholder="확인한 근거를 간단히 남겨 주세요.">${escape(detail.confirmation?.note || '')}</textarea></label>

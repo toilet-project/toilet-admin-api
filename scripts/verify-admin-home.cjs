@@ -47,7 +47,7 @@ assert.doesNotMatch(html.match(/<div id="dashboard-shell"[^>]*>/)?.[0] || '', /\
 assert.doesNotMatch(css, /@view-transition/)
 assert.doesNotMatch(sharedCss, /@view-transition/)
 assert.match(html, /data-admin-page="home" data-admin-title="운영 홈"/)
-assert.ok(html.indexOf('/admin-shell.js?v=4') < html.indexOf('/admin-session.js?v=2'))
+assert.ok(html.indexOf('/admin-shell.js?v=5') < html.indexOf('/admin-session.js?v=2'))
 assert.match(sharedScript, /window\.AdminNavigation = Object\.freeze\(\{ go \}\)/)
 assert.match(sharedScript, /main\.replaceWith\(nextMain\)/)
 assert.match(sharedScript, /window\.history\.pushState\(\{ adminRoute: true \}/)

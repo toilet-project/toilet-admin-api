@@ -73,6 +73,7 @@
   const frame = document.querySelector('.admin-frame')
   let main = document.querySelector('main[data-admin-page]')
   if (!frame || !main || window.AdminNavigation) return
+  frame.dataset.adminNavigation = 'initializing'
 
   const pageCache = new Map()
   const pageStyleNames = new Set(['home.css', 'regions.css'])
@@ -248,4 +249,5 @@
   ensureIconAliases()
   observeVisibility(main)
   window.AdminNavigation = Object.freeze({ go })
+  frame.dataset.adminNavigation = 'ready'
 })()

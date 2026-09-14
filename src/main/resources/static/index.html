@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급똥 관리자 | 운영 홈</title>
   <link rel="stylesheet" href="/dashboard.css?v=4" />
-  <link rel="stylesheet" href="/home.css?v=5" />
+  <link rel="stylesheet" href="/home.css?v=7" />
+  <link rel="stylesheet" href="/admin-shell.css?v=4" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
 </head>
 <body class="dashboard-home">
-  <main id="loading-shell" class="page-loading" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
+  <main id="loading-shell" class="page-loading" aria-live="polite" hidden><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
   <main id="auth-shell" class="auth-shell" hidden>
     <section class="login-card">
       <p class="eyebrow">GEUPDDONG ADMIN</p>
@@ -19,7 +20,7 @@
     </section>
   </main>
 
-  <div id="dashboard-shell" class="admin-frame" hidden>
+  <div id="dashboard-shell" class="admin-frame">
     <svg class="admin-icon-sprite" aria-hidden="true">
       <symbol id="icon-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
       <symbol id="icon-layout-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
@@ -88,7 +89,7 @@
         </div>
       </header>
 
-      <main class="dashboard-shell home-shell">
+      <main class="dashboard-shell home-shell" data-admin-page="home" data-admin-title="운영 홈">
     <header class="home-header">
       <div>
         <p class="eyebrow">WORKSPACE OVERVIEW</p>
@@ -198,6 +199,6 @@
       </main>
     </div>
   </div>
-  <script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=7"></script>
+  <script src="/admin-shell.js?v=5"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=8"></script>
 </body>
 </html>

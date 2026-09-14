@@ -23,7 +23,7 @@ const coordinate = (location) => valid(location) ? `${Number(location.latitude).
 const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short', timeZone:'Asia/Seoul' }).format(new Date(value)) : '판정 이력 없음'
 const badge = (status) => `<span class="region-badge ${status === 'VERIFIED' ? 'verified' : ''}">${escape(labels[status] || status)}</span>`
 const icon = (name) => ({ source:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM9 11h6M9 15h6M9 7h3"/></svg>', logic:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h7M5 12h4M5 17h7M15 6l4 4-7 7-4 1 1-4z"/></svg>', final:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12z"/><path d="m9 10 2 2 4-4"/></svg>', map:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>' }[name] || '')
-let page = 0, selected = null, listSequence = 0, detailSequence = 0, historySequence = 0, mapReady, searchTimer, optionTimer, saving = false
+let page = 0, selected = null, listSequence = 0, detailSequence = 0, historySequence = 0, mapReady, optionTimer, saving = false, filterStatus = 'REVIEW'
 const initialToiletId = Number(new URLSearchParams(window.location.search).get('toiletId'))
 
 function showLogin(status) {
@@ -51,12 +51,32 @@ function pagination(id, data, load) {
   const target = $(id)
   target.replaceChildren()
   if (data.totalPages <= 1) return
-  for (const [label, next, disabled] of [['이전',data.page-1,data.page === 0],[`${data.page+1} / ${data.totalPages}`,null,true],['다음',data.page+1,data.page+1 >= data.totalPages]]) {
-    const node = document.createElement(next == null ? 'span' : 'button')
-    node.textContent = label
-    if (next != null) { node.type = 'button'; node.disabled = disabled; node.addEventListener('click', () => load(next)) }
+  const total = data.totalPages
+  const current = Math.min(Math.max(data.page, 0), total - 1)
+  const visiblePages = Math.min(5, total)
+  const start = Math.min(Math.max(current - Math.floor(visiblePages / 2), 0), total - visiblePages)
+  const icons = {
+    first:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 7-5 5 5 5M18 7l-5 5 5 5"/></svg>',
+    previous:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7-5 5 5 5"/></svg>',
+    next:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 5 5-5 5"/></svg>',
+    last:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 7 5 5-5 5M13 7l5 5-5 5"/></svg>'
+  }
+  const append = (label, next, disabled = false, number = false, iconName = null) => {
+    const node = document.createElement('button')
+    node.type = 'button'
+    node.className = number ? 'region-page-number' : 'region-page-move'
+    node.disabled = disabled
+    if (iconName) { node.innerHTML = icons[iconName]; node.setAttribute('aria-label', label); node.title = label }
+    else node.textContent = label
+    if (number && next === current) node.setAttribute('aria-current', 'page')
+    if (!disabled) node.addEventListener('click', () => load(next))
     target.append(node)
   }
+  append('맨앞', 0, current === 0, false, 'first')
+  append('이전', current - 1, current === 0, false, 'previous')
+  for (let next = start; next < start + visiblePages; next += 1) append(String(next + 1), next, next === current, true)
+  append('다음', current + 1, current === total - 1, false, 'next')
+  append('맨뒤', total - 1, current === total - 1, false, 'last')
 }
 
 function assessment(value) {
@@ -90,9 +110,10 @@ function conciseReason(item, data) {
 
 async function loadList(nextPage = 0) {
   const sequence = ++listSequence
+  $('region-workspace').setAttribute('aria-busy', 'true')
   $('region-status').textContent = '검토 목록을 불러오는 중…'
   try {
-    const query = new URLSearchParams({ status:$('region-filter').value, keyword:$('region-search').value.trim(), page:String(nextPage), size:'15' })
+    const query = new URLSearchParams({ status:filterStatus, page:String(nextPage), size:'15' })
     const data = await request(`/api/admin/v1/regions?${query}`)
     if (sequence !== listSequence || !$('auth-shell').hidden) return
     page = data.page
@@ -104,7 +125,7 @@ async function loadList(nextPage = 0) {
       button.className = 'region-item'
       button.dataset.id = item.toiletId
       button.setAttribute('aria-pressed', String(selected === item.toiletId))
-      button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span>`
+      button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-meta"><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span></span>`
       button.addEventListener('click', () => { if (!saving) void loadDetail(item.toiletId) })
       $('region-list').append(button)
     }
@@ -112,6 +133,7 @@ async function loadList(nextPage = 0) {
     if (!data.items.length) $('region-list').innerHTML = '<p class="region-list-empty">조건에 맞는 화장실이 없습니다.</p>'
     pagination('region-pages', data, loadList)
   } catch (error) { if (sequence === listSequence) $('region-status').textContent = error.message }
+  finally { if (sequence === listSequence) $('region-workspace').setAttribute('aria-busy', 'false') }
 }
 
 function detailMarkup(detail) {
@@ -143,9 +165,8 @@ function detailMarkup(detail) {
         <button id="region-confirm" class="region-confirm-button" type="button" disabled>시·군·구 확정</button>
       </article>
       <article class="region-map-card">
-        <header class="region-section-head"><span>${icon('map')}</span><div><small>LOCATION CHECK</small><h3>지도에서 위치 확인</h3></div></header>
-        <div class="region-map-toolbar"><input id="region-map-search" aria-label="지도 주소 검색" placeholder="도로명 또는 지번주소 검색"/><button id="region-map-find" type="button">검색</button><button id="region-reset" class="secondary" type="button">현재 위치</button></div>
-        <div id="region-candidates" class="region-candidates"></div><div id="region-map" class="region-map"></div>
+        <header class="region-section-head"><span>${icon('map')}</span><div><small>LOCATION CHECK</small><div class="region-map-heading-row"><h3>지도에서 위치 확인</h3><span id="region-map-searched-address" class="region-map-searched-address" aria-live="polite" hidden></span></div></div></header>
+        <div class="region-map-search-shell"><div class="region-map-toolbar"><input id="region-map-search" aria-label="지도 주소 검색" autocomplete="off" placeholder="주소 또는 장소명 검색"/><button id="region-map-find" type="button">검색</button><button id="region-reset" class="secondary" type="button">현재 위치</button></div><div id="region-candidates" class="region-candidates" role="listbox" aria-label="연관 위치" aria-live="polite"></div></div><div id="region-map" class="region-map"></div>
         <details class="region-coordinate-edit"><summary>좌표 자체가 잘못된 경우 수정</summary><strong id="region-draft">저장할 위치를 지도에서 선택해 주세요.</strong><label>수정 사유<textarea id="region-coordinate-note" maxlength="500" rows="2"></textarea></label><p id="region-save-status" class="status" role="status"></p><button id="region-save" type="button" disabled>확정 좌표 저장</button></details>
       </article>
     </section>
@@ -279,12 +300,22 @@ async function mountMap(item, sequence) {
     const initial = valid(item.location) ? new K.LatLng(item.location.latitude, item.location.longitude) : new K.LatLng(36.35, 127.38)
     const map = new K.Map($('region-map'), { center:initial, level:valid(item.location) ? 3 : 12 })
     const geocoder = new K.services.Geocoder()
+    const places = new K.services.Places()
     const pin = (color) => new K.MarkerImage(`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="38"><path d="M12 11V36" stroke="${color}" stroke-width="3"/><circle cx="12" cy="10" r="8" fill="${color}" stroke="white" stroke-width="2"/></svg>`)}`, new K.Size(24,38), { offset:new K.Point(12,36) })
     if (valid(item.location)) new K.Marker({ map, position:initial, image:pin('#157d48'), title:'현재 위치' })
     const marker = new K.Marker({ position:initial, draggable:true, image:pin('#ee872c'), title:'저장할 위치' })
+    const searchMarker = new K.Marker({ position:initial, image:pin('#356ad7'), title:'검색 위치' })
     marker.setZIndex(20)
-    let draft = null, draftAddress = '', lookupSequence = 0, searchSequence = 0
-    const reset = () => { if (saving) return; ++lookupSequence; ++searchSequence; draft = null; draftAddress = ''; marker.setMap(null); map.setCenter(initial); map.setLevel(valid(item.location) ? 3 : 12); $('region-save').disabled = true; $('region-candidates').replaceChildren(); $('region-draft').textContent = '저장할 위치를 지도에서 선택해 주세요.' }
+    searchMarker.setZIndex(30)
+    let draft = null, draftAddress = '', lookupSequence = 0, searchSequence = 0, searchTimer
+    const searchedAddress = result => result?.road_address_name || result?.road_address?.address_name || result?.address_name || ''
+    const updateSearchedAddress = value => {
+      const target = $('region-map-searched-address')
+      target.textContent = value
+      target.title = value
+      target.hidden = !value
+    }
+    const reset = () => { if (saving) return; window.clearTimeout(searchTimer); ++lookupSequence; ++searchSequence; draft = null; draftAddress = ''; marker.setMap(null); searchMarker.setMap(null); map.setCenter(initial); map.setLevel(valid(item.location) ? 3 : 12); $('region-map-search').value = ''; $('region-save').disabled = true; $('region-candidates').replaceChildren(); $('region-draft').textContent = '저장할 위치를 지도에서 선택해 주세요.'; updateSearchedAddress('') }
     reset()
     const choose = position => {
       if (!live() || saving) return
@@ -306,22 +337,58 @@ async function mountMap(item, sequence) {
     K.event.addListener(map, 'click', event => choose(event.latLng))
     K.event.addListener(marker, 'dragend', () => choose(marker.getPosition()))
     $('region-reset').addEventListener('click', reset)
-    $('region-map-find').addEventListener('click', () => {
+    const moveToSearchResult = result => {
+      const point = new K.LatLng(Number(result.y), Number(result.x))
+      searchMarker.setPosition(point)
+      searchMarker.setMap(map)
+      searchMarker.setZIndex(30)
+      map.setLevel(3)
+      map.panTo(point)
+      updateSearchedAddress(searchedAddress(result))
+      $('region-candidates').replaceChildren()
+    }
+    const showSearchResults = (results, type, moveFirst) => {
+      const candidates = $('region-candidates')
+      candidates.replaceChildren()
+      const matches = results.slice(0, 5)
+      if (!matches.length) { candidates.textContent = '검색 결과가 없습니다.'; return }
+      if (moveFirst) { moveToSearchResult(matches[0]); return }
+      for (const result of matches) {
+        const name = type === 'place' ? result.place_name : result.address_name
+        const foundAddress = searchedAddress(result)
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.role = 'option'
+        button.textContent = name
+        button.title = foundAddress && foundAddress !== name ? `${name} · ${foundAddress}` : name
+        button.addEventListener('click', () => { if (!saving) moveToSearchResult(result) })
+        candidates.append(button)
+      }
+    }
+    const searchMap = (moveFirst = true) => {
       if (saving) return
       const text = $('region-map-search').value.trim()
-      if (!text) return
+      window.clearTimeout(searchTimer)
+      if (text.length < 2) { ++searchSequence; $('region-candidates').replaceChildren(); return }
       const search = ++searchSequence
-      $('region-candidates').textContent = '주소 검색 중…'
+      $('region-candidates').textContent = '연관 위치를 찾는 중…'
       geocoder.addressSearch(text, (results, status) => {
         if (!live() || search !== searchSequence || saving) return
-        $('region-candidates').replaceChildren()
-        if (status !== K.services.Status.OK || !results?.length) { $('region-candidates').textContent = '검색 결과가 없습니다.'; return }
-        for (const result of results.slice(0, 4)) {
-          const button = document.createElement('button'); button.type = 'button'; button.textContent = result.address_name
-          button.addEventListener('click', () => { if (saving) return; const point = new K.LatLng(Number(result.y), Number(result.x)); map.setCenter(point); map.setLevel(3) })
-          $('region-candidates').append(button)
-        }
+        if (status === K.services.Status.OK && results?.length) { showSearchResults(results, 'address', moveFirst); return }
+        places.keywordSearch(text, (placeResults, placeStatus) => {
+          if (!live() || search !== searchSequence || saving) return
+          if (placeStatus === K.services.Status.OK && placeResults?.length) showSearchResults(placeResults, 'place', moveFirst)
+          else { $('region-candidates').replaceChildren(); $('region-candidates').textContent = '검색 결과가 없습니다.' }
+        }, { size:5 })
       })
+    }
+    $('region-map-find').addEventListener('click', () => searchMap(true))
+    $('region-map-search').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchMap(true) } })
+    $('region-map-search').addEventListener('input', () => {
+      window.clearTimeout(searchTimer)
+      const text = $('region-map-search').value.trim()
+      if (text.length < 2) { ++searchSequence; $('region-candidates').replaceChildren(); return }
+      searchTimer = window.setTimeout(() => searchMap(false), 280)
     })
     $('region-save').addEventListener('click', async () => {
       const note = $('region-coordinate-note').value.trim()
@@ -339,14 +406,63 @@ async function mountMap(item, sequence) {
   } catch (error) { if (live()) $('region-map').innerHTML = `<p>${escape(error.message)}</p>` }
 }
 
+function mountFilter() {
+  const picker = document.querySelector('.region-filter-picker')
+  const trigger = $('region-filter-trigger')
+  const label = $('region-filter-label')
+  const menu = $('region-filter-menu')
+  const options = [...menu.querySelectorAll('[role="option"]')]
+
+  const close = (focusTrigger = false) => {
+    menu.hidden = true
+    trigger.setAttribute('aria-expanded', 'false')
+    if (focusTrigger) trigger.focus()
+  }
+  const open = () => {
+    menu.hidden = false
+    trigger.setAttribute('aria-expanded', 'true')
+  }
+
+  trigger.addEventListener('click', (event) => {
+    event.stopPropagation()
+    if (menu.hidden) open()
+    else close()
+  })
+  trigger.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      open()
+      const selectedOption = options.find(option => option.getAttribute('aria-selected') === 'true') || options[0]
+      selectedOption.focus()
+    } else if (event.key === 'Escape') close()
+  })
+  options.forEach((option) => option.addEventListener('click', (event) => {
+    event.stopPropagation()
+    if (saving) return
+    filterStatus = option.dataset.filter
+    label.textContent = option.querySelector('span').textContent
+    options.forEach(node => node.setAttribute('aria-selected', String(node === option)))
+    close(true)
+    void loadList(0)
+  }))
+  menu.addEventListener('keydown', (event) => {
+    const current = options.indexOf(document.activeElement)
+    if (event.key === 'Escape') { event.preventDefault(); close(true); return }
+    if (!['ArrowDown','ArrowUp','Home','End'].includes(event.key)) return
+    event.preventDefault()
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : event.key === 'ArrowDown' ? (current + 1) % options.length : (current - 1 + options.length) % options.length
+    options[next].focus()
+  })
+  document.addEventListener('click', (event) => { if (!picker.contains(event.target)) close() })
+}
+
 async function start() {
   try {
     const profile = await request('/api/v1/auth/me')
     if (!profile.roles?.includes('ADMIN')) { showLogin(403); return }
     $('loading-shell').hidden = true
     $('region-shell').hidden = false
-    $('region-filter').addEventListener('change', () => { if (!saving) void loadList(0) })
-    $('region-search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { if (!saving) void loadList(0) }, 250) })
+    mountFilter()
     $('region-refresh').addEventListener('click', () => { if (saving) return; void loadList(page); if (selected != null) void loadDetail(selected) })
     await loadList()
     if (Number.isSafeInteger(initialToiletId) && initialToiletId > 0) await loadDetail(initialToiletId)

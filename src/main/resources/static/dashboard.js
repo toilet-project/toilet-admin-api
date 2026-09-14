@@ -442,13 +442,13 @@ function bindEvents() {
   el('review-next').addEventListener('click', () => void loadReviewType(state.reviewType, state.reviewPages[state.reviewType] + 1))
   el('review-list').addEventListener('click', (event) => {
     const row = event.target.closest('tr[data-href]')
-    if (row) window.location.assign(row.dataset.href)
+    if (row) void (window.AdminNavigation?.go(row.dataset.href) || window.location.assign(row.dataset.href))
   })
   el('review-list').addEventListener('keydown', (event) => {
     const row = event.target.closest('tr[data-href]')
     if (row && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault()
-      window.location.assign(row.dataset.href)
+      void (window.AdminNavigation?.go(row.dataset.href) || window.location.assign(row.dataset.href))
     }
   })
   const menuSearch = el('menu-search')

@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>권한 관리 | 급똥 관리자</title>
   <link rel="stylesheet" href="/dashboard.css?v=5" />
-  <link rel="stylesheet" href="/admin-shell.css?v=2" /><link rel="stylesheet" href="/admin-session.css?v=1" />
+  <link rel="stylesheet" href="/admin-shell.css?v=4" /><link rel="stylesheet" href="/admin-session.css?v=1" />
 </head>
 <body class="admin-page">
-  <main id="loading-shell" class="page-loading" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
+  <main id="loading-shell" class="page-loading" hidden aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
   <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
-  <main id="security-shell" class="dashboard-shell security-shell" data-admin-page="permissions" data-admin-title="권한 관리" hidden>
+  <main id="security-shell" class="dashboard-shell security-shell" data-admin-page="permissions" data-admin-title="권한 관리">
     <header class="page-header"><div><p class="eyebrow">ACCESS CONTROL</p><h1>권한 관리</h1><p>관리자 역할을 부여·회수하고 주요 운영 행위 이력을 확인합니다.</p></div><a class="secondary-link" href="/members.html">회원 관리로</a></header>
     <section class="panel security-panel">
       <div class="panel-title"><div><h2>관리자 권한</h2><p>회원을 검색하고 ADMIN 역할을 부여하거나 회수합니다.</p></div></div>
@@ -28,6 +28,6 @@
       <nav id="audit-pagination" class="report-pagination" aria-label="감사 로그 페이지 이동"></nav>
     </section>
   </main>
-  <script src="/admin-shell.js?v=2"></script><script src="/admin-session.js?v=2"></script><script src="/permissions.js?v=1"></script>
+  <script src="/admin-shell.js?v=5"></script><script src="/admin-session.js?v=2"></script><script src="/permissions.js?v=1"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@
   const icon = (name, extra = '') => `<svg class="admin-icon ${extra}" aria-hidden="true"><use href="#admin-icon-${name}"/></svg>`
   const nav = (key, href, name, iconName, meta = '') => `<a class="admin-nav-link${page === key ? ' is-current' : ''}" href="${href}"${page === key ? ' aria-current="page"' : ''}>${icon(iconName)}${name}${meta ? `<span class="admin-nav-meta">${meta}</span>` : ''}</a>`
   const frame = document.createElement('div')
+  frame.id = 'dashboard-shell'
   frame.className = 'admin-frame'
   frame.hidden = main.hidden
   frame.innerHTML = `
@@ -66,4 +67,187 @@
   })
   input.addEventListener('keydown', (event) => { if (event.key === 'Escape') { input.value = ''; close() } })
   document.addEventListener('pointerdown', (event) => { if (!event.target.closest('.admin-search-wrap')) close() })
+})();
+
+(() => {
+  const frame = document.querySelector('.admin-frame')
+  let main = document.querySelector('main[data-admin-page]')
+  if (!frame || !main || window.AdminNavigation) return
+  frame.dataset.adminNavigation = 'initializing'
+
+  const pageCache = new Map()
+  const pageStyleNames = new Set(['home.css', 'regions.css'])
+  const rootRoute = String.fromCharCode(47)
+  const routeNames = new Set([rootRoute, '/toilets', '/reports', '/data-quality', '/regions', '/operations', '/members', '/permissions', '/batch-syncs', '/features', '/cloudflare', '/notifications'])
+  let navigationSequence = 0
+  let visibilityObserver = null
+
+  const normalizedRoute = (pathname) => {
+    const withoutPreview = pathname.replace(/^\/preview(?=\/|$)/, '') || rootRoute
+    const withoutDocument = withoutPreview.replace(/\/index\.html$/, rootRoute).replace(/\.html$/, '')
+    return withoutDocument.length > 1 ? withoutDocument.replace(/\/$/, '') : rootRoute
+  }
+  const routeUrl = (value) => new URL(value, window.location.href)
+  const isInternalRoute = (url) => url.origin === window.location.origin && routeNames.has(normalizedRoute(url.pathname))
+  const routeKey = (url) => `${url.origin}${url.pathname}`
+  const assetName = (pathname) => pathname.slice(pathname.lastIndexOf(rootRoute) + 1)
+
+  const observeVisibility = (target) => {
+    visibilityObserver?.disconnect()
+    const sync = () => { frame.hidden = target.hidden }
+    visibilityObserver = new MutationObserver(sync)
+    visibilityObserver.observe(target, { attributes: true, attributeFilter: ['hidden'] })
+    sync()
+  }
+
+  const ensureIconAliases = () => {
+    const sprite = frame.querySelector('.admin-icon-sprite')
+    if (!sprite) return
+    const aliases = [
+      ['admin-icon-map-pin', 'icon-map-pin'], ['admin-icon-dashboard', 'icon-layout-dashboard'],
+      ['admin-icon-inbox', 'icon-inbox'], ['admin-icon-map', 'icon-map-pinned'],
+      ['admin-icon-scan', 'icon-scan-line'], ['admin-icon-activity', 'icon-activity'],
+      ['admin-icon-users', 'icon-users'], ['admin-icon-shield', 'icon-shield'],
+      ['admin-icon-history', 'icon-history'], ['admin-icon-grid', 'icon-layout-grid'],
+      ['admin-icon-bell', 'icon-bell'], ['admin-icon-cloud', 'icon-cloud'],
+      ['admin-icon-search', 'icon-search']
+    ]
+    for (const [adminId, homeId] of aliases) {
+      const source = document.getElementById(adminId) || document.getElementById(homeId)
+      if (!source) continue
+      for (const targetId of [adminId, homeId]) {
+        if (document.getElementById(targetId)) continue
+        const clone = source.cloneNode(true)
+        clone.id = targetId
+        sprite.append(clone)
+      }
+    }
+  }
+
+  const pageDocument = async (url) => {
+    const key = routeKey(url)
+    if (!pageCache.has(key)) {
+      pageCache.set(key, fetch(key, { credentials: 'same-origin' }).then(async (response) => {
+        if (!response.ok) throw new Error(`관리자 화면을 불러오지 못했습니다. (${response.status})`)
+        return new DOMParser().parseFromString(await response.text(), 'text/html')
+      }).catch((error) => { pageCache.delete(key); throw error }))
+    }
+    return pageCache.get(key)
+  }
+
+  const styleUrl = (link, baseUrl) => new URL(link.getAttribute('href'), baseUrl)
+  const loadRouteStyles = async (nextDocument, destination) => {
+    const requested = [...nextDocument.querySelectorAll('link[rel="stylesheet"][href]')]
+      .map(link => styleUrl(link, destination))
+    const requiredPageStyles = new Set(requested.filter(url => pageStyleNames.has(assetName(url.pathname))).map(url => url.pathname))
+    const loading = requested.map(url => {
+      const exists = [...document.querySelectorAll('link[rel="stylesheet"][href]')].some(link => new URL(link.href).pathname === url.pathname)
+      if (exists) return Promise.resolve()
+      return new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url.href
+        if (pageStyleNames.has(assetName(url.pathname))) link.dataset.adminRouteStyle = 'true'
+        link.onload = resolve
+        link.onerror = () => reject(new Error(`${url.pathname} 스타일을 불러오지 못했습니다.`))
+        document.head.append(link)
+      })
+    })
+    await Promise.all(loading)
+    return () => document.querySelectorAll('link[data-admin-route-style]').forEach((link) => {
+      if (!requiredPageStyles.has(new URL(link.href).pathname)) link.remove()
+    })
+  }
+
+  const pageScripts = (nextDocument, destination) => [...nextDocument.querySelectorAll('script[src]')]
+    .map(script => new URL(script.getAttribute('src'), destination))
+    .filter(url => !['admin-shell.js', 'admin-session.js'].includes(assetName(url.pathname)))
+
+  const executePageScripts = async (nextDocument, destination, sequence) => {
+    for (const original of pageScripts(nextDocument, destination)) {
+      const url = new URL(original)
+      url.searchParams.set('adminRoute', String(sequence))
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.type = 'module'
+        script.src = url.href
+        script.onload = () => { script.remove(); resolve() }
+        script.onerror = () => { script.remove(); reject(new Error(`${url.pathname} 기능을 불러오지 못했습니다.`)) }
+        document.head.append(script)
+      })
+    }
+  }
+
+  const syncChrome = (destination, nextMain, nextDocument) => {
+    document.title = nextDocument.title
+    document.body.className = nextDocument.body.className
+    const route = normalizedRoute(destination.pathname)
+    frame.querySelectorAll('.admin-nav-link[href]').forEach((link) => {
+      const current = normalizedRoute(new URL(link.href).pathname) === route
+      link.classList.toggle('is-current', current)
+      if (current) link.setAttribute('aria-current', 'page')
+      else link.removeAttribute('aria-current')
+    })
+    const title = nextMain.dataset.adminTitle || nextMain.querySelector('h1')?.textContent || '관리자'
+    const breadcrumb = frame.querySelector('.admin-breadcrumb strong')
+    if (breadcrumb) breadcrumb.textContent = title
+  }
+
+  const go = async (value, options = {}) => {
+    const destination = routeUrl(value)
+    if (!isInternalRoute(destination)) { window.location.assign(destination.href); return }
+    if (!options.fromHistory && destination.href === window.location.href) return
+    const sequence = ++navigationSequence
+    frame.setAttribute('aria-busy', 'true')
+    try {
+      const nextDocument = await pageDocument(destination)
+      if (sequence !== navigationSequence) return
+      const parsedMain = nextDocument.querySelector('main[data-admin-page]')
+      if (!parsedMain) throw new Error('관리자 본문을 찾지 못했습니다.')
+      const removeOldStyles = await loadRouteStyles(nextDocument, destination)
+      if (sequence !== navigationSequence) return
+      const nextMain = document.importNode(parsedMain, true)
+      document.dispatchEvent(new CustomEvent('admin:before-route-change'))
+      if (!options.fromHistory) window.history.pushState({ adminRoute: true }, '', destination)
+      main.replaceWith(nextMain)
+      main = nextMain
+      syncChrome(destination, nextMain, nextDocument)
+      observeVisibility(nextMain)
+      ensureIconAliases()
+      removeOldStyles()
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      await executePageScripts(nextDocument, destination, sequence)
+      document.dispatchEvent(new CustomEvent('admin:route-change', { detail: { url: destination.href } }))
+    } catch (error) {
+      if (sequence === navigationSequence) window.location.assign(destination.href)
+    } finally {
+      if (sequence === navigationSequence) frame.removeAttribute('aria-busy')
+    }
+  }
+
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const link = event.target.closest('a[href]')
+    if (!link || link.target || link.hasAttribute('download')) return
+    const destination = routeUrl(link.href)
+    if (!isInternalRoute(destination)) return
+    event.preventDefault()
+    void go(destination)
+  })
+  window.addEventListener('popstate', () => void go(window.location.href, { fromHistory: true }))
+
+  const warm = (link) => {
+    const destination = routeUrl(link.href)
+    if (isInternalRoute(destination)) void pageDocument(destination).catch(() => {})
+  }
+  frame.addEventListener('pointerover', (event) => { const link = event.target.closest('a[href]'); if (link) warm(link) })
+  frame.addEventListener('focusin', (event) => { const link = event.target.closest('a[href]'); if (link) warm(link) })
+
+  document.querySelectorAll('link[rel="stylesheet"][href]').forEach((link) => {
+    if (pageStyleNames.has(assetName(new URL(link.href).pathname))) link.dataset.adminRouteStyle = 'true'
+  })
+  ensureIconAliases()
+  observeVisibility(main)
+  window.AdminNavigation = Object.freeze({ go })
+  frame.dataset.adminNavigation = 'ready'
 })()

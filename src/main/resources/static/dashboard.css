@@ -48,7 +48,13 @@
 .admin-page .quality-main small { font-size: 10px; }
 .admin-page .quality-side { gap: 3px; }
 .admin-page .quality-state { padding: 3px 6px; font-size: 9px; }
-.admin-page .quality-list-column .report-pagination { min-height: 48px; margin: 0; padding: 8px 12px; border-top: 1px solid var(--admin-line); background: #fbfcfb; }
+.admin-page .quality-list-column .report-pagination { min-height: 48px; margin: 0; padding: 8px 5px; flex-wrap: nowrap; gap: 2px; border-top: 1px solid var(--admin-line); background: #fbfcfb; }
+.admin-page .quality-list-column .report-pagination button { display: inline-flex; min-width: 28px; height: 30px; align-items: center; justify-content: center; padding: 0 4px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #5d7165; font-size: 10px; font-weight: 750; white-space: nowrap; transition: background .15s ease,color .15s ease,box-shadow .15s ease; }
+.admin-page .quality-list-column .report-pagination button:not(:disabled):hover { background: #edf6f0; color: #17683c; }
+.admin-page .quality-list-column .report-pagination .quality-page-number { padding: 0; }
+.admin-page .quality-list-column .report-pagination [aria-current=page] { border-color: var(--admin-accent); background: var(--admin-accent); color: #fff; box-shadow: 0 3px 8px rgba(31,112,66,.17); opacity: 1; }
+.admin-page .quality-list-column .report-pagination .quality-page-move { min-width: 28px; padding: 0; }
+.admin-page .quality-list-column .report-pagination .quality-page-move svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .admin-page .quality-detail { display: flex; padding: 0; flex-direction: column; border-color: var(--admin-line); border-radius: 11px; background: var(--admin-surface); }
 .admin-page .quality-panel-loading { display: grid; height: 100%; margin: 0; place-items: center; }
 .admin-page .quality-review-box { flex: 0 0 auto; margin: 9px 10px 0; padding: 8px; border: 1px solid #e2ebe5; border-radius: 8px; background: #f7faf8; grid-template-columns: 118px minmax(0, 1fr) auto; }

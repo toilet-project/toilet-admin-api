@@ -380,6 +380,10 @@ function syncCoordinateMarkerGroupComposer() {
   if (selectionCount) selectionCount.textContent = `${totalSelected}개 선택`
   const createButton = el('coordinate-marker-group-create')
   if (createButton) createButton.disabled = totalSelected < 2 || !nameInput.value.trim()
+  const direction = document.querySelector('[name="coordinate-marker-direction"]:checked')?.value || 'CURRENT_TO_MARKER'
+  state.markerCardDirection = direction
+  const coordinateSave = el('save-coordinate')
+  if (coordinateSave && !state.activeDisplayGroupId) coordinateSave.disabled = direction === 'MARKERS_TO_CURRENT'
 }
 
 function clearCoordinateMarkerGroupSelection() {
@@ -388,6 +392,33 @@ function clearCoordinateMarkerGroupSelection() {
   state.markerCardSelectedToiletIds = new Set()
   const nameInput = el('coordinate-marker-group-name')
   if (nameInput) nameInput.value = ''
+  syncCoordinateMarkerGroupComposer()
+}
+
+function hideCoordinateMarkerCard() {
+  const state = coordinateEditorState
+  const card = el('coordinate-marker-card')
+  if (card) card.hidden = true
+  if (!state) return
+  state.markerCardDirection = null
+  state.markerCardPoint = null
+  state.markerCardOrdinaryToiletIds = []
+  state.markerCardSelectedToiletIds = new Set()
+  const coordinateSave = el('save-coordinate')
+  if (coordinateSave) coordinateSave.disabled = false
+}
+
+function applyCoordinateMarkerDirection() {
+  const state = coordinateEditorState
+  const direction = document.querySelector('[name="coordinate-marker-direction"]:checked')?.value
+  if (!state || !state.markerCardPoint || !direction) return
+  clearCoordinateGroupSelection()
+  if (direction === 'MARKERS_TO_CURRENT') {
+    state.setDraft(new kakao.maps.LatLng(state.toilet.latitude, state.toilet.longitude),
+      state.toilet.roadAddress || state.toilet.jibunAddress || '')
+  } else {
+    state.setDraft(new kakao.maps.LatLng(state.markerCardPoint.latitude, state.markerCardPoint.longitude))
+  }
   syncCoordinateMarkerGroupComposer()
 }
 
@@ -437,6 +468,8 @@ async function openCoordinateMarkerCard(point) {
   state.setDraft(new kakao.maps.LatLng(point.latitude, point.longitude))
   state.map.panTo(new kakao.maps.LatLng(point.latitude, point.longitude))
   clearCoordinateGroupSelection()
+  state.markerCardPoint = point
+  state.markerCardDirection = 'CURRENT_TO_MARKER'
   state.markerCardSelectedToiletIds = new Set()
   state.markerCardOrdinaryToiletIds = []
   const card = el('coordinate-marker-card')
@@ -447,10 +480,12 @@ async function openCoordinateMarkerCard(point) {
   const options = coordinateMarkerOptions(point)
   const confirmedGroups = options.filter((option) => option.displayGroupId)
   const ordinaryToilets = options.filter((option) => !option.displayGroupId).flatMap((option) => option.toilets)
+    .filter((item) => Number(item.id) !== Number(state.toilet.id))
   state.markerCardOrdinaryToiletIds = ordinaryToilets.map((item) => Number(item.id))
   card.innerHTML = `
     <div class="coordinate-marker-card-sticky">
       <div class="coordinate-marker-card-head"><div><span>이 위치의 화장실</span><strong>${escapeHtml(address)}</strong></div><button id="coordinate-marker-card-close" class="coordinate-close-button" type="button" aria-label="마커 정보 닫기"></button></div>
+      <fieldset class="coordinate-marker-direction"><legend>좌표 통일 방향</legend><label><input name="coordinate-marker-direction" type="radio" value="CURRENT_TO_MARKER" checked /><span>보정 중 화장실 → 이 마커 위치</span></label><label><input name="coordinate-marker-direction" type="radio" value="MARKERS_TO_CURRENT" /><span>체크한 화장실 → 보정 중 위치</span></label></fieldset>
       <div class="coordinate-marker-group-composer">
         <button id="coordinate-marker-select-all" class="is-secondary" type="button" aria-pressed="false">전체</button>
         <strong id="coordinate-marker-selection-count" title="현재 좌표를 보정 중인 화장실을 포함한 개수입니다.">1개 선택</strong>
@@ -461,8 +496,10 @@ async function openCoordinateMarkerCard(point) {
     ${confirmedGroups.length ? `<div class="coordinate-marker-groups"><span>관리자 확정 그룹</span>${confirmedGroups.map((option) => `<article><div><strong>${escapeHtml(option.displayName)}</strong><small>${option.toilets.length.toLocaleString()}개 화장실</small></div><button data-coordinate-display-group="${option.displayGroupId}" type="button">이 그룹에 편입</button></article>`).join('')}</div>` : ''}
     ${ordinaryToilets.length ? `<div class="coordinate-marker-toilets">${ordinaryToilets.map(coordinateMarkerToiletMarkup).join('')}</div>` : '<p class="coordinate-marker-empty">새 그룹으로 선택할 미지정 화장실이 없습니다.</p>'}`
   el('coordinate-marker-card-close').addEventListener('click', () => {
-    card.hidden = true
+    clearCoordinateGroupSelection()
+    hideCoordinateMarkerCard()
   })
+  document.querySelectorAll('[name="coordinate-marker-direction"]').forEach((radio) => radio.addEventListener('change', applyCoordinateMarkerDirection))
   document.querySelectorAll('[data-coordinate-marker-toilet]').forEach((checkbox) => checkbox.addEventListener('change', () => {
     const toiletId = Number(checkbox.dataset.coordinateMarkerToilet)
     if (checkbox.checked) state.markerCardSelectedToiletIds.add(toiletId)
@@ -482,6 +519,9 @@ async function openCoordinateMarkerCard(point) {
   confirmedGroups.forEach((option) => {
     document.querySelector(`[data-coordinate-display-group="${option.displayGroupId}"]`)?.addEventListener('click', () => {
       clearCoordinateMarkerGroupSelection()
+      const forwardDirection = document.querySelector('[name="coordinate-marker-direction"][value="CURRENT_TO_MARKER"]')
+      if (forwardDirection) forwardDirection.checked = true
+      applyCoordinateMarkerDirection()
       state.activeDisplayGroupId = Number(option.displayGroupId)
       state.activeDisplayGroupName = option.displayName
       syncCoordinateGroupSelection()
@@ -567,7 +607,7 @@ function searchCoordinatePlace(event) {
   const applyResult = (latitude, longitude, address) => {
     if (!coordinateEditorState) return
     clearCoordinateGroupSelection()
-    el('coordinate-marker-card').hidden = true
+    hideCoordinateMarkerCard()
     const position = new kakao.maps.LatLng(Number(latitude), Number(longitude))
     state.map.setLevel(3)
     state.map.panTo(position)
@@ -639,6 +679,7 @@ async function openCoordinateEditor(toilet) {
       toilet, map, marker, geocoder, places, originOverlay,
       activeDisplayGroupId: null, activeDisplayGroupName: '', toiletOverlays: [], toiletRequestSequence: 0,
       markerCardOrdinaryToiletIds: [], markerCardSelectedToiletIds: new Set(),
+      markerCardPoint: null, markerCardDirection: null,
       geocodeSequence: 0, markerCardSequence: 0, mapIdleTimer: null, setDraft: null
     }
     const update = (position, knownAddress) => {
@@ -658,12 +699,12 @@ async function openCoordinateEditor(toilet) {
     coordinateEditorState.setDraft = update
     kakao.maps.event.addListener(marker, 'dragend', () => {
       clearCoordinateGroupSelection()
-      el('coordinate-marker-card').hidden = true
+      hideCoordinateMarkerCard()
       update(marker.getPosition())
     })
     kakao.maps.event.addListener(map, 'click', (event) => {
       clearCoordinateGroupSelection()
-      el('coordinate-marker-card').hidden = true
+      hideCoordinateMarkerCard()
       update(event.latLng)
     })
     kakao.maps.event.addListener(map, 'idle', () => {
@@ -713,13 +754,48 @@ async function submitCoordinateChange(toiletId, displayGroup, confirmation, acti
 async function createCoordinateDisplayGroup() {
   const state = coordinateEditorState
   const nameInput = el('coordinate-marker-group-name')
-  if (!state || !nameInput) return
+  if (!state || !state.markerCardPoint || !nameInput) return
   const displayName = nameInput.value.trim()
-  const toiletIds = [Number(state.toilet.id), ...state.markerCardSelectedToiletIds]
-  if (!displayName || toiletIds.length < 2) return
-  const confirmation = `현재 보정 화장실을 포함한 ${toiletIds.length}개 화장실을 ‘${displayName}’ 그룹으로 만들고 이 좌표를 저장할까요?`
-  await submitCoordinateChange(state.toilet.id, { displayGroupName: displayName, displayGroupToiletIds: toiletIds },
-    confirmation, el('coordinate-marker-group-create'))
+  const markerToiletIds = [...state.markerCardSelectedToiletIds]
+  const direction = document.querySelector('[name="coordinate-marker-direction"]:checked')?.value
+  if (!displayName || !markerToiletIds.length || !direction) return
+  const totalCount = markerToiletIds.length + 1
+  const confirmation = direction === 'MARKERS_TO_CURRENT'
+    ? `체크한 ${markerToiletIds.length}개 화장실을 현재 보정 중인 화장실 위치로 옮기고, 총 ${totalCount}개를 ‘${displayName}’ 그룹으로 만들까요?`
+    : `현재 보정 중인 화장실을 체크한 화장실의 마커 위치로 옮기고, 총 ${totalCount}개를 ‘${displayName}’ 그룹으로 만들까요?`
+  if (!window.confirm(confirmation)) return
+  const buttons = [el('save-coordinate'), el('coordinate-marker-group-create')].filter(Boolean)
+  buttons.forEach((button) => { button.disabled = true })
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/toilets/${state.toilet.id}/display-group`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        direction,
+        displayName,
+        currentLatitude: state.toilet.latitude,
+        currentLongitude: state.toilet.longitude,
+        markerLatitude: state.markerCardPoint.latitude,
+        markerLongitude: state.markerCardPoint.longitude,
+        markerToiletIds,
+        note: el('coordinate-note').value.trim()
+      })
+    })
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null)
+      throw new Error(payload?.error?.message || payload?.message || '좌표 통일 그룹을 만들지 못했습니다.')
+    }
+    const previousKey = selectedGroupKey
+    await loadGroups(page, false)
+    if (groups.some((group) => group.groupKey === previousKey)) await selectGroup(previousKey)
+    else closeDetail()
+  } catch (error) {
+    window.alert(error.message)
+  } finally {
+    buttons.forEach((button) => { button.disabled = false })
+    if (el('coordinate-marker-group-create')) syncCoordinateMarkerGroupComposer()
+  }
 }
 
 async function saveCoordinate(toiletId) {

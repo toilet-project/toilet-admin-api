@@ -409,7 +409,7 @@ async function openCoordinateMarkerCard(point) {
   const confirmedGroups = options.filter((option) => option.displayGroupId)
   const ordinaryToilets = options.filter((option) => !option.displayGroupId).flatMap((option) => option.toilets)
   card.innerHTML = `
-    <div class="coordinate-marker-card-head"><div><span>이 위치의 화장실</span><strong>${escapeHtml(address)}</strong></div><button id="coordinate-marker-card-close" type="button" aria-label="마커 정보 닫기">×</button></div>
+    <div class="coordinate-marker-card-head"><div><span>이 위치의 화장실</span><strong>${escapeHtml(address)}</strong></div><button id="coordinate-marker-card-close" class="coordinate-close-button" type="button" aria-label="마커 정보 닫기"></button></div>
     ${confirmedGroups.length ? `<div class="coordinate-marker-groups"><span>관리자 확정 그룹</span>${confirmedGroups.map((option) => `<article><div><strong>${escapeHtml(option.displayName)}</strong><small>${option.toilets.length.toLocaleString()}개 화장실</small></div><button data-coordinate-display-group="${option.displayGroupId}" type="button">이 그룹에 편입</button></article>`).join('')}</div>` : ''}
     ${ordinaryToilets.length ? `<div class="coordinate-marker-toilets">${ordinaryToilets.map((item) => `<div><strong>${escapeHtml(item.name || '이름 없는 화장실')}</strong><small>ID ${item.id}</small></div>`).join('')}</div>` : ''}`
   el('coordinate-marker-card-close').addEventListener('click', () => {
@@ -537,7 +537,7 @@ async function openCoordinateEditor(toilet) {
   editor.innerHTML = `
     <header class="quality-pane-head is-map-editor">
       <div><span>좌표 보정</span><h2>${escapeHtml(toilet.name)}</h2></div>
-      <button id="coordinate-editor-close" class="icon-button" type="button" aria-label="좌표 보정 닫기">×</button>
+      <button id="coordinate-editor-close" class="icon-button coordinate-close-button" type="button" aria-label="좌표 보정 닫기"></button>
     </header>
     <div class="coordinate-map-search"><form id="coordinate-place-search"><input id="coordinate-place-query" type="search" autocomplete="off" placeholder="주소 또는 장소명 검색" /><button type="submit">검색</button><button id="coordinate-show-origin" class="is-secondary" type="button">기존 위치 보기</button></form><p id="coordinate-search-status" role="alert" hidden></p></div>
     <div class="coordinate-map-stage">

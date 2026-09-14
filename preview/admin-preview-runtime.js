@@ -80,35 +80,9 @@
     document.querySelectorAll('a[href*="/api/v1/auth/login/"]').forEach((link) => {
       if (link.dataset.previewLoginBound) return
       const loginUrl = new URL(link.href)
-      loginUrl.searchParams.set('returnTo', 'admin')
+      loginUrl.searchParams.set('returnTo', 'adminPreview')
       link.href = loginUrl.toString()
       link.dataset.previewLoginBound = 'true'
-      link.addEventListener('click', (event) => {
-        event.preventDefault()
-        const popup = window.open(link.href, 'geupddong-admin-preview-login', 'popup,width=520,height=720')
-        if (!popup) {
-          notice('팝업을 허용한 뒤 다시 로그인해 주세요.')
-          return
-        }
-
-        const timer = window.setInterval(() => {
-          if (popup.closed) {
-            window.clearInterval(timer)
-            return
-          }
-          try {
-            const returned = new URL(popup.location.href)
-            if (returned.origin !== PREVIEW_ORIGIN || returned.pathname.startsWith(PREFIX)) return
-            const failed = returned.searchParams.get('login') === 'failed' || returned.searchParams.has('error')
-            popup.close()
-            window.clearInterval(timer)
-            if (failed) notice('로그인이 완료되지 않았습니다. 다시 시도해 주세요.')
-            else window.location.reload()
-          } catch {
-            // The provider and API pages are cross-origin until OAuth returns to the preview origin.
-          }
-        }, 400)
-      })
     })
   }
 

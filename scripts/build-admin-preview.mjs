@@ -20,9 +20,10 @@ export function previewHtml(content) {
   let result = content
     .replaceAll('href="/', 'href="/preview/')
     .replaceAll('src="/', 'src="/preview/')
+    .replaceAll('returnTo=admin', 'returnTo=adminPreview')
     .replace(/url=\/permissions\.html/gi, 'url=/preview/permissions.html')
 
-  const runtime = '<script src="/preview/admin-preview-runtime.js?v=3"></script>'
+  const runtime = '<script src="/preview/admin-preview-runtime.js?v=4"></script>'
   result = result.replace(/<body([^>]*)>/i, (body) => `${body}\n  ${runtime}`)
   return result
 }

@@ -11,7 +11,7 @@ body.region-page { overflow: hidden; }
 .admin-page #region-status { display: flex; min-height: 38px; flex: 0 0 auto; margin: 0; padding: 9px 3px 7px; align-items: center; gap: 9px; }
 .admin-page #region-status strong { color: var(--admin-text); font-size: 14px; }
 .admin-page #region-status span { color: var(--admin-muted); font-size: 12px; }
-.admin-page .region-layout { display: grid; min-height: 0; flex: 1 1 auto; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 13px; align-items: stretch; }
+.admin-page .region-layout { display: grid; min-height: 0; flex: 1 1 auto; grid-template-columns: minmax(410px,.8fr) minmax(0,2.2fr); gap: 13px; align-items: stretch; }
 .admin-page .region-list-pane, .admin-page .region-detail { height: 100%; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #cadfd0; border-radius: 11px; background: #fff; }
 .admin-page .region-list-pane { display: grid; grid-template-rows: auto minmax(0,1fr) auto; }
 .admin-page .region-list-head { display: flex; min-height: 60px; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 11px; border-bottom: 1px solid var(--admin-line); background: #fbfcfb; }
@@ -70,7 +70,7 @@ body.region-page { overflow: hidden; }
 .admin-page .region-checks span { display: inline-flex; padding: 4px 7px; border-radius: 999px; background: #e9f5ed; color: #2b744c; font-size: 10px; font-weight: 700; }
 .admin-page .region-checks span.bad { background: #fff0e5; color: #a85b24; }
 .admin-page .region-confirmed-note { display: block; overflow: hidden; color: #50705d; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
-.admin-page .region-decision-layout { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 10px; align-items: stretch; }
+.admin-page .region-decision-layout { display: grid; grid-template-columns: minmax(0,.82fr) minmax(0,1.18fr); gap: 10px; margin-top: 10px; align-items: stretch; }
 .admin-page .region-decision-card, .admin-page .region-map-card { min-width: 0; padding: 15px; border: 1px solid var(--admin-line); border-radius: 10px; background: #fff; }
 .admin-page .region-section-head { display: flex; align-items: center; gap: 9px; }
 .admin-page .region-section-head > div { display: grid; gap: 1px; }

@@ -203,7 +203,9 @@ async function openCoordinateEditor(toilet) {
     await loadKakaoMaps()
     if (sequence !== coordinateEditorSequence || !el('quality-coordinate-map')) return
     const initial = new kakao.maps.LatLng(toilet.latitude, toilet.longitude)
-    const map = new kakao.maps.Map(el('quality-coordinate-map'), { center: initial, level: 3 })
+    const mapElement = el('quality-coordinate-map')
+    mapElement.replaceChildren()
+    const map = new kakao.maps.Map(mapElement, { center: initial, level: 3 })
     const marker = new kakao.maps.Marker({ map, position: initial, draggable: true })
     const geocoder = new kakao.maps.services.Geocoder()
     coordinateDraft = { latitude: Number(toilet.latitude), longitude: Number(toilet.longitude) }

@@ -97,17 +97,60 @@
 .admin-page .quality-empty-panel > p { max-width: 330px; margin: 6px auto 0; font-size: 10.5px; line-height: 1.55; }
 .admin-page .coordinate-editor { display: flex; margin: 0; padding: 0; flex-direction: column; border-color: var(--admin-line); border-radius: 11px; background: var(--admin-surface); }
 .admin-page .quality-pane-head.is-map-editor { padding: 15px 16px 13px; }
-.admin-page .quality-map-context { display: grid; flex: 0 0 auto; gap: 2px; padding: 10px 16px; border-bottom: 1px solid var(--admin-line); background: #fbfcfb; }
+.admin-page .quality-map-context { display: grid; flex: 0 0 auto; padding: 10px 16px; border-bottom: 1px solid var(--admin-line); background: #fbfcfb; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.admin-page .quality-map-context > div { display: grid; min-width: 0; gap: 2px; }
 .admin-page .quality-map-context span { color: var(--admin-muted); font-size: 9px; }
 .admin-page .quality-map-context strong { color: var(--admin-text); font-size: 11px; font-weight: 600; }
 .admin-page .quality-map-context small { overflow: hidden; color: var(--admin-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.admin-page .quality-coordinate-map { display: grid; min-height: 300px; height: auto; flex: 1 1 auto; margin: 12px 12px 0; place-items: center; overflow: hidden; border-color: var(--admin-line); border-radius: 9px; background: #edf3ef; }
+.admin-page .quality-map-context button { min-height: 30px; padding: 0 9px; border: 1px solid #cfe0d4; border-radius: 7px; background: #fff; color: var(--admin-accent); font: inherit; font-size: 9.5px; font-weight: 700; cursor: pointer; }
+.admin-page .coordinate-map-search { display: grid; flex: 0 0 auto; gap: 4px; padding: 9px 12px 0; }
+.admin-page .coordinate-map-search form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.admin-page .coordinate-map-search input { min-width: 0; min-height: 35px; border-radius: 7px; font-size: 10.5px; }
+.admin-page .coordinate-map-search button { min-height: 35px; padding: 0 13px; border: 1px solid var(--admin-accent); border-radius: 7px; background: var(--admin-accent); color: #fff; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+.admin-page .coordinate-map-search p, .admin-page .coordinate-map-status { margin: 0; color: var(--admin-muted); font-size: 9px; line-height: 1.45; }
+.admin-page .quality-coordinate-map { display: grid; min-height: 260px; height: auto; flex: 1 1 auto; margin: 8px 12px 0; place-items: center; overflow: hidden; border-color: var(--admin-line); border-radius: 9px; background: #edf3ef; }
 .admin-page .quality-coordinate-map > p { color: var(--admin-muted); font-size: 11px; }
+.admin-page .coordinate-map-status { flex: 0 0 auto; padding: 5px 13px 0; }
+.admin-page .quality-map-origin-marker { display: grid; min-width: 31px; min-height: 21px; place-items: center; border: 1px solid #c86f35; border-radius: 999px; background: #fff8f1; box-shadow: 0 2px 7px rgba(104,57,24,.18); color: #a65321; font-size: 8.5px; font-weight: 800; }
+.admin-page .quality-map-toilet-marker { display: flex; padding: 0; align-items: center; border: 0; background: transparent; filter: drop-shadow(0 3px 5px rgba(19,62,38,.22)); font: inherit; cursor: pointer; }
+.admin-page .quality-map-toilet-pin { display: grid; width: 31px; height: 31px; flex: 0 0 auto; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 4px; background: #21804a; transform: rotate(-45deg); }
+.admin-page .quality-map-toilet-pin img { width: 16px; height: 16px; transform: rotate(45deg); }
+.admin-page .quality-map-toilet-name { display: flex; max-width: 150px; min-height: 25px; margin-left: -3px; padding: 0 8px; align-items: center; gap: 4px; overflow: hidden; border: 1px solid #cfe0d4; border-radius: 0 8px 8px 0; background: rgba(255,255,255,.96); color: var(--admin-text); font-size: 9.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .quality-map-toilet-name b { color: var(--admin-accent); font-size: 8.5px; }
+.admin-page .quality-map-toilet-marker.is-selected .quality-map-toilet-pin { background: #d56b2b; }
+.admin-page .quality-map-toilet-marker.is-selected .quality-map-toilet-name { border-color: #d79d75; background: #fff8f2; }
+.admin-page .coordinate-marker-card { flex: 0 0 auto; max-height: 150px; margin: 7px 12px 0; overflow-y: auto; border: 1px solid #cfe0d4; border-radius: 8px; background: #f7faf8; }
+.admin-page .coordinate-marker-card[hidden] { display: none; }
+.admin-page .coordinate-marker-card-head { display: flex; position: sticky; top: 0; padding: 8px 9px; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #dce8df; background: #f7faf8; z-index: 1; }
+.admin-page .coordinate-marker-card-head > div { display: grid; min-width: 0; gap: 2px; }
+.admin-page .coordinate-marker-card-head span { color: var(--admin-accent); font-size: 8.5px; font-weight: 800; }
+.admin-page .coordinate-marker-card-head strong { overflow: hidden; color: var(--admin-text); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .coordinate-marker-card-head button { width: 25px; height: 25px; flex: 0 0 auto; border: 1px solid #d3e1d7; border-radius: 50%; background: #fff; color: var(--admin-muted); cursor: pointer; }
+.admin-page .coordinate-marker-options { display: grid; gap: 4px; padding: 7px 9px 9px; }
+.admin-page .coordinate-marker-options label { display: grid; padding: 6px 7px; align-items: center; border: 1px solid #e0e9e3; border-radius: 7px; background: #fff; grid-template-columns: 16px minmax(0, 1fr); gap: 7px; cursor: pointer; }
+.admin-page .coordinate-marker-options input { width: 15px; height: 15px; margin: 0; accent-color: var(--admin-accent); }
+.admin-page .coordinate-marker-options label > span { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; }
+.admin-page .coordinate-marker-options strong { overflow: hidden; color: var(--admin-text); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.admin-page .coordinate-marker-options small { flex: 0 0 auto; color: var(--admin-muted); font-size: 8.5px; }
 .admin-page .coordinate-form { display: grid; flex: 0 0 auto; margin: 0; padding: 12px; border-top: 0; grid-template-columns: minmax(140px, .7fr) minmax(200px, 1.2fr); gap: 9px; align-items: end; }
 .admin-page .coordinate-form label { display: grid; min-width: 0; gap: 4px; color: var(--admin-muted); font-size: 9.5px; }
 .admin-page .coordinate-form label > strong { display: flex; min-height: 38px; align-items: center; padding: 0 10px; overflow: hidden; border: 1px solid #ead7c8; border-radius: 7px; background: #fff9f4; color: #a95620; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
 .admin-page .coordinate-form input { min-height: 38px; border-radius: 7px; font-size: 10.5px; }
-.admin-page .coordinate-form button { min-height: 38px; grid-column: 2; }
+.admin-page .coordinate-note-field, .admin-page .coordinate-group-composer, .admin-page .coordinate-save-button { grid-column: 1 / -1; }
+.admin-page .coordinate-note-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.admin-page .coordinate-note-actions button { min-height: 26px; padding: 0 8px; border: 1px solid #cfe0d4; border-radius: 999px; background: #f4f9f5; color: var(--admin-accent); font: inherit; font-size: 9px; font-weight: 700; cursor: pointer; }
+.admin-page .coordinate-group-composer { display: grid; gap: 6px; padding: 9px; border: 1px solid #dce9e0; border-radius: 8px; background: #f7faf8; }
+.admin-page .coordinate-group-composer > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.admin-page .coordinate-group-composer > div:first-child span { color: var(--admin-text); font-size: 9.5px; font-weight: 700; }
+.admin-page .coordinate-group-composer > div:first-child strong { color: var(--admin-accent); font-size: 9.5px; }
+.admin-page .coordinate-group-selection { display: flex; max-height: 54px; flex-wrap: wrap; gap: 4px; overflow-y: auto; }
+.admin-page .coordinate-group-selection span { padding: 3px 6px; border: 1px solid #d5e4da; border-radius: 999px; background: #fff; color: var(--admin-text); font-size: 8.5px; }
+.admin-page .coordinate-group-selection span.is-current { border-color: #d9a47e; background: #fff8f2; }
+.admin-page .coordinate-group-selection b { color: var(--admin-muted); font-size: 8px; }
+.admin-page .coordinate-group-composer input { min-height: 35px; }
+.admin-page .coordinate-group-composer p { margin: 0; color: var(--admin-muted); font-size: 8.5px; }
+.admin-page .coordinate-save-button { min-height: 40px; border: 1px solid var(--admin-accent); border-radius: 8px; background: var(--admin-accent); color: #fff; font: inherit; font-size: 10.5px; font-weight: 800; cursor: pointer; }
+.admin-page .coordinate-save-button:disabled { border-color: #d7e1da; background: #dfe7e2; color: #86948b; cursor: default; }
 
 @media (max-width: 1600px) {
   .admin-page .quality-workbench { height: auto; grid-template-columns: 1fr; }
@@ -123,6 +166,6 @@
   .admin-page .quality-toilet { grid-template-columns: 20px minmax(0, 1fr) auto; }
   .admin-page .quality-display-group-chip { grid-column: 2; justify-self: start; }
   .admin-page .quality-toilet > .coordinate-edit { grid-column: 3; grid-row: 1 / span 2; }
-  .admin-page .coordinate-form button { grid-column: auto; }
+  .admin-page .coordinate-note-field, .admin-page .coordinate-group-composer, .admin-page .coordinate-save-button { grid-column: auto; }
   .admin-page .coordinate-editor { min-height: 560px; }
 }

@@ -11,6 +11,18 @@
   --home-bad: #bc3f36;
 }
 
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 120ms;
+  animation-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation-duration: 0s; }
+}
+
 body.dashboard-home { overflow-x: hidden; background: var(--home-bg); color: var(--home-text); font: 400 13px/1.5 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif; }
 .dashboard-home button, .dashboard-home input { font: inherit; }
 .dashboard-home .admin-frame { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }

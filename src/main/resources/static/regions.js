@@ -90,6 +90,7 @@ function conciseReason(item, data) {
 
 async function loadList(nextPage = 0) {
   const sequence = ++listSequence
+  $('region-workspace').setAttribute('aria-busy', 'true')
   $('region-status').textContent = '검토 목록을 불러오는 중…'
   try {
     const query = new URLSearchParams({ status:$('region-filter').value, keyword:$('region-search').value.trim(), page:String(nextPage), size:'15' })
@@ -112,6 +113,7 @@ async function loadList(nextPage = 0) {
     if (!data.items.length) $('region-list').innerHTML = '<p class="region-list-empty">조건에 맞는 화장실이 없습니다.</p>'
     pagination('region-pages', data, loadList)
   } catch (error) { if (sequence === listSequence) $('region-status').textContent = error.message }
+  finally { if (sequence === listSequence) $('region-workspace').setAttribute('aria-busy', 'false') }
 }
 
 function detailMarkup(detail) {

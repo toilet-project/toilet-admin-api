@@ -102,12 +102,12 @@ function duration(seconds) {
 }
 
 function statusText(status) {
-  return ({ UP: '정상', SUCCESS: '성공', WARN: '주의', STALE: '확인 필요', DOWN: '장애', FAILED: '실패', UNKNOWN: '정보 없음', UNAVAILABLE: '연동 필요' })[status] || '확인 필요'
+  return ({ UP: '정상', SUCCESS: '성공', NO_DATA: '데이터 대기', NOT_CONFIGURED: '연동 필요', WAITING_FOR_DATA: '데이터 대기', WARN: '주의', STALE: '확인 필요', DOWN: '장애', FAILED: '실패', UNKNOWN: '정보 없음', UNAVAILABLE: '연동 필요', AUTH_ERROR: '권한 확인', QUOTA_LIMITED: '한도 확인', API_UNAVAILABLE: '조회 지연' })[status] || '확인 필요'
 }
 
 function statusClass(status) {
   if (status === 'UP' || status === 'SUCCESS') return 'state-good'
-  if (status === 'WARN' || status === 'STALE') return 'state-warn'
+  if (status === 'WARN' || status === 'STALE' || status === 'NO_DATA' || status === 'WAITING_FOR_DATA' || status === 'NOT_CONFIGURED' || status === 'AUTH_ERROR' || status === 'QUOTA_LIMITED' || status === 'API_UNAVAILABLE') return 'state-warn'
   if (status === 'DOWN' || status === 'FAILED') return 'state-bad'
   return 'state-unknown'
 }
@@ -193,6 +193,58 @@ async function loadCloudflare() {
     return data.available
   } catch (error) {
     el('cloudflare-note').textContent = 'Cloudflare 이용량을 확인하지 못했습니다.'
+    return false
+  }
+}
+
+function renderAnalyticsMiniChart(rows) {
+  const target = el('ga-mini-chart')
+  const values = [...(rows || [])].sort((left, right) => String(left.date).localeCompare(String(right.date))).slice(-7)
+  if (!values.length) {
+    target.innerHTML = '<span class="home-muted">최근 추이는 데이터가 쌓인 뒤 표시됩니다.</span>'
+    return
+  }
+  const maximum = Math.max(...values.map((item) => Number(item.activeUsers || 0)), 1)
+  target.innerHTML = values.map((item) => {
+    const height = Math.max(7, Math.round(Number(item.activeUsers || 0) * 100 / maximum))
+    return `<i style="height:${height}%" data-label="${escapeHtml(String(item.date || '').slice(5).replace('-', '.'))}" title="${escapeHtml(item.date)} · ${number(item.activeUsers)}명"></i>`
+  }).join('')
+}
+
+async function loadGoogleAnalytics() {
+  const card = document.querySelector('.analytics-home-card')
+  try {
+    const response = await fetchJson('/api/admin/v1/google-analytics/overview')
+    const data = response.data || {}
+    const current = data.current || {}
+    el('ga-realtime-users').textContent = number(data.realtime?.activeUsers || 0)
+    el('ga-active-users').textContent = number(current.activeUsers || 0)
+    el('ga-views').textContent = number(current.views || 0)
+    el('ga-key-events').textContent = number(current.keyEvents || 0)
+    const change = response.data?.activeUsersChangePercent
+    const changeTarget = el('ga-active-change')
+    changeTarget.className = ''
+    if (change == null) changeTarget.textContent = '전일 비교 없음'
+    else {
+      const rounded = Math.abs(change) >= 10 ? Math.round(change) : change.toFixed(1)
+      changeTarget.textContent = `전일 대비 ${change >= 0 ? '+' : ''}${rounded}%`
+      changeTarget.classList.add(change >= 0 ? 'is-up' : 'is-down')
+    }
+    const trend = data.trend || []
+    el('ga-seven-total').textContent = `${number(trend.reduce((sum, item) => sum + Number(item.activeUsers || 0), 0))}명`
+    renderAnalyticsMiniChart(trend)
+    el('ga-top-page').textContent = data.pages?.[0]?.label || '데이터 대기'
+    el('ga-top-channel').textContent = data.channels?.[0]?.label || '데이터 대기'
+    setState(el('ga-home-state'), response.status)
+    card.classList.toggle('is-unavailable', !response.available)
+    const last = response.lastSuccessfulAt ? ` · 마지막 성공 ${formatDateTime(response.lastSuccessfulAt)}` : ''
+    el('ga-home-note').textContent = `${response.message || 'GA4 상태를 확인했습니다.'}${last}`
+    return response.available || response.status === 'NO_DATA' || response.status === 'NOT_CONFIGURED'
+  } catch (error) {
+    setState(el('ga-home-state'), 'UNKNOWN')
+    card.classList.add('is-unavailable')
+    el('ga-home-note').textContent = 'Google Analytics 집계를 확인하지 못했습니다.'
+    renderAnalyticsMiniChart([])
     return false
   }
 }
@@ -418,7 +470,7 @@ async function refreshAll() {
   const button = el('refresh')
   button.disabled = true
   el('home-status').textContent = '운영 데이터를 새로 확인하고 있습니다.'
-  const results = await Promise.all([loadOperations(), loadCloudflare(), loadDashboard(), loadAllReviews()])
+  const results = await Promise.all([loadOperations(), loadCloudflare(), loadGoogleAnalytics(), loadDashboard(), loadAllReviews()])
   if (!el('dashboard-shell').hidden) {
     const time = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date())
     el('home-status').textContent = results.every(Boolean) ? `${time} 기준 최신 상태입니다.` : `${time} 기준 · 일부 항목을 확인하지 못했습니다.`

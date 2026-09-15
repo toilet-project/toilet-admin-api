@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 
 import com.example.toiletadmin.analytics.dto.GoogleAnalyticsReportResponse.AnalyticsData;
 import com.example.toiletadmin.analytics.service.GoogleAnalyticsGateway.FetchResult;
+import com.google.api.gax.rpc.ApiException;
+import com.google.api.gax.rpc.StatusCode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -113,6 +115,33 @@ class GoogleAnalyticsServiceTest {
             assertThat(second.get(2, TimeUnit.SECONDS).status()).isEqualTo("NO_DATA");
         }
         verify(gateway, times(1)).fetchReport(range);
+    }
+
+    @Test
+    void exposesSafeStatusCodesForAuthenticationAndQuotaFailures() {
+        assertMappedStatus(StatusCode.Code.PERMISSION_DENIED, "AUTH_ERROR");
+        assertMappedStatus(StatusCode.Code.RESOURCE_EXHAUSTED, "QUOTA_LIMITED");
+    }
+
+    private void assertMappedStatus(StatusCode.Code code, String expectedStatus) {
+        GoogleAnalyticsGateway gateway = Mockito.mock(GoogleAnalyticsGateway.class);
+        AnalyticsSnapshotRepository repository = Mockito.mock(AnalyticsSnapshotRepository.class);
+        ApiException exception = Mockito.mock(ApiException.class);
+        StatusCode statusCode = Mockito.mock(StatusCode.class);
+        AnalyticsDateRange range = AnalyticsDateRange.resolve("30d", null, null);
+        String propertyHash = expectedStatus.toLowerCase() + "0".repeat(64 - expectedStatus.length());
+        given(gateway.isConfigured()).willReturn(true);
+        given(gateway.propertyHash()).willReturn(propertyHash);
+        given(repository.find("DETAIL_30D", propertyHash)).willReturn(Optional.empty());
+        given(exception.getStatusCode()).willReturn(statusCode);
+        given(statusCode.getCode()).willReturn(code);
+        given(gateway.fetchReport(range)).willThrow(exception);
+
+        var response = service(gateway, repository).report(range, false);
+
+        assertThat(response.available()).isFalse();
+        assertThat(response.status()).isEqualTo(expectedStatus);
+        verify(repository).markFailure("DETAIL_30D", propertyHash, NOW, expectedStatus);
     }
 
     private GoogleAnalyticsService service(GoogleAnalyticsGateway gateway, AnalyticsSnapshotRepository repository) {

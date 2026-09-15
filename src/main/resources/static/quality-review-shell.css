@@ -1,0 +1,154 @@
+/* Shared outer layout for the two data-quality review workspaces. */
+body.quality-page,
+body.region-page {
+  overflow: hidden;
+}
+
+.quality-page .admin-frame,
+.region-page .admin-frame {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.quality-page .admin-workspace,
+.region-page .admin-workspace {
+  display: flex;
+  height: 100dvh;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.quality-page .admin-topbar,
+.region-page .admin-topbar {
+  flex: 0 0 auto;
+}
+
+.admin-page .dashboard-shell.quality-shell,
+.admin-page .dashboard-shell.region-shell {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 18px 0 14px;
+  overflow: hidden;
+}
+
+.admin-page .quality-page-header,
+.admin-page .region-page-header {
+  width: min(calc(100% - 56px), 1850px);
+  flex: 0 0 auto;
+  margin: 0 auto 14px;
+  align-items: flex-end;
+}
+
+.admin-page .quality-page-header h1,
+.admin-page .region-page-header h1 {
+  font-size: 27px;
+  letter-spacing: -.55px;
+}
+
+.admin-page .quality-page-header p,
+.admin-page .region-page-header p {
+  font-size: 13px;
+}
+
+.admin-page .quality-page-header .secondary-link,
+.admin-page .region-page-header .secondary-link {
+  min-height: 38px;
+  padding: 0 15px;
+  border-radius: 7px;
+  font-size: 12.5px;
+}
+
+.admin-page .quality-workspace,
+.admin-page .region-workspace {
+  display: flex;
+  width: calc(100% - 32px);
+  max-width: 1850px;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  margin: 0 auto;
+  padding: 14px;
+  overflow: hidden;
+}
+
+@media (max-width: 1600px) {
+  body.quality-page {
+    overflow: auto;
+  }
+
+  .quality-page .admin-frame,
+  .quality-page .admin-workspace {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .admin-page .dashboard-shell.quality-shell {
+    display: block;
+    padding: 22px 10px 36px;
+    overflow: visible;
+  }
+
+  .admin-page .quality-page-header,
+  .admin-page .quality-workspace {
+    width: 100%;
+  }
+
+  .admin-page .quality-workspace {
+    display: block;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  body.region-page {
+    overflow: auto;
+  }
+
+  .region-page .admin-frame,
+  .region-page .admin-workspace {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .admin-page .dashboard-shell.region-shell {
+    display: block;
+    padding: 22px 10px 36px;
+    overflow: visible;
+  }
+
+  .admin-page .region-page-header,
+  .admin-page .region-workspace {
+    width: 100%;
+  }
+
+  .admin-page .region-workspace {
+    display: block;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-page .quality-page-header,
+  .admin-page .region-page-header {
+    width: calc(100% - 28px);
+    align-items: flex-start;
+  }
+
+  .admin-page .quality-workspace,
+  .admin-page .region-workspace {
+    width: calc(100% - 20px);
+    padding: 10px;
+  }
+
+  .admin-page .quality-page-header h1,
+  .admin-page .region-page-header h1 {
+    font-size: 25px;
+  }
+}

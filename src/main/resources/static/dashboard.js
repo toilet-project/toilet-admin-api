@@ -198,7 +198,7 @@ async function loadCloudflare() {
 }
 
 function renderAnalyticsMiniChart(rows) {
-  const target = el('ga-mini-chart')
+  const target = el('analytics-mini-chart')
   const values = [...(rows || [])].sort((left, right) => String(left.date).localeCompare(String(right.date))).slice(-7)
   if (!values.length) {
     target.innerHTML = '<span class="home-muted">최근 추이는 데이터가 쌓인 뒤 표시됩니다.</span>'
@@ -211,18 +211,18 @@ function renderAnalyticsMiniChart(rows) {
   }).join('')
 }
 
-async function loadGoogleAnalytics() {
+async function loadServiceAnalytics() {
   const card = document.querySelector('.analytics-home-card')
   try {
-    const response = await fetchJson('/api/admin/v1/google-analytics/overview')
+    const response = await fetchJson('/api/admin/v1/service-analytics/overview')
     const data = response.data || {}
     const current = data.current || {}
-    el('ga-realtime-users').textContent = number(data.realtime?.activeUsers || 0)
-    el('ga-active-users').textContent = number(current.activeUsers || 0)
-    el('ga-views').textContent = number(current.views || 0)
-    el('ga-key-events').textContent = number(current.keyEvents || 0)
+    el('analytics-realtime-users').textContent = number(data.realtime?.activeUsers || 0)
+    el('analytics-active-users').textContent = number(current.activeUsers || 0)
+    el('analytics-views').textContent = number(current.views || 0)
+    el('analytics-key-events').textContent = number(current.keyEvents || 0)
     const change = response.data?.activeUsersChangePercent
-    const changeTarget = el('ga-active-change')
+    const changeTarget = el('analytics-active-change')
     changeTarget.className = ''
     if (change == null) changeTarget.textContent = '전일 비교 없음'
     else {
@@ -231,19 +231,19 @@ async function loadGoogleAnalytics() {
       changeTarget.classList.add(change >= 0 ? 'is-up' : 'is-down')
     }
     const trend = data.trend || []
-    el('ga-seven-total').textContent = `${number(trend.reduce((sum, item) => sum + Number(item.activeUsers || 0), 0))}명`
+    el('analytics-seven-total').textContent = `${number(trend.reduce((sum, item) => sum + Number(item.activeUsers || 0), 0))}명`
     renderAnalyticsMiniChart(trend)
-    el('ga-top-page').textContent = data.pages?.[0]?.label || '데이터 대기'
-    el('ga-top-channel').textContent = data.channels?.[0]?.label || '데이터 대기'
-    setState(el('ga-home-state'), response.status)
+    el('analytics-top-page').textContent = data.pages?.[0]?.label || '데이터 대기'
+    el('analytics-top-channel').textContent = data.channels?.[0]?.label || '데이터 대기'
+    setState(el('analytics-home-state'), response.status)
     card.classList.toggle('is-unavailable', !response.available)
     const last = response.lastSuccessfulAt ? ` · 마지막 성공 ${formatDateTime(response.lastSuccessfulAt)}` : ''
-    el('ga-home-note').textContent = `${response.message || 'GA4 상태를 확인했습니다.'}${last}`
+    el('analytics-home-note').textContent = `${response.message || '자체 분석 상태를 확인했습니다.'}${last}`
     return response.available || response.status === 'NO_DATA' || response.status === 'NOT_CONFIGURED'
   } catch (error) {
-    setState(el('ga-home-state'), 'UNKNOWN')
+    setState(el('analytics-home-state'), 'UNKNOWN')
     card.classList.add('is-unavailable')
-    el('ga-home-note').textContent = 'Google Analytics 집계를 확인하지 못했습니다.'
+    el('analytics-home-note').textContent = '서비스 이용 분석 집계를 확인하지 못했습니다.'
     renderAnalyticsMiniChart([])
     return false
   }
@@ -470,7 +470,7 @@ async function refreshAll() {
   const button = el('refresh')
   button.disabled = true
   el('home-status').textContent = '운영 데이터를 새로 확인하고 있습니다.'
-  const results = await Promise.all([loadOperations(), loadCloudflare(), loadGoogleAnalytics(), loadDashboard(), loadAllReviews()])
+  const results = await Promise.all([loadOperations(), loadCloudflare(), loadServiceAnalytics(), loadDashboard(), loadAllReviews()])
   if (!el('dashboard-shell').hidden) {
     const time = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date())
     el('home-status').textContent = results.every(Boolean) ? `${time} 기준 최신 상태입니다.` : `${time} 기준 · 일부 항목을 확인하지 못했습니다.`

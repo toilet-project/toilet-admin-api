@@ -10,7 +10,7 @@ const summary = { activeUsers: 1284, newUsers: 741, sessions: 1762, views: 4298,
 const dimension = (key, activeUsers, views = 0, sessions = 0, eventCount = 0, keyEvents = 0, detail = '') => ({ key, label: key, detail, activeUsers, views, sessions, eventCount, keyEvents, averageEngagementSeconds: 138 });
 const report = {
   available: true, status: 'UP', range: '7d', fetchedAt: '2026-09-15T13:10:00Z', lastSuccessfulAt: '2026-09-15T13:10:00Z', stale: false,
-  message: 'GA4 집계를 최신 값으로 확인했습니다.', quotaRemaining: { tokensPerHour: 39862 },
+  message: '급똥 서버에서 직접 집계한 이용 현황입니다.',
   data: {
     current: summary, previous: { ...summary, activeUsers: 1181 }, activeUsersChangePercent: 8.7,
     realtime: { activeUsers: 42, views: 116, events: 388, keyEvents: 9 },
@@ -18,7 +18,7 @@ const report = {
       ['2026-09-09', 144, 482], ['2026-09-10', 157, 511], ['2026-09-11', 166, 548], ['2026-09-12', 172, 591],
       ['2026-09-13', 188, 624], ['2026-09-14', 207, 698], ['2026-09-15', 250, 844],
     ].map(([date, activeUsers, views]) => ({ date, activeUsers, newUsers: Math.round(activeUsers * .58), sessions: Math.round(activeUsers * 1.35), views, keyEvents: Math.round(activeUsers * .14) })),
-    pages: [dimension('급똥 - 가까운 화장실 찾기', 702, 2184, 0, 0, 61, '/'), dimension('개인정보 처리방침', 184, 522, 0, 0, 2, '/policies/privacy'), dimension('화장실 상세', 172, 491, 0, 0, 18, '/toilet/[id]')],
+    pages: [dimension('/', 702, 2184, 0, 0, 61, '/'), dimension('/policies/privacy', 184, 522, 0, 0, 2, '/policies/privacy'), dimension('/toilet/:id', 172, 491, 0, 0, 18, '/toilet/:id')],
     channels: [dimension('Organic Search', 583, 0, 801, 0, 69), dimension('Direct', 394, 0, 542, 0, 61), dimension('Referral', 192, 0, 274, 0, 34), dimension('Organic Social', 115, 0, 145, 0, 22)],
     sources: [dimension('google / organic', 428, 0, 612), dimension('naver / organic', 311, 0, 443), dimension('(direct) / (none)', 304, 0, 417)],
     devices: [dimension('mobile', 872, 0, 1194), dimension('desktop', 358, 0, 491), dimension('tablet', 54, 0, 77)],
@@ -29,8 +29,8 @@ const report = {
     events: [dimension('page_view', 901, 0, 0, 4298, 0), dimension('toilet_marker_select', 512, 0, 0, 936, 0), dimension('toilet_search', 346, 0, 0, 603, 0), dimension('report_submit', 82, 0, 0, 91, 91)],
   },
 };
-const realtime = { available: true, status: 'UP', fetchedAt: report.fetchedAt, lastSuccessfulAt: report.lastSuccessfulAt, stale: false, message: '최근 30분 실시간 집계입니다.', data: report.data.realtime, quotaRemaining: { tokensPerHour: 39921 } };
-const health = { configured: true, status: 'UP', checkedAt: report.fetchedAt, lastAttemptAt: report.fetchedAt, lastSuccessfulAt: report.lastSuccessfulAt, nextScheduledAt: '2026-09-15T13:25:00Z', message: '수집과 관리자 조회가 정상입니다.', dashboardUrl: 'https://analytics.google.com/', quotaRemaining: { tokensPerHour: 39862 } };
+const realtime = { available: true, status: 'UP', fetchedAt: report.fetchedAt, lastSuccessfulAt: report.lastSuccessfulAt, stale: false, message: '최근 30분 실시간 집계입니다.', data: report.data.realtime };
+const health = { configured: true, status: 'UP', checkedAt: report.fetchedAt, lastAttemptAt: report.fetchedAt, lastSuccessfulAt: report.lastSuccessfulAt, nextScheduledAt: '2026-09-16T17:30:00Z', message: '개별 이벤트는 35일 보관하고 최근 14일을 매일 02:30에 다시 집계합니다.', rawEventRetentionDays: 35, correctionWindowDays: 14 };
 
 function staticServer() {
   return http.createServer((request, response) => {
@@ -59,9 +59,9 @@ function staticServer() {
         const request = route.request();
         const url = new URL(request.url());
         if (url.pathname === '/api/v1/auth/me') return route.fulfill({ json: { roles: ['ADMIN'], nickname: '운영자 A' } });
-        if (url.pathname.endsWith('/google-analytics/overview') || url.pathname.endsWith('/google-analytics/trend')) return route.fulfill({ json: report });
-        if (url.pathname.endsWith('/google-analytics/realtime')) return route.fulfill({ json: realtime });
-        if (url.pathname.endsWith('/google-analytics/collection-status')) return route.fulfill({ json: health });
+        if (url.pathname.endsWith('/service-analytics/overview') || url.pathname.endsWith('/service-analytics/trend')) return route.fulfill({ json: report });
+        if (url.pathname.endsWith('/service-analytics/realtime')) return route.fulfill({ json: realtime });
+        if (url.pathname.endsWith('/service-analytics/collection-status')) return route.fulfill({ json: health });
         if (url.pathname.endsWith('/operations/status')) return route.fulfill({ json: { admin: { status: 'UP' }, publicApi: { status: 'UP' }, database: { status: 'UP' }, disk: { status: 'UP', usedPercent: 41 }, batch: { status: 'UP', completedAt: report.fetchedAt } } });
         if (url.pathname.endsWith('/cloudflare/usage')) return route.fulfill({ json: { available: true, planLabel: 'Workers Paid', checkedAt: report.fetchedAt, usagePeriodStart: '2026-08-29', usagePeriodEnd: '2026-09-28', message: '모든 항목이 예시 한도의 80% 미만입니다.', workersRequests: { used: 18420, limit: 10000000, usedPercent: .18 }, d1RowsRead: { used: 620000, limit: 25000000000, usedPercent: 0 }, r2StorageBytes: { used: 800000000, limit: 10000000000, usedPercent: 8 } } });
         if (url.pathname.endsWith('/reports/summary')) return route.fulfill({ json: { pendingCount: 12, overdueCount: 3, recentReports: [] } });
@@ -70,11 +70,11 @@ function staticServer() {
         if (url.pathname.endsWith('/dashboard')) return route.fulfill({ json: { from: '2026-09-09', to: '2026-09-15', batch: { successfulRuns: 7, failedRuns: 0, insertedRecords: 706, updatedRecords: 2058, totalToiletCount: 54281, lastSuccessAt: report.fetchedAt, lastSuccessDurationSeconds: 734 }, dailySummaries: [], recentExecutions: [] } });
         return url.origin === origin ? route.continue() : route.abort();
       });
-      await page.goto(`${origin}/${target === 'detail' ? 'google-analytics.html' : 'index.html'}`);
-      await page.locator(target === 'detail' ? '#ga-kpi-active' : '#ga-active-users').filter({ hasText: '1,284' }).waitFor();
+      await page.goto(`${origin}/${target === 'detail' ? 'service-analytics.html' : 'index.html'}`);
+      await page.locator(target === 'detail' ? '#analytics-kpi-active' : '#analytics-active-users').filter({ hasText: '1,284' }).waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       assert.deepEqual(errors, []);
-      if (process.env.GA4_SCREENSHOT_DIR) await page.screenshot({ path: path.join(process.env.GA4_SCREENSHOT_DIR, `google-analytics-${target}.png`), fullPage: true });
+      if (process.env.SERVICE_ANALYTICS_SCREENSHOT_DIR) await page.screenshot({ path: path.join(process.env.SERVICE_ANALYTICS_SCREENSHOT_DIR, `service-analytics-${target}.png`), fullPage: true });
       console.log(`PASS analytics ${target} (synthetic aggregate API only)`);
       await context.close();
     }

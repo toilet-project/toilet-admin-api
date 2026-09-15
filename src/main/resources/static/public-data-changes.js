@@ -27,7 +27,6 @@ const demoItems = [
 const demoDetails = {
   1042: {
     review: demoItems[0], dataSource:'공공데이터포털', baselineHash:'demo-baseline-1042', isStale:false,
-    baseline:{ latitude:37.566286, longitude:126.977944, roadAddress:'서울특별시 중구 세종대로 110', jibunAddress:'서울특별시 중구 태평로1가 31', confirmedAt:'2026-08-21T16:42:00+09:00', confirmedBy:'관리자' },
     current:{ latitude:37.566286, longitude:126.977944, roadAddress:'서울특별시 중구 세종대로 110', jibunAddress:'서울특별시 중구 태평로1가 31', confirmedAt:'2026-08-21T16:42:00+09:00', confirmedBy:'관리자' },
     proposal:{ latitude:37.566841, longitude:126.978531, roadAddress:'서울특별시 중구 세종대로 112', jibunAddress:'서울특별시 중구 태평로1가 31', providerUpdatedAt:'2026-09-14T18:20:00+09:00' },
     distanceMeters:80,
@@ -37,7 +36,6 @@ const demoDetails = {
   },
   1041: {
     review: demoItems[1], dataSource:'공공데이터포털', baselineHash:'demo-baseline-1041', isStale:false,
-    baseline:{ latitude:35.179554, longitude:129.075642, roadAddress:'부산광역시 연제구 중앙대로 1001', jibunAddress:'부산광역시 연제구 연산동 1000', confirmedAt:'2026-08-19T09:14:00+09:00', confirmedBy:'관리자' },
     current:{ latitude:35.179554, longitude:129.075642, roadAddress:'부산광역시 연제구 중앙대로 1001', jibunAddress:'부산광역시 연제구 연산동 1000', confirmedAt:'2026-08-19T09:14:00+09:00', confirmedBy:'관리자' },
     proposal:{ latitude:null, longitude:null, roadAddress:'부산광역시 연제구 중앙대로', jibunAddress:null, providerUpdatedAt:'2026-09-13T17:10:00+09:00' },
     distanceMeters:null,
@@ -47,7 +45,6 @@ const demoDetails = {
   },
   1038: {
     review: demoItems[2], dataSource:'공공데이터포털', baselineHash:'demo-baseline-1038', isStale:false,
-    baseline:{ latitude:36.350412, longitude:127.384548, roadAddress:'대전광역시 서구 둔산로 100', jibunAddress:'대전광역시 서구 둔산동 1420', confirmedAt:'2026-08-12T13:08:00+09:00', confirmedBy:'관리자' },
     current:{ latitude:36.350412, longitude:127.384548, roadAddress:'대전광역시 서구 둔산로 100', jibunAddress:'대전광역시 서구 둔산동 1420', confirmedAt:'2026-08-12T13:08:00+09:00', confirmedBy:'관리자' },
     proposal:{ latitude:36.350744, longitude:127.384112, roadAddress:'대전광역시 서구 둔산로 100', jibunAddress:'대전광역시 서구 둔산동 1420', providerUpdatedAt:'2026-09-12T19:30:00+09:00' },
     distanceMeters:54,
@@ -197,12 +194,11 @@ async function loadList(page = 0) {
 
 function valueRows(value, changed, highlight) {
   const rows = [
-    ['LATITUDE', '위도', coordinate(value?.latitude)],
-    ['LONGITUDE', '경도', coordinate(value?.longitude)],
-    ['ROAD_ADDRESS', '도로명', value?.roadAddress || '없음'],
-    ['JIBUN_ADDRESS', '지번', value?.jibunAddress || '없음'],
+    [['LATITUDE', 'LONGITUDE'], '좌표', `${coordinate(value?.latitude)}, ${coordinate(value?.longitude)}`, 'coordinate'],
+    [['ROAD_ADDRESS'], '도로명 주소', value?.roadAddress || '없음', 'address'],
+    [['JIBUN_ADDRESS'], '지번 주소', value?.jibunAddress || '없음', 'address'],
   ]
-  return rows.map(([key, label, text]) => `<dt>${label}</dt><dd${highlight && changed.includes(key) ? ' class="is-changed"' : ''}>${escapeHtml(text)}</dd>`).join('')
+  return rows.map(([keys, label, text, type]) => `<div class="change-value-row is-${type}"><dt>${label}</dt><dd${highlight && keys.some(key => changed.includes(key)) ? ' class="is-changed"' : ''}>${escapeHtml(text)}</dd></div>`).join('')
 }
 
 function historyMarkup(items = []) {
@@ -218,11 +214,10 @@ function detailMarkup(detail) {
   return `<header class="change-detail-head"><div><span class="change-section-kicker">CHANGE #${escapeHtml(review.id)} · TOILET #${escapeHtml(review.toiletId)}</span><h2>${escapeHtml(review.name || '이름 없는 화장실')}</h2><p>${escapeHtml(review.managementNumber || '관리번호 없음')} · ${escapeHtml(detail.dataSource || '공공데이터')} · 최초 ${escapeHtml(date(review.firstReceivedAt))}</p></div>${statusBadge(review.status)}</header>
     ${detail.isStale ? '<div class="change-stale-alert"><strong>다시 비교 필요</strong><span>후보를 연 뒤 현재 확정값이나 새 제안이 바뀌었습니다. 새로고침 후 결정해 주세요.</span></div>' : ''}
     ${issues.length ? `<div class="change-validation-alert"><strong>확인 필요</strong><span>${issues.map(issue => escapeHtml(issue.message)).join(' · ')}</span></div>` : ''}
-    <div class="change-comparison-head"><div><span class="change-section-kicker">VALUE COMPARISON</span><h3>보호값과 제안값 비교</h3></div><p>달라진 제안값은 주황색으로 표시합니다.</p></div>
+    <div class="change-comparison-head"><div><span class="change-section-kicker">VALUE COMPARISON</span><h3>현재 서비스 값과 수신 값 비교</h3></div><p>달라진 수신 값은 주황색으로 표시합니다.</p></div>
     <section class="change-comparison-grid" aria-label="변경값 비교">
-      <article class="change-value-card baseline"><header><span>수신</span><div><small>RECEIVED BASELINE</small><strong>수신 당시 확정값</strong></div></header><dl>${valueRows(detail.baseline, changed, false)}</dl></article>
-      <article class="change-value-card current"><header><span>현재</span><div><small>CURRENT SERVICE</small><strong>현재 서비스 값</strong></div></header><dl>${valueRows(detail.current, changed, false)}</dl></article>
-      <article class="change-value-card proposed"><header><span>제안</span><div><small>PUBLIC DATA PROPOSAL</small><strong>새 공공데이터 값</strong></div></header><dl>${valueRows(detail.proposal, changed, true)}</dl></article>
+      <article class="change-value-card current"><header><span>현재</span><div><small>CURRENT SERVICE</small><strong>현재 서비스 값</strong></div><time>${escapeHtml(date(detail.current?.confirmedAt))} 확정</time></header><dl>${valueRows(detail.current, changed, false)}</dl></article>
+      <article class="change-value-card proposed"><header><span>수신</span><div><small>PUBLIC DATA RECEIVED</small><strong>공공데이터 수신 값</strong></div><time>${escapeHtml(date(detail.proposal?.providerUpdatedAt || review.lastReceivedAt))} 수신</time></header><dl>${valueRows(detail.proposal, changed, true)}</dl></article>
     </section>
     <section class="change-work-grid">
       <div>

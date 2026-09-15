@@ -493,7 +493,7 @@
 
 .admin-page .change-comparison-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
 }
 
@@ -526,6 +526,14 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.admin-page .change-value-card header time {
+  margin-left: auto;
+  color: #77877f;
+  font-size: 9.5px;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 .admin-page .change-value-card header > span,
@@ -579,8 +587,36 @@
 .admin-page .change-receipt-card dl {
   display: grid;
   margin: 0;
+}
+
+.admin-page .change-value-card dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-page .change-receipt-card dl {
   grid-template-columns: 54px minmax(0, 1fr);
   gap: 6px 8px;
+}
+
+.admin-page .change-value-row {
+  display: grid;
+  min-width: 0;
+  min-height: 51px;
+  align-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid #e2ebe5;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.admin-page .change-value-row.is-coordinate {
+  min-height: 39px;
+  align-items: center;
+  grid-column: 1 / -1;
+  grid-template-columns: 62px minmax(0, 1fr);
+  background: #f7faf8;
 }
 
 .admin-page .change-value-card dt,
@@ -593,12 +629,21 @@
 .admin-page .change-value-card dd,
 .admin-page .change-receipt-card dd {
   margin: 0;
-  overflow: hidden;
   color: #294536;
   font-size: 10.5px;
   font-weight: 550;
+}
+
+.admin-page .change-value-row.is-coordinate dd {
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-page .change-value-row.is-address dd {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .admin-page .change-value-card dd.is-changed {
@@ -890,7 +935,6 @@
   .admin-page .change-queue-filters { grid-template-columns: 1fr 1fr; }
   .admin-page .change-search { grid-column: 1 / -1; }
   .admin-page .change-comparison-grid { grid-template-columns: 1fr 1fr; }
-  .admin-page .change-value-card.proposed { grid-column: 1 / -1; }
   .admin-page .change-work-grid { grid-template-columns: 1fr; }
 }
 
@@ -908,7 +952,6 @@
   .admin-page .change-review-summary dl > div:nth-child(3) { border-top: 1px solid var(--admin-line); }
   .admin-page .change-review-summary dl > div:nth-child(4) { border-top: 1px solid var(--admin-line); }
   .admin-page .change-comparison-grid { grid-template-columns: 1fr; }
-  .admin-page .change-value-card.proposed { grid-column: auto; }
   .admin-page .change-detail-head { align-items: stretch; flex-direction: column; }
   .admin-page .change-history-item { grid-template-columns: 1fr; gap: 2px; }
 }

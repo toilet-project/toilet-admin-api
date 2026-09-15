@@ -86,7 +86,7 @@ jobs:
 
             # Backup before overwriting configuration or pulling/replacing an image.
             rollback_dir=$(mktemp -d "$PWD/rollback-preparation.XXXXXXXX")
-            for file in .env docker-compose.yml ga4-service-account.json; do
+            for file in .env docker-compose.yml; do
               if [ -f "$file" ]; then
                 cp -- "$file" "$rollback_dir/"
                 chmod 600 "$rollback_dir/$file"
@@ -107,20 +107,7 @@ jobs:
             DB_PATH_AND_QUERY=$(printf '%s' "$DB_URL" | sed -E 's#^jdbc:mysql://[^/]+/#/#')
             INTERNAL_DB_URL="jdbc:mysql://toilet-mysql${DB_PATH_AND_QUERY}"
 
-            GA4_PROPERTY_ID='${{ secrets.GOOGLE_ANALYTICS_PROPERTY_ID }}'
-            GA4_CREDENTIALS_BASE64='${{ secrets.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_BASE64 }}'
-            if [ -z "$GA4_PROPERTY_ID" ] && [ -z "$GA4_CREDENTIALS_BASE64" ]; then
-              GA4_ENABLED=false
-              printf '%s\n' '{}' > ga4-service-account.json
-            elif [ -z "$GA4_PROPERTY_ID" ] || [ -z "$GA4_CREDENTIALS_BASE64" ]; then
-              printf '%s\n' 'Incomplete Google Analytics deployment secrets.' >&2
-              exit 1
-            else
-              GA4_ENABLED=true
-              printf '%s' "$GA4_CREDENTIALS_BASE64" | base64 -d > ga4-service-account.json
-              python3 -c 'import json; value=json.load(open("ga4-service-account.json", encoding="utf-8")); assert value.get("type") == "service_account" and value.get("client_email") and value.get("private_key")'
-            fi
-            chmod 600 ga4-service-account.json
+            rm -f -- ga4-service-account.json
             
             # GitHub Secrets 값으로 .env 파일 생성/덮어쓰기
             cat <<EOF > .env
@@ -140,10 +127,6 @@ jobs:
             CLOUDFLARE_D1_ROWS_READ_INCLUDED=25000000000
             CLOUDFLARE_R2_STORAGE_BYTE_INCLUDED=10000000000
             CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-            GOOGLE_ANALYTICS_ENABLED=$GA4_ENABLED
-            GOOGLE_ANALYTICS_PROPERTY_ID=$GA4_PROPERTY_ID
-            GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/ga4-service-account.json
-            GOOGLE_ANALYTICS_REFRESH_MILLIS=900000
             EOF
 
             cat <<EOF > docker-compose.yml
@@ -154,8 +137,6 @@ jobs:
                 restart: unless-stopped
                 env_file:
                   - .env
-                volumes:
-                  - ./ga4-service-account.json:/run/secrets/ga4-service-account.json:ro
                 ports:
                   - "127.0.0.1:${{ secrets.ADMIN_PORT }}:${{ secrets.ADMIN_PORT }}"
                 networks:

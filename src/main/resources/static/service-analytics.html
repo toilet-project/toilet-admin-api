@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>서비스 이용 분석 | 급똥 관리자</title>
+  <link rel="stylesheet" href="/dashboard.css?v=5" />
+  <link rel="stylesheet" href="/admin-shell.css?v=4" />
+  <link rel="stylesheet" href="/admin-session.css?v=1" />
+  <link rel="stylesheet" href="/service-analytics.css?v=1" />
+</head>
+<body class="admin-page analytics-page">
+  <main id="loading-shell" class="page-loading" hidden><span class="loading-spinner"></span><p>불러오는 중...</p></main>
+  <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
+
+  <main id="analytics-shell" class="dashboard-shell analytics-shell" data-admin-page="analytics" data-admin-title="서비스 이용 분석">
+    <header class="page-header analytics-page-header">
+      <div><p class="eyebrow">SERVICE INSIGHTS</p><h1>서비스 이용 분석</h1><p>이용 흐름과 주요 행동을 기간별로 확인하고 변화 원인을 살펴봅니다.</p></div>
+      <div class="analytics-header-actions"><button id="analytics-refresh" class="analytics-primary-button" type="button">새로고침</button></div>
+    </header>
+
+    <section class="analytics-control-bar" aria-label="조회 기간과 수집 상태">
+      <div class="analytics-periods" role="group" aria-label="조회 기간"><button type="button" data-range="today">오늘</button><button type="button" data-range="7d" aria-pressed="true">7일</button><button type="button" data-range="30d">30일</button><button type="button" data-range="custom">직접 선택</button></div>
+      <form id="analytics-custom-range" class="analytics-custom-range" hidden><label>시작일<input id="analytics-from" type="date" required /></label><span>–</span><label>종료일<input id="analytics-to" type="date" required /></label><button type="submit">조회</button></form>
+      <div class="analytics-collection-state"><i id="analytics-state-dot"></i><span id="analytics-state-text">연결 확인 중</span><small id="analytics-updated-at">—</small></div>
+    </section>
+
+    <aside id="analytics-connection" class="analytics-connection" hidden>
+      <div><strong>자체 분석 저장소 준비가 필요합니다.</strong><p>수집 API와 일별 집계 테이블이 준비되면 이 화면에 실제 지표가 표시됩니다.</p></div><ol><li>분석 테이블 반영</li><li>웹 수집기 연결</li><li>첫 일별 집계 확인</li></ol>
+    </aside>
+
+    <section class="analytics-kpi-grid" aria-label="핵심 지표">
+      <article><span>활성 사용자</span><strong id="analytics-kpi-active">—</strong><em id="analytics-kpi-change">이전 기간 비교</em></article>
+      <article><span>페이지뷰</span><strong id="analytics-kpi-views">—</strong><em id="analytics-kpi-views-user">사용자당 —</em></article>
+      <article><span>세션</span><strong id="analytics-kpi-sessions">—</strong><em id="analytics-kpi-engagement">참여율 —</em></article>
+      <article><span>평균 참여 시간</span><strong id="analytics-kpi-time">—</strong><em>활성 사용자 기준</em></article>
+      <article><span>주요 이벤트</span><strong id="analytics-kpi-events">—</strong><em id="analytics-kpi-new">신규 사용자 —</em></article>
+    </section>
+
+    <section class="analytics-main-grid">
+      <article class="analytics-panel analytics-trend-panel">
+        <header><div><p class="analytics-label">AUDIENCE TREND</p><h2>사용자와 조회 추이</h2></div><div class="analytics-legend"><span><i data-tone="green"></i>활성 사용자</span><span><i data-tone="mint"></i>페이지뷰</span></div></header>
+        <div id="analytics-trend-chart" class="analytics-trend-chart" aria-live="polite"><span class="analytics-skeleton"></span></div>
+      </article>
+      <article class="analytics-panel analytics-realtime-panel">
+        <header><div><p class="analytics-label">REALTIME</p><h2>최근 30분</h2></div><span class="analytics-live-badge"><i></i>LIVE</span></header>
+        <div class="analytics-realtime-value"><strong id="analytics-live-users">—</strong><span>활성 사용자</span></div>
+        <dl><div><dt>조회</dt><dd id="analytics-live-views">—</dd></div><div><dt>이벤트</dt><dd id="analytics-live-events">—</dd></div><div><dt>주요 이벤트</dt><dd id="analytics-live-key-events">—</dd></div></dl>
+        <p id="analytics-realtime-note">실시간 집계를 확인하고 있습니다.</p>
+      </article>
+    </section>
+
+    <section class="analytics-two-column">
+      <article class="analytics-panel"><header><div><p class="analytics-label">CONTENT</p><h2>인기 페이지</h2></div><span>상위 7개</span></header><div class="analytics-table-wrap"><table><thead><tr><th>페이지</th><th>조회</th><th>사용자</th><th>평균 참여</th></tr></thead><tbody id="analytics-pages"><tr><td colspan="4">불러오는 중입니다.</td></tr></tbody></table></div></article>
+      <article class="analytics-panel"><header><div><p class="analytics-label">ACQUISITION</p><h2>유입 경로</h2></div><span>세션 기준</span></header><div id="analytics-channels" class="analytics-bar-list"><span class="analytics-skeleton"></span></div><h3>소스 / 매체</h3><div id="analytics-sources" class="analytics-compact-list"></div></article>
+    </section>
+
+    <section class="analytics-environment-grid" aria-label="방문자 환경">
+      <article class="analytics-panel"><header><div><p class="analytics-label">DEVICE</p><h2>기기 유형</h2></div></header><div id="analytics-devices" class="analytics-distribution"></div></article>
+      <article class="analytics-panel"><header><div><p class="analytics-label">PLATFORM</p><h2>운영체제</h2></div></header><div id="analytics-os" class="analytics-bar-list"></div></article>
+      <article class="analytics-panel"><header><div><p class="analytics-label">BROWSER</p><h2>브라우저</h2></div></header><div id="analytics-browsers" class="analytics-bar-list"></div></article>
+    </section>
+
+    <section class="analytics-two-column">
+      <article class="analytics-panel"><header><div><p class="analytics-label">LOCATION</p><h2>접속 지역</h2></div><span>활성 사용자</span></header><div class="analytics-location-grid"><div><h3>국가</h3><div id="analytics-countries" class="analytics-compact-list"></div></div><div><h3>도시</h3><div id="analytics-cities" class="analytics-compact-list"></div></div></div></article>
+      <article class="analytics-panel"><header><div><p class="analytics-label">BEHAVIOR</p><h2>이벤트</h2></div><span>상위 8개</span></header><div class="analytics-table-wrap"><table><thead><tr><th>이벤트</th><th>발생</th><th>사용자</th><th>주요</th></tr></thead><tbody id="analytics-events"><tr><td colspan="4">불러오는 중입니다.</td></tr></tbody></table></div></article>
+    </section>
+
+    <section class="analytics-panel analytics-health-panel"><header><div><p class="analytics-label">COLLECTION HEALTH</p><h2>수집 상태</h2></div><span id="analytics-health-status">확인 중</span></header><dl><div><dt>마지막 집계</dt><dd id="analytics-last-attempt">—</dd></div><div><dt>마지막 이벤트</dt><dd id="analytics-last-success">—</dd></div><div><dt>다음 일별 보정</dt><dd id="analytics-next-refresh">—</dd></div><div><dt>원본 이벤트 보관</dt><dd id="analytics-retention">—</dd></div></dl><p id="analytics-health-message">자체 수집 저장소 상태를 확인하고 있습니다.</p></section>
+  </main>
+
+  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/service-analytics.js?v=2"></script>
+</body>
+</html>

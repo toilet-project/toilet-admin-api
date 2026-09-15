@@ -2,9 +2,8 @@ package com.example.toiletadmin.analytics.dto;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
-public record GoogleAnalyticsReportResponse(
+public record ServiceAnalyticsReportResponse(
         boolean available,
         String status,
         String range,
@@ -12,22 +11,21 @@ public record GoogleAnalyticsReportResponse(
         Instant lastSuccessfulAt,
         boolean stale,
         String message,
-        AnalyticsData data,
-        Map<String, Integer> quotaRemaining
+        AnalyticsData data
 ) {
-    public static GoogleAnalyticsReportResponse unavailable(String status, String range, Instant now, String message) {
-        return new GoogleAnalyticsReportResponse(false, status, range, now, null, false, message,
-                AnalyticsData.empty(), Map.of());
+    public static ServiceAnalyticsReportResponse unavailable(String status, String range, Instant now, String message) {
+        return new ServiceAnalyticsReportResponse(false, status, range, now, null, false, message,
+                AnalyticsData.empty());
     }
 
-    public GoogleAnalyticsReportResponse asStale(String nextStatus, Instant now, String nextMessage) {
-        return new GoogleAnalyticsReportResponse(false, nextStatus, range, now, lastSuccessfulAt, true, nextMessage,
-                data, quotaRemaining);
+    public ServiceAnalyticsReportResponse asStale(String nextStatus, Instant now, String nextMessage) {
+        return new ServiceAnalyticsReportResponse(false, nextStatus, range, now, lastSuccessfulAt, true, nextMessage,
+                data);
     }
 
-    public GoogleAnalyticsReportResponse withRealtime(RealtimeMetrics realtime) {
-        return new GoogleAnalyticsReportResponse(available, status, range, fetchedAt, lastSuccessfulAt, stale,
-                message, data.withRealtime(realtime), quotaRemaining);
+    public ServiceAnalyticsReportResponse withRealtime(RealtimeMetrics realtime) {
+        return new ServiceAnalyticsReportResponse(available, status, range, fetchedAt, lastSuccessfulAt, stale,
+                message, data.withRealtime(realtime));
     }
 
     public record AnalyticsData(

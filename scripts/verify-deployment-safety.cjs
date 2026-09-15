@@ -28,8 +28,6 @@ const secrets = {
   'secrets.KAKAO_JAVASCRIPT_KEY': 'fixture-js', 'secrets.DOCKERHUB_USERNAME': 'fixture',
   'secrets.CLOUDFLARE_ACCOUNT_ID': '11111111111111111111111111111111',
   'secrets.CLOUDFLARE_ANALYTICS_API_TOKEN': 'synthetic-cloudflare-token',
-  'secrets.GOOGLE_ANALYTICS_PROPERTY_ID': '123456789',
-  'secrets.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_BASE64': 'eyJ0eXBlIjoic2VydmljZV9hY2NvdW50IiwiY2xpZW50X2VtYWlsIjoiZml4dHVyZUBleGFtcGxlLmludmFsaWQiLCJwcml2YXRlX2tleSI6ImZpeHR1cmUta2V5In0=',
   'github.sha': '1111111111111111111111111111111111111111'
 };
 let script = source.replace(/\$\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => {
@@ -40,6 +38,7 @@ assert.equal((script.match(/~\/toilet-admin/g) || []).length, 2);
 script = script.replaceAll('~/toilet-admin', '"$FIXTURE_DIR"');
 const syntax = spawnSync(bash, ['-n'], {input: script, encoding: 'utf8'});
 assert.equal(syntax.status, 0, syntax.stderr);
+assert.ok(!/GOOGLE_ANALYTICS|GA4_|run\/secrets\/ga4/.test(script));
 const harness = `
 docker() {
   printf '%s\\n' "$*" >> "$FIXTURE_DIR/commands.log"

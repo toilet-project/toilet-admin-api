@@ -59,6 +59,10 @@ google:
     cache-seconds: ${GOOGLE_ANALYTICS_CACHE_SECONDS:900}
     realtime-cache-seconds: ${GOOGLE_ANALYTICS_REALTIME_CACHE_SECONDS:60}
     dashboard-url: ${GOOGLE_ANALYTICS_DASHBOARD_URL:https://analytics.google.com/analytics/web/}
+    archive-enabled: ${GOOGLE_ANALYTICS_ARCHIVE_ENABLED:true}
+    archive-lookback-days: ${GOOGLE_ANALYTICS_ARCHIVE_LOOKBACK_DAYS:14}
+    archive-cron: "${GOOGLE_ANALYTICS_ARCHIVE_CRON:0 30 16,19 * * *}"
+    archive-zone: ${GOOGLE_ANALYTICS_ARCHIVE_ZONE:Asia/Seoul}
 
 management:
   endpoints:

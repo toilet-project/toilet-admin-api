@@ -20,13 +20,19 @@ import com.example.toiletadmin.analytics.dto.GoogleAnalyticsReportResponse.Dimen
 import com.example.toiletadmin.analytics.dto.GoogleAnalyticsReportResponse.RealtimeMetrics;
 import com.example.toiletadmin.analytics.dto.GoogleAnalyticsReportResponse.SummaryMetrics;
 import com.example.toiletadmin.analytics.dto.GoogleAnalyticsReportResponse.TrendPoint;
+import com.example.toiletadmin.analytics.service.DailyAnalyticsArchive.ArchiveMetrics;
+import com.example.toiletadmin.analytics.service.DailyAnalyticsArchive.BreakdownType;
+import com.example.toiletadmin.analytics.service.DailyAnalyticsArchive.DailyBreakdown;
+import com.example.toiletadmin.analytics.service.DailyAnalyticsArchive.DailySummary;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,6 +47,7 @@ import org.springframework.stereotype.Component;
 public class GoogleAnalyticsDataClient implements GoogleAnalyticsGateway, DisposableBean {
 
     private static final String ANALYTICS_SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
+    private static final long ARCHIVE_ROW_LIMIT = 250_000;
     private final boolean enabled;
     private final String propertyId;
     private final String credentialsFile;
@@ -143,6 +150,57 @@ public class GoogleAnalyticsDataClient implements GoogleAnalyticsGateway, Dispos
         return new FetchResult<>(data, quota(response.getPropertyQuota()));
     }
 
+    @Override
+    public FetchResult<DailyAnalyticsArchive> fetchDailyArchive(LocalDate start, LocalDate end) {
+        if (start == null || end == null || start.isAfter(end)) {
+            throw new IllegalArgumentException("Invalid Google Analytics archive range");
+        }
+        BatchRunReportsResponse primary = dataClient().batchRunReports(BatchRunReportsRequest.newBuilder()
+                .setProperty(propertyName())
+                .addRequests(archiveRequest(start, end, List.of(), List.of(
+                        "activeUsers", "totalUsers", "newUsers", "sessions", "screenPageViews",
+                        "engagedSessions", "eventCount", "keyEvents", "userEngagementDuration")))
+                .addRequests(archiveRequest(start, end, List.of("pagePath", "pageTitle"), List.of(
+                        "screenPageViews", "activeUsers", "userEngagementDuration", "keyEvents")))
+                .addRequests(archiveRequest(start, end, List.of("sessionDefaultChannelGroup"), List.of(
+                        "sessions", "activeUsers", "engagedSessions", "keyEvents")))
+                .addRequests(archiveRequest(start, end, List.of("sessionSourceMedium"), List.of(
+                        "sessions", "activeUsers", "engagedSessions", "keyEvents")))
+                .build());
+        BatchRunReportsResponse audience = dataClient().batchRunReports(BatchRunReportsRequest.newBuilder()
+                .setProperty(propertyName())
+                .addRequests(archiveRequest(start, end, List.of("deviceCategory"), List.of("activeUsers", "sessions")))
+                .addRequests(archiveRequest(start, end, List.of("operatingSystem"), List.of("activeUsers", "sessions")))
+                .addRequests(archiveRequest(start, end, List.of("browser"), List.of("activeUsers", "sessions")))
+                .addRequests(archiveRequest(start, end, List.of("country"), List.of("activeUsers", "sessions")))
+                .addRequests(archiveRequest(start, end, List.of("city"), List.of("activeUsers", "sessions")))
+                .build());
+        BatchRunReportsResponse behavior = dataClient().batchRunReports(BatchRunReportsRequest.newBuilder()
+                .setProperty(propertyName())
+                .addRequests(archiveRequest(start, end, List.of("eventName"), List.of(
+                        "eventCount", "totalUsers", "keyEvents")))
+                .build());
+
+        ensureComplete(primary);
+        ensureComplete(audience);
+        ensureComplete(behavior);
+        List<RunReportResponse> p = primary.getReportsList();
+        List<RunReportResponse> a = audience.getReportsList();
+        List<DailySummary> summaries = dailySummaries(reportAt(p, 0), start, end);
+        List<DailyBreakdown> breakdowns = new ArrayList<>();
+        appendBreakdowns(breakdowns, reportAt(p, 1), BreakdownType.PAGE, true);
+        appendBreakdowns(breakdowns, reportAt(p, 2), BreakdownType.CHANNEL, false);
+        appendBreakdowns(breakdowns, reportAt(p, 3), BreakdownType.SOURCE_MEDIUM, false);
+        appendBreakdowns(breakdowns, reportAt(a, 0), BreakdownType.DEVICE, false);
+        appendBreakdowns(breakdowns, reportAt(a, 1), BreakdownType.OS, false);
+        appendBreakdowns(breakdowns, reportAt(a, 2), BreakdownType.BROWSER, false);
+        appendBreakdowns(breakdowns, reportAt(a, 3), BreakdownType.COUNTRY, false);
+        appendBreakdowns(breakdowns, reportAt(a, 4), BreakdownType.CITY, false);
+        appendBreakdowns(breakdowns, reportAt(behavior.getReportsList(), 0), BreakdownType.EVENT, false);
+        Map<String, Integer> remaining = quota(reportAt(behavior.getReportsList(), 0).getPropertyQuota());
+        return new FetchResult<>(new DailyAnalyticsArchive(summaries, breakdowns, 3), remaining);
+    }
+
     private RunReportRequest summaryRequest(AnalyticsDateRange range) {
         return RunReportRequest.newBuilder()
                 .addDateRanges(DateRange.newBuilder().setName("current").setStartDate(range.start().toString())
@@ -165,6 +223,23 @@ public class GoogleAnalyticsDataClient implements GoogleAnalyticsGateway, Dispos
                 .addDateRanges(DateRange.newBuilder().setStartDate(range.start().toString())
                         .setEndDate(range.end().toString()).build())
                 .setLimit(limit)
+                .setReturnPropertyQuota(true);
+        dimensions.forEach(value -> builder.addDimensions(Dimension.newBuilder().setName(value).build()));
+        metrics.forEach(value -> builder.addMetrics(metric(value)));
+        return builder.build();
+    }
+
+    private RunReportRequest archiveRequest(
+            LocalDate start,
+            LocalDate end,
+            List<String> dimensions,
+            List<String> metrics
+    ) {
+        RunReportRequest.Builder builder = RunReportRequest.newBuilder()
+                .addDateRanges(DateRange.newBuilder().setStartDate(start.toString()).setEndDate(end.toString()).build())
+                .addDimensions(Dimension.newBuilder().setName("date").build())
+                .setLimit(ARCHIVE_ROW_LIMIT)
+                .setKeepEmptyRows(true)
                 .setReturnPropertyQuota(true);
         dimensions.forEach(value -> builder.addDimensions(Dimension.newBuilder().setName(value).build()));
         metrics.forEach(value -> builder.addMetrics(metric(value)));
@@ -236,6 +311,71 @@ public class GoogleAnalyticsDataClient implements GoogleAnalyticsGateway, Dispos
         return List.copyOf(result.stream().limit(12).toList());
     }
 
+    private List<DailySummary> dailySummaries(RunReportResponse response, LocalDate start, LocalDate end) {
+        Map<LocalDate, ArchiveMetrics> values = new LinkedHashMap<>();
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            values.put(date, ArchiveMetrics.empty());
+        }
+        for (Row row : response.getRowsList()) {
+            LocalDate date = archiveDate(row);
+            if (date != null && values.containsKey(date)) values.put(date, archiveMetrics(response, row));
+        }
+        return values.entrySet().stream().map(entry -> new DailySummary(entry.getKey(), entry.getValue())).toList();
+    }
+
+    private void appendBreakdowns(
+            List<DailyBreakdown> target,
+            RunReportResponse response,
+            BreakdownType type,
+            boolean page
+    ) {
+        for (Row row : response.getRowsList()) {
+            LocalDate date = archiveDate(row);
+            if (date == null || row.getDimensionValuesCount() < 2) continue;
+            String value = clean(row.getDimensionValues(1).getValue());
+            String secondary = row.getDimensionValuesCount() > 2 ? clean(row.getDimensionValues(2).getValue()) : "";
+            String label = page && !secondary.isBlank() && !"(not set)".equals(secondary) ? secondary : value;
+            String detail = page ? value : secondary;
+            target.add(new DailyBreakdown(date, type, value, label, detail, archiveMetrics(response, row)));
+        }
+    }
+
+    private ArchiveMetrics archiveMetrics(RunReportResponse response, Row row) {
+        Map<String, Integer> metricIndexes = indexes(response.getMetricHeadersList().stream()
+                .map(header -> header.getName()).toList());
+        return new ArchiveMetrics(
+                metric(row, metricIndexes, "activeUsers"),
+                metric(row, metricIndexes, "totalUsers"),
+                metric(row, metricIndexes, "newUsers"),
+                metric(row, metricIndexes, "sessions"),
+                metric(row, metricIndexes, "engagedSessions"),
+                metric(row, metricIndexes, "screenPageViews"),
+                metric(row, metricIndexes, "eventCount"),
+                metricBigDecimal(row, metricIndexes, "keyEvents"),
+                metricBigDecimal(row, metricIndexes, "userEngagementDuration")
+        );
+    }
+
+    private LocalDate archiveDate(Row row) {
+        if (row.getDimensionValuesCount() == 0) return null;
+        String raw = row.getDimensionValues(0).getValue();
+        if (raw == null || !raw.matches("\\d{8}")) return null;
+        try {
+            return LocalDate.of(Integer.parseInt(raw.substring(0, 4)),
+                    Integer.parseInt(raw.substring(4, 6)), Integer.parseInt(raw.substring(6, 8)));
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
+    private void ensureComplete(BatchRunReportsResponse response) {
+        for (RunReportResponse report : response.getReportsList()) {
+            if (report.getRowCount() > report.getRowsCount()) {
+                throw new IllegalStateException("Google Analytics archive report exceeded the row limit");
+            }
+        }
+    }
+
     private Map<String, Integer> indexes(List<String> names) {
         Map<String, Integer> result = new HashMap<>();
         for (int index = 0; index < names.size(); index++) result.put(names.get(index), index);
@@ -250,6 +390,16 @@ public class GoogleAnalyticsDataClient implements GoogleAnalyticsGateway, Dispos
     private double metricDecimal(Row row, Map<String, Integer> indexes, String name) {
         Integer index = indexes.get(name);
         return index == null ? 0 : decimal(row, index);
+    }
+
+    private BigDecimal metricBigDecimal(Row row, Map<String, Integer> indexes, String name) {
+        Integer index = indexes.get(name);
+        if (index == null || index < 0 || index >= row.getMetricValuesCount()) return BigDecimal.ZERO;
+        try {
+            return new BigDecimal(row.getMetricValues(index).getValue());
+        } catch (NumberFormatException exception) {
+            return BigDecimal.ZERO;
+        }
     }
 
     private long value(Row row, int index) {

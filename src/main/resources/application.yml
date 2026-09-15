@@ -50,6 +50,16 @@ cloudflare:
     r2-storage-byte-included: ${CLOUDFLARE_R2_STORAGE_BYTE_INCLUDED:10000000000}
     dashboard-url: ${CLOUDFLARE_DASHBOARD_URL:https://dash.cloudflare.com/}
 
+google:
+  analytics:
+    enabled: ${GOOGLE_ANALYTICS_ENABLED:false}
+    property-id: ${GOOGLE_ANALYTICS_PROPERTY_ID:}
+    credentials-file: ${GOOGLE_APPLICATION_CREDENTIALS:}
+    refresh-millis: ${GOOGLE_ANALYTICS_REFRESH_MILLIS:900000}
+    cache-seconds: ${GOOGLE_ANALYTICS_CACHE_SECONDS:900}
+    realtime-cache-seconds: ${GOOGLE_ANALYTICS_REALTIME_CACHE_SECONDS:60}
+    dashboard-url: ${GOOGLE_ANALYTICS_DASHBOARD_URL:https://analytics.google.com/analytics/web/}
+
 management:
   endpoints:
     web:

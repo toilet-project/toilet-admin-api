@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급똥 관리자 | 운영 홈</title>
   <link rel="stylesheet" href="/dashboard.css?v=4" />
-  <link rel="stylesheet" href="/home.css?v=7" />
+  <link rel="stylesheet" href="/home.css?v=8" />
   <link rel="stylesheet" href="/admin-shell.css?v=4" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
 </head>
@@ -35,6 +35,7 @@
       <symbol id="icon-layout-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
       <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
       <symbol id="icon-cloud" viewBox="0 0 24 24"><path d="M17.5 19H7a5 5 0 1 1 1-9.9A7 7 0 0 1 21 12.5 4.5 4.5 0 0 1 17.5 19Z"/></symbol>
+      <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/><circle cx="7" cy="15" r="1"/><circle cx="11" cy="11" r="1"/><circle cx="14" cy="13" r="1"/><circle cx="19" cy="7" r="1"/></symbol>
       <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 7h-5V2M4 17h5v5"/><path d="M5.1 9A8 8 0 0 1 18.4 5.6L20 7M4 17l1.6 1.4A8 8 0 0 0 18.9 15"/></symbol>
       <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
       <symbol id="icon-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
@@ -60,6 +61,7 @@
         <div class="admin-nav-group">
           <p>서비스 운영</p>
           <a class="admin-nav-link" href="/operations.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>수집·서비스 상태</a>
+          <a class="admin-nav-link" href="/google-analytics.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg>Google Analytics</a>
           <a class="admin-nav-link" href="/members.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-users"/></svg>회원 관리</a>
           <a class="admin-nav-link" href="/permissions.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-shield"/></svg>권한 관리</a>
           <a class="admin-nav-link" href="/batch-syncs.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-history"/></svg>배치 실행 이력</a>
@@ -171,9 +173,17 @@
         <div class="review-footer"><p id="review-guidance">행을 누르면 해당 항목의 상세 화면으로 이동합니다.</p><nav class="review-pagination" aria-label="검토 목록 페이지"><button id="review-prev" type="button" aria-label="이전 페이지" disabled>‹</button><span><strong id="review-page">0</strong> / <span id="review-pages">0</span></span><button id="review-next" type="button" aria-label="다음 페이지" disabled>›</button></nav></div>
       </article>
 
-      <article class="home-card dashboard-slot" aria-labelledby="dashboard-slot-title">
-        <div class="home-card-heading"><h2 id="dashboard-slot-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>대시보드</h2><span class="home-muted">추가 영역</span></div>
-        <div class="dashboard-slot-body"><span aria-hidden="true">＋</span><strong>대시보드 카드 영역</strong><p>운영에 필요한 지표를 추가할 수 있습니다.</p></div>
+      <article class="home-card dashboard-slot analytics-home-card" aria-labelledby="analytics-home-title">
+        <div class="home-card-heading"><h2 id="analytics-home-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg>Google Analytics</h2><a class="home-detail-link" href="/google-analytics.html">상세 보기 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
+        <div class="analytics-live-row"><div><span>최근 30분</span><strong id="ga-realtime-users">—</strong><small>활성 사용자</small></div><span id="ga-home-state" class="state state-loading">연결 확인 중</span></div>
+        <div class="analytics-home-metrics">
+          <div><span>오늘 활성 사용자</span><strong id="ga-active-users">—</strong><em id="ga-active-change">비교 확인 중</em></div>
+          <div><span>오늘 페이지뷰</span><strong id="ga-views">—</strong><em>반복 조회 포함</em></div>
+          <div><span>주요 이벤트</span><strong id="ga-key-events">—</strong><em>오늘 기준</em></div>
+        </div>
+        <div class="analytics-mini-chart"><div><span>최근 7일 활성 사용자</span><strong id="ga-seven-total">—</strong></div><div id="ga-mini-chart" aria-label="최근 7일 활성 사용자 추이"><span class="analytics-loading-bar"></span></div></div>
+        <dl class="analytics-home-highlights"><div><dt>인기 페이지</dt><dd id="ga-top-page">—</dd></div><div><dt>주요 유입</dt><dd id="ga-top-channel">—</dd></div></dl>
+        <p id="ga-home-note" class="home-card-note">GA4 연결 상태를 확인하고 있습니다.</p>
       </article>
     </section>
 
@@ -201,6 +211,6 @@
       </main>
     </div>
   </div>
-  <script src="/admin-shell.js?v=6"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=8"></script>
+  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=9"></script>
 </body>
 </html>

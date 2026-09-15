@@ -25,6 +25,7 @@
       <symbol id="admin-icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
       <symbol id="admin-icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
       <symbol id="admin-icon-cloud" viewBox="0 0 24 24"><path d="M17.5 19H7a5 5 0 1 1 1-9.9A7 7 0 0 1 21 12.5 4.5 4.5 0 0 1 17.5 19Z"/></symbol>
+      <symbol id="admin-icon-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/><circle cx="7" cy="15" r="1"/><circle cx="11" cy="11" r="1"/><circle cx="14" cy="13" r="1"/><circle cx="19" cy="7" r="1"/></symbol>
       <symbol id="admin-icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
     </svg>
     <aside class="admin-sidebar" aria-label="관리자 메뉴">
@@ -32,7 +33,7 @@
       <nav class="admin-nav" aria-label="업무별 탐색">
         <div class="admin-nav-group">${nav('home','/','운영 홈','dashboard')}</div>
         <div class="admin-nav-group"><p>데이터 관리</p>${nav('toilets','/toilets.html','화장실 데이터','map')}${nav('reports','/reports.html','제보 검토','inbox')}${nav('public-data-changes','/public-data-changes.html','공공데이터 변경 검토','compare')}${nav('quality','/data-quality.html','중복 좌표 품질 관리','scan')}${nav('regions','/regions.html','행정구역 검토','map')}</div>
-        <div class="admin-nav-group"><p>서비스 운영</p>${nav('operations','/operations.html','수집·서비스 상태','activity')}${nav('members','/members.html','회원 관리','users')}${nav('permissions','/permissions.html','권한 관리','shield')}${nav('history','/batch-syncs.html','배치 실행 이력','history')}</div>
+        <div class="admin-nav-group"><p>서비스 운영</p>${nav('operations','/operations.html','수집·서비스 상태','activity')}${nav('analytics','/google-analytics.html','Google Analytics','chart')}${nav('members','/members.html','회원 관리','users')}${nav('permissions','/permissions.html','권한 관리','shield')}${nav('history','/batch-syncs.html','배치 실행 이력','history')}</div>
         <div class="admin-nav-group"><p>워크스페이스</p>${nav('features','/features.html','전체 기능','grid')}${nav('cloudflare','/cloudflare.html','Cloudflare','cloud')}${nav('notifications','/notifications.html','알림 센터','bell','기초')}</div>
       </nav>
       <div class="admin-sidebar-footer"><span class="admin-avatar">운</span><span><strong>관리자</strong><small>운영 워크스페이스</small></span></div>
@@ -77,9 +78,9 @@
   frame.dataset.adminNavigation = 'initializing'
 
   const pageCache = new Map()
-  const pageStyleNames = new Set(['home.css', 'regions.css', 'quality-review-shell.css', 'public-data-changes.css'])
+  const pageStyleNames = new Set(['home.css', 'regions.css', 'quality-review-shell.css', 'public-data-changes.css', 'google-analytics.css'])
   const rootRoute = String.fromCharCode(47)
-  const routeNames = new Set([rootRoute, '/toilets', '/reports', '/public-data-changes', '/data-quality', '/regions', '/operations', '/members', '/permissions', '/batch-syncs', '/features', '/cloudflare', '/notifications'])
+  const routeNames = new Set([rootRoute, '/toilets', '/reports', '/public-data-changes', '/data-quality', '/regions', '/operations', '/google-analytics', '/members', '/permissions', '/batch-syncs', '/features', '/cloudflare', '/notifications'])
   let navigationSequence = 0
   let visibilityObserver = null
 
@@ -110,7 +111,7 @@
       ['admin-icon-scan', 'icon-scan-line'], ['admin-icon-compare', 'icon-compare'], ['admin-icon-activity', 'icon-activity'],
       ['admin-icon-users', 'icon-users'], ['admin-icon-shield', 'icon-shield'],
       ['admin-icon-history', 'icon-history'], ['admin-icon-grid', 'icon-layout-grid'],
-      ['admin-icon-bell', 'icon-bell'], ['admin-icon-cloud', 'icon-cloud'],
+      ['admin-icon-bell', 'icon-bell'], ['admin-icon-cloud', 'icon-cloud'], ['admin-icon-chart', 'icon-chart'],
       ['admin-icon-search', 'icon-search']
     ]
     for (const [adminId, homeId] of aliases) {

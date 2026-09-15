@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>급똥 관리자 | 공공데이터 변경 검토</title>
+  <link rel="stylesheet" href="/dashboard.css?v=15" />
+  <link rel="stylesheet" href="/admin-shell.css?v=4" />
+  <link rel="stylesheet" href="/admin-session.css?v=1" />
+  <link rel="stylesheet" href="/quality-review-shell.css?v=2" />
+  <link rel="stylesheet" href="/public-data-changes.css?v=1" />
+</head>
+<body class="admin-page change-review-page">
+  <main id="loading-shell" class="page-loading" hidden aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
+  <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
+
+  <main id="change-review-shell" class="dashboard-shell change-review-shell" data-admin-page="public-data-changes" data-admin-title="공공데이터 변경 검토">
+    <header class="page-header change-review-page-header">
+      <div><p class="eyebrow">PUBLIC DATA REVIEW</p><h1>공공데이터 변경 검토</h1><p>관리자가 확정한 값과 새 공공데이터 제안을 비교해 서비스 반영 여부를 결정합니다.</p></div>
+      <a class="secondary-link" href="/">운영 홈으로</a>
+    </header>
+
+    <section id="change-review-workspace" class="panel change-review-workspace" aria-busy="true">
+      <div id="change-review-summary" class="change-review-summary" aria-label="변경 후보 현황">
+        <div class="change-summary-intro"><strong>변경 후보</strong><span>확정값은 결정 전까지 그대로 유지됩니다.</span></div>
+        <dl><div><dt>검토 대기</dt><dd id="change-summary-pending">—</dd></div><div><dt>7일 이상</dt><dd id="change-summary-aged">—</dd></div><div><dt>좌표 변경</dt><dd id="change-summary-coordinate">—</dd></div><div><dt>충돌·누락</dt><dd id="change-summary-warning">—</dd></div></dl>
+      </div>
+
+      <div class="change-review-layout">
+        <section class="change-queue-pane" aria-label="공공데이터 변경 후보 목록">
+          <header class="change-queue-head">
+            <div><small>REVIEW QUEUE</small><strong>검토할 변경 후보</strong></div>
+            <button id="change-refresh" class="change-icon-button" type="button" aria-label="목록 새로고침"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-5V2M4 17h5v5"/><path d="M5.1 9A8 8 0 0 1 18.4 5.6L20 7M4 17l1.6 1.4A8 8 0 0 0 18.9 15"/></svg></button>
+          </header>
+          <div class="change-queue-filters">
+            <label class="change-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="change-keyword" type="search" autocomplete="off" placeholder="화장실명·관리번호" aria-label="변경 후보 검색" /></label>
+            <select id="change-status" aria-label="변경 후보 상태"><option value="PENDING">검토 대기</option><option value="APPLIED">반영 완료</option><option value="KEPT_CURRENT">현재 값 유지</option><option value="SUPERSEDED">대체됨</option><option value="ALL">전체 상태</option></select>
+            <select id="change-period" aria-label="최근 수신 기간"><option value="30">최근 30일</option><option value="7">최근 7일</option><option value="90">최근 90일</option><option value="ALL">전체 기간</option></select>
+          </div>
+          <p id="change-list-status" class="change-list-status" role="status">변경 후보를 불러오는 중입니다.</p>
+          <div id="change-list" class="change-list-scroll" aria-live="polite">
+            <div class="change-list-skeleton" aria-hidden="true"></div><div class="change-list-skeleton" aria-hidden="true"></div><div class="change-list-skeleton" aria-hidden="true"></div><div class="change-list-skeleton" aria-hidden="true"></div><div class="change-list-skeleton" aria-hidden="true"></div>
+          </div>
+          <nav id="change-pages" class="report-pagination" aria-label="변경 후보 목록 페이지"></nav>
+        </section>
+
+        <section id="change-detail" class="change-detail-pane" aria-label="선택한 변경 후보 상세">
+          <div class="change-empty-state"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3"/></svg></span><strong>비교할 변경 후보를 선택해 주세요</strong><p>현재 서비스 값과 새 공공데이터 값의 차이, 수신 근거와 위치를 한 화면에서 확인할 수 있습니다.</p></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="/admin-shell.js?v=6"></script><script src="/admin-session.js?v=2"></script><script src="/public-data-changes.js?v=2"></script>
+</body>
+</html>

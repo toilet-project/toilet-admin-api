@@ -1,13 +1,3 @@
-body.region-page { overflow: hidden; }
-.region-page .admin-frame { height: 100dvh; min-height: 0; overflow: hidden; }
-.region-page .admin-workspace { display: flex; height: 100dvh; min-height: 0; flex-direction: column; }
-.region-page .admin-topbar { flex: 0 0 auto; }
-.admin-page .dashboard-shell.region-shell { display: flex; width: 100%; max-width: none; min-height: 0; flex: 1 1 auto; flex-direction: column; padding: 18px 0 14px; }
-.admin-page .region-page-header { width: min(calc(100% - 56px), 1850px); flex: 0 0 auto; margin: 0 auto 14px; }
-.admin-page .region-page-header h1 { font-size: 27px; letter-spacing: -.55px; }
-.admin-page .region-page-header p { font-size: 13px; }
-.admin-page .region-page-header .secondary-link { min-height: 38px; padding: 0 15px; font-size: 12.5px; }
-.admin-page .region-workspace { display: flex; width: calc(100% - 32px); max-width: 1850px; min-height: 0; flex: 1 1 auto; flex-direction: column; margin: 0 auto; padding: 14px; overflow: hidden; }
 .admin-page #region-status { display: flex; height: 38px; min-height: 38px; flex: 0 0 38px; margin: 0; padding: 0 3px; align-items: center; gap: 9px; }
 .admin-page #region-status strong { color: var(--admin-text); font-size: 14px; }
 .admin-page #region-status span { color: var(--admin-muted); font-size: 12px; }
@@ -167,11 +157,6 @@ body.region-page { overflow: hidden; }
   .admin-page .region-filter-trigger { width: 100%; }
 }
 @media (max-width: 900px) {
-  body.region-page { overflow: auto; }
-  .region-page .admin-frame, .region-page .admin-workspace { height: auto; min-height: 100vh; overflow: visible; }
-  .admin-page .dashboard-shell.region-shell { display: block; padding: 22px 10px 36px; }
-  .admin-page .region-page-header, .admin-page .region-workspace { width: 100%; }
-  .admin-page .region-workspace { display: block; overflow: visible; }
   .admin-page .region-layout { display: grid; grid-template-columns: 1fr; }
   .admin-page .region-list-pane { height: 430px; }
   .admin-page .region-detail { height: auto; overflow: visible; }
@@ -181,10 +166,7 @@ body.region-page { overflow: hidden; }
   .admin-page .region-technical-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 620px) {
-  .admin-page .region-page-header { align-items: flex-start; }
-  .admin-page .region-page-header h1 { font-size: 25px; }
   .admin-page #region-status { align-items: flex-start; flex-direction: column; gap: 1px; }
-  .admin-page .region-workspace { padding: 10px; }
   .admin-page .region-detail { padding: 13px; }
   .admin-page .region-detail-head h2 { font-size: 19px; }
 }

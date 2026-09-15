@@ -1,18 +1,21 @@
 /* Shared outer layout for the two data-quality review workspaces. */
 body.quality-page,
-body.region-page {
+body.region-page,
+body.change-review-page {
   overflow: hidden;
 }
 
 .quality-page .admin-frame,
-.region-page .admin-frame {
+.region-page .admin-frame,
+.change-review-page .admin-frame {
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
 }
 
 .quality-page .admin-workspace,
-.region-page .admin-workspace {
+.region-page .admin-workspace,
+.change-review-page .admin-workspace {
   display: flex;
   height: 100dvh;
   min-height: 0;
@@ -20,12 +23,14 @@ body.region-page {
 }
 
 .quality-page .admin-topbar,
-.region-page .admin-topbar {
+.region-page .admin-topbar,
+.change-review-page .admin-topbar {
   flex: 0 0 auto;
 }
 
 .admin-page .dashboard-shell.quality-shell,
-.admin-page .dashboard-shell.region-shell {
+.admin-page .dashboard-shell.region-shell,
+.admin-page .dashboard-shell.change-review-shell {
   display: flex;
   width: 100%;
   max-width: none;
@@ -37,7 +42,8 @@ body.region-page {
 }
 
 .admin-page .quality-page-header,
-.admin-page .region-page-header {
+.admin-page .region-page-header,
+.admin-page .change-review-page-header {
   width: min(calc(100% - 56px), 1850px);
   flex: 0 0 auto;
   margin: 0 auto 14px;
@@ -45,18 +51,21 @@ body.region-page {
 }
 
 .admin-page .quality-page-header h1,
-.admin-page .region-page-header h1 {
+.admin-page .region-page-header h1,
+.admin-page .change-review-page-header h1 {
   font-size: 27px;
   letter-spacing: -.55px;
 }
 
 .admin-page .quality-page-header p,
-.admin-page .region-page-header p {
+.admin-page .region-page-header p,
+.admin-page .change-review-page-header p {
   font-size: 13px;
 }
 
 .admin-page .quality-page-header .secondary-link,
-.admin-page .region-page-header .secondary-link {
+.admin-page .region-page-header .secondary-link,
+.admin-page .change-review-page-header .secondary-link {
   min-height: 38px;
   padding: 0 15px;
   border-radius: 7px;
@@ -64,7 +73,8 @@ body.region-page {
 }
 
 .admin-page .quality-workspace,
-.admin-page .region-workspace {
+.admin-page .region-workspace,
+.admin-page .change-review-workspace {
   display: flex;
   width: calc(100% - 32px);
   max-width: 1850px;
@@ -106,29 +116,36 @@ body.region-page {
 }
 
 @media (max-width: 900px) {
-  body.region-page {
+  body.region-page,
+  body.change-review-page {
     overflow: auto;
   }
 
   .region-page .admin-frame,
-  .region-page .admin-workspace {
+  .region-page .admin-workspace,
+  .change-review-page .admin-frame,
+  .change-review-page .admin-workspace {
     height: auto;
     min-height: 100vh;
     overflow: visible;
   }
 
-  .admin-page .dashboard-shell.region-shell {
+  .admin-page .dashboard-shell.region-shell,
+  .admin-page .dashboard-shell.change-review-shell {
     display: block;
     padding: 22px 10px 36px;
     overflow: visible;
   }
 
   .admin-page .region-page-header,
-  .admin-page .region-workspace {
+  .admin-page .region-workspace,
+  .admin-page .change-review-page-header,
+  .admin-page .change-review-workspace {
     width: 100%;
   }
 
-  .admin-page .region-workspace {
+  .admin-page .region-workspace,
+  .admin-page .change-review-workspace {
     display: block;
     overflow: visible;
   }
@@ -136,19 +153,22 @@ body.region-page {
 
 @media (max-width: 760px) {
   .admin-page .quality-page-header,
-  .admin-page .region-page-header {
+  .admin-page .region-page-header,
+  .admin-page .change-review-page-header {
     width: calc(100% - 28px);
     align-items: flex-start;
   }
 
   .admin-page .quality-workspace,
-  .admin-page .region-workspace {
+  .admin-page .region-workspace,
+  .admin-page .change-review-workspace {
     width: calc(100% - 20px);
     padding: 10px;
   }
 
   .admin-page .quality-page-header h1,
-  .admin-page .region-page-header h1 {
+  .admin-page .region-page-header h1,
+  .admin-page .change-review-page-header h1 {
     font-size: 25px;
   }
 }

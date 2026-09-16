@@ -1,0 +1,15 @@
+/* Anchor the overlay to the pin; label length must not change its measured width. */
+.admin-page .quality-map-toilet-marker {
+  position: relative;
+  width: 31px;
+  height: 31px;
+}
+
+.admin-page .quality-map-toilet-name {
+  position: absolute;
+  top: 50%;
+  left: 28px;
+  width: max-content;
+  margin-left: 0;
+  transform: translateY(-50%);
+}

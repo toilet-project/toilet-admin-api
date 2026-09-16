@@ -1,9 +1,8 @@
 package com.example.toiletadmin.analytics.dto;
 
 import java.time.Instant;
-import java.util.Map;
 
-public record GoogleAnalyticsStatusResponse(
+public record ServiceAnalyticsStatusResponse(
         boolean configured,
         String status,
         Instant checkedAt,
@@ -11,6 +10,6 @@ public record GoogleAnalyticsStatusResponse(
         Instant lastSuccessfulAt,
         Instant nextScheduledAt,
         String message,
-        String dashboardUrl,
-        Map<String, Integer> quotaRemaining
+        int rawEventRetentionDays,
+        int correctionWindowDays
 ) { }

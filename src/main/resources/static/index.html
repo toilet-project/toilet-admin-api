@@ -61,7 +61,7 @@
         <div class="admin-nav-group">
           <p>서비스 운영</p>
           <a class="admin-nav-link" href="/operations.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>수집·서비스 상태</a>
-          <a class="admin-nav-link" href="/google-analytics.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg>Google Analytics</a>
+          <a class="admin-nav-link" href="/service-analytics.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg>서비스 이용 분석</a>
           <a class="admin-nav-link" href="/members.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-users"/></svg>회원 관리</a>
           <a class="admin-nav-link" href="/permissions.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-shield"/></svg>권한 관리</a>
           <a class="admin-nav-link" href="/batch-syncs.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-history"/></svg>배치 실행 이력</a>
@@ -174,16 +174,16 @@
       </article>
 
       <article class="home-card dashboard-slot analytics-home-card" aria-labelledby="analytics-home-title">
-        <div class="home-card-heading"><h2 id="analytics-home-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg>Google Analytics</h2><a class="home-detail-link" href="/google-analytics.html">상세 보기 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
-        <div class="analytics-live-row"><div><span>최근 30분</span><strong id="ga-realtime-users">—</strong><small>활성 사용자</small></div><span id="ga-home-state" class="state state-loading">연결 확인 중</span></div>
+        <div class="home-card-heading"><h2 id="analytics-home-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg>서비스 이용 분석</h2><a class="home-detail-link" href="/service-analytics.html">상세 보기 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
+        <div class="analytics-live-row"><div><span>최근 30분</span><strong id="analytics-realtime-users">—</strong><small>활성 사용자</small></div><span id="analytics-home-state" class="state state-loading">연결 확인 중</span></div>
         <div class="analytics-home-metrics">
-          <div><span>오늘 활성 사용자</span><strong id="ga-active-users">—</strong><em id="ga-active-change">비교 확인 중</em></div>
-          <div><span>오늘 페이지뷰</span><strong id="ga-views">—</strong><em>반복 조회 포함</em></div>
-          <div><span>주요 이벤트</span><strong id="ga-key-events">—</strong><em>오늘 기준</em></div>
+          <div><span>오늘 활성 사용자</span><strong id="analytics-active-users">—</strong><em id="analytics-active-change">비교 확인 중</em></div>
+          <div><span>오늘 페이지뷰</span><strong id="analytics-views">—</strong><em>반복 조회 포함</em></div>
+          <div><span>주요 이벤트</span><strong id="analytics-key-events">—</strong><em>오늘 기준</em></div>
         </div>
-        <div class="analytics-mini-chart"><div><span>최근 7일 활성 사용자</span><strong id="ga-seven-total">—</strong></div><div id="ga-mini-chart" aria-label="최근 7일 활성 사용자 추이"><span class="analytics-loading-bar"></span></div></div>
-        <dl class="analytics-home-highlights"><div><dt>인기 페이지</dt><dd id="ga-top-page">—</dd></div><div><dt>주요 유입</dt><dd id="ga-top-channel">—</dd></div></dl>
-        <p id="ga-home-note" class="home-card-note">GA4 연결 상태를 확인하고 있습니다.</p>
+        <div class="analytics-mini-chart"><div><span>최근 7일 활성 사용자</span><strong id="analytics-seven-total">—</strong></div><div id="analytics-mini-chart" aria-label="최근 7일 활성 사용자 추이"><span class="analytics-loading-bar"></span></div></div>
+        <dl class="analytics-home-highlights"><div><dt>인기 페이지</dt><dd id="analytics-top-page">—</dd></div><div><dt>주요 유입</dt><dd id="analytics-top-channel">—</dd></div></dl>
+        <p id="analytics-home-note" class="home-card-note">자체 수집 상태를 확인하고 있습니다.</p>
       </article>
     </section>
 

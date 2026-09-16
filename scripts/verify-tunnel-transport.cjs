@@ -32,51 +32,18 @@ const cloudflareEnvironmentBlock = [
  'CLOUDFLARE_R2_STORAGE_BYTE_INCLUDED=10000000000',
  'CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}'
 ].join('\n');
-const ga4CredentialsBlock = [
- "GA4_PROPERTY_ID='${{ secrets.GOOGLE_ANALYTICS_PROPERTY_ID }}'",
- "GA4_CREDENTIALS_BASE64='${{ secrets.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_BASE64 }}'",
- 'if [ -z "$GA4_PROPERTY_ID" ] && [ -z "$GA4_CREDENTIALS_BASE64" ]; then',
- '  GA4_ENABLED=false',
- "  printf '%s\\n' '{}' > ga4-service-account.json",
- 'elif [ -z "$GA4_PROPERTY_ID" ] || [ -z "$GA4_CREDENTIALS_BASE64" ]; then',
- "  printf '%s\\n' 'Incomplete Google Analytics deployment secrets.' >&2",
- '  exit 1',
- 'else',
- '  GA4_ENABLED=true',
- `  printf '%s' "$GA4_CREDENTIALS_BASE64" | base64 -d > ga4-service-account.json`,
- `  python3 -c 'import json; value=json.load(open("ga4-service-account.json", encoding="utf-8")); assert value.get("type") == "service_account" and value.get("client_email") and value.get("private_key")'`,
- 'fi',
- 'chmod 600 ga4-service-account.json'
-].join('\n');
-const ga4EnvironmentBlock = [
- 'GOOGLE_ANALYTICS_ENABLED=$GA4_ENABLED',
- 'GOOGLE_ANALYTICS_PROPERTY_ID=$GA4_PROPERTY_ID',
- 'GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/ga4-service-account.json',
- 'GOOGLE_ANALYTICS_REFRESH_MILLIS=900000'
-].join('\n');
-const ga4VolumeBlock = [
- '    volumes:',
- '      - ./ga4-service-account.json:/run/secrets/ga4-service-account.json:ro'
-].join('\n');
 let reviewedDeployment = deploy.env.DEPLOY_SCRIPT;
 assert.equal(reviewedDeployment.split(cloudflareEnvironmentBlock).length-1,1,
  'The reviewed Cloudflare environment block must appear exactly once');
-assert.equal(reviewedDeployment.split(ga4CredentialsBlock).length-1,1,
- 'The reviewed GA4 credentials block must appear exactly once');
-assert.equal(reviewedDeployment.split(ga4EnvironmentBlock).length-1,1,
- 'The reviewed GA4 environment block must appear exactly once');
-assert.equal(reviewedDeployment.split(ga4VolumeBlock).length-1,1,
- 'The reviewed read-only GA4 credentials mount must appear exactly once');
-assert.equal(reviewedDeployment.split('for file in .env docker-compose.yml ga4-service-account.json; do').length-1,1,
- 'The GA4 credentials file must be included in rollback preparation exactly once');
+assert.ok(!/GOOGLE_ANALYTICS|GA4_|Google Analytics|run\/secrets\/ga4/.test(reviewedDeployment),
+ 'Google Analytics credentials and runtime settings must be absent');
+assert.equal(reviewedDeployment.split('rm -f -- ga4-service-account.json').length-1,1,
+ 'The obsolete local service-account file must be removed exactly once');
 reviewedDeployment = reviewedDeployment
- .replace('for file in .env docker-compose.yml ga4-service-account.json; do','for file in .env docker-compose.yml; do')
- .replace(ga4CredentialsBlock+'\n\n','')
  .replace(cloudflareEnvironmentBlock+'\n','')
- .replace(ga4EnvironmentBlock+'\n','')
- .replace(ga4VolumeBlock+'\n','');
+ .replace('rm -f -- ga4-service-account.json\n\n','');
 assert.equal(reviewedDeployment,oldSteps[i].with.script,
- 'Remote deployment commands beyond the reviewed Cloudflare and GA4 blocks must be identical');
+ 'Remote deployment commands beyond the reviewed Cloudflare block and credential cleanup must be identical');
 assert.equal(cleanup.if,'always()');
 assert.equal(deploy.env.TUNNEL_SERVICE_TOKEN_ID,'${{ secrets.TUNNEL_DEPLOY_ACCESS_CLIENT_ID }}');
 assert.equal(deploy.env.TUNNEL_SERVICE_TOKEN_SECRET,'${{ secrets.TUNNEL_DEPLOY_ACCESS_CLIENT_SECRET }}');
@@ -94,5 +61,5 @@ for(const script of [...newSteps.filter(s=>s.run).map(s=>s.run),deploy.env.DEPLO
  const check=spawnSync(process.env.TUNNEL_BASH || 'bash',['-n'],{input:script,encoding:'utf8',timeout:10000});
  assert.equal(check.status,0,check.stderr || String(check.error));
 }
-console.log('PASS: baseline '+baselineCommit+'; reviewed Cloudflare and GA4 settings present; all other remote commands unchanged; pinned transport and shell syntax verified.');
+console.log('PASS: baseline '+baselineCommit+'; reviewed Cloudflare settings present; Google Analytics settings removed; all other remote commands unchanged; pinned transport and shell syntax verified.');
 console.log('No credentials, SSH, image push, or deployment executed.');

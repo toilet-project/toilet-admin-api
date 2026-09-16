@@ -45,18 +45,18 @@
   }
 
   function statusLabel(value) {
-    return ({ UP: '정상', NO_DATA: '데이터 대기', NOT_CONFIGURED: '연동 필요', WAITING_FOR_DATA: '첫 집계 대기', STALE: '수집 지연', AUTH_ERROR: '권한 확인', QUOTA_LIMITED: '한도 확인', API_UNAVAILABLE: 'API 지연', QUERY_ERROR: '지표 확인' })[value] || '확인 필요'
+    return ({ UP: '정상', NO_DATA: '데이터 대기', NOT_CONFIGURED: '저장소 준비', WAITING_FOR_DATA: '첫 집계 대기', STALE: '집계 지연', API_UNAVAILABLE: 'API 지연', QUERY_ERROR: '조회 확인' })[value] || '확인 필요'
   }
 
   function setCollectionState(status, updatedAt) {
-    byId('ga-state-text').textContent = statusLabel(status)
-    byId('ga-updated-at').textContent = updatedAt ? `마지막 성공 ${dateTime(updatedAt)}` : '아직 성공 데이터 없음'
-    const dot = byId('ga-state-dot')
+    byId('analytics-state-text').textContent = statusLabel(status)
+    byId('analytics-updated-at').textContent = updatedAt ? `마지막 성공 ${dateTime(updatedAt)}` : '아직 성공 데이터 없음'
+    const dot = byId('analytics-state-dot')
     dot.className = status === 'UP' || status === 'NO_DATA' ? 'is-good' : 'is-warn'
   }
 
   function renderTrend(rows) {
-    const target = byId('ga-trend-chart')
+    const target = byId('analytics-trend-chart')
     const data = [...(rows || [])].sort((left, right) => String(left.date).localeCompare(String(right.date)))
     if (!data.length) {
       target.innerHTML = '<p class="analytics-empty">선택한 기간의 추이 데이터가 없습니다.</p>'
@@ -76,7 +76,7 @@
     const grid = [0, .5, 1].map((part) => {
       const value = Math.round(niceMax * part)
       const pos = y(value)
-      return `<line class="ga-grid" x1="${left}" y1="${pos}" x2="${width - right}" y2="${pos}"/><text x="${left - 8}" y="${pos + 3}" text-anchor="end">${value}</text>`
+      return `<line class="analytics-grid" x1="${left}" y1="${pos}" x2="${width - right}" y2="${pos}"/><text x="${left - 8}" y="${pos + 3}" text-anchor="end">${value}</text>`
     }).join('')
     const path = (key) => data.map((item, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(item[key]).toFixed(1)}`).join(' ')
     const labels = data.map((item, index) => {
@@ -84,13 +84,20 @@
       return show ? `<text x="${x(index)}" y="${height - 7}" text-anchor="middle">${escapeHtml(String(item.date).slice(5).replace('-', '.'))}</text>` : ''
     }).join('')
     const points = data.length <= 8 ? data.map((item, index) => `<circle cx="${x(index)}" cy="${y(item.activeUsers)}" r="3"><title>${escapeHtml(item.date)} 활성 ${number(item.activeUsers)}명 · 조회 ${number(item.views)}회</title></circle>`).join('') : ''
-    target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="활성 사용자와 페이지뷰 기간 추이">${grid}<path class="ga-views" d="${path('views')}"/><path class="ga-active" d="${path('activeUsers')}"/>${points}${labels}</svg>`
+    target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="활성 사용자와 페이지뷰 기간 추이">${grid}<path class="analytics-views" d="${path('views')}"/><path class="analytics-active" d="${path('activeUsers')}"/>${points}${labels}</svg>`
   }
 
   function translated(value, type) {
     const maps = {
       device: { mobile: '모바일', desktop: '데스크톱', tablet: '태블릿' },
       channel: { Direct: '직접 유입', 'Organic Search': '검색', Referral: '외부 링크', 'Organic Social': '소셜', Unassigned: '미분류' },
+      event: { page_view: '페이지 조회', session_start: '세션 시작', engagement: '체류 시간', scroll_depth: '스크롤 도달', toilet_search: '화장실 검색', nearby_search: '주변 검색', search_result_select: '검색 결과 선택', toilet_marker_select: '지도 마커 선택', toilet_detail_open: '화장실 상세 열기', directions_click: '길찾기 선택', report_start: '제보 시작', report_submit: '제보 제출', login_result: '로그인 결과', review_submit: '리뷰 제출' },
+      page: { '/': '지도 홈', '/toilet/:id': '화장실 상세', '/profile': '내 정보', '/notifications': '알림', '/review-preview': '리뷰 작성', '/other': '기타 화면' },
+    }
+    if (type === 'event' && String(value || '').includes(':')) {
+      const [name, detail] = String(value).split(':', 2)
+      const label = maps.event[name] || name
+      return name === 'scroll_depth' ? `${label} ${detail}%` : `${label} · ${detail}`
     }
     return maps[type]?.[value] || value || '(값 없음)'
   }
@@ -103,8 +110,8 @@
       return
     }
     target.innerHTML = values.map((item) => kind === 'page'
-      ? `<tr><td><strong>${escapeHtml(item.label || item.key)}</strong><small>${escapeHtml(item.detail || item.key)}</small></td><td>${number(item.views)}</td><td>${number(item.activeUsers)}</td><td>${duration(item.averageEngagementSeconds)}</td></tr>`
-      : `<tr><td><strong>${escapeHtml(item.label || item.key)}</strong></td><td>${number(item.eventCount)}</td><td>${number(item.activeUsers)}</td><td>${number(item.keyEvents)}</td></tr>`).join('')
+      ? `<tr><td><strong>${escapeHtml(translated(item.label || item.key, 'page'))}</strong><small>${escapeHtml(item.key)}</small></td><td>${number(item.views)}</td><td>${number(item.activeUsers)}</td><td>${duration(item.averageEngagementSeconds)}</td></tr>`
+      : `<tr><td><strong>${escapeHtml(translated(item.label || item.key, 'event'))}</strong></td><td>${number(item.eventCount)}</td><td>${number(item.activeUsers)}</td><td>${number(item.keyEvents)}</td></tr>`).join('')
   }
 
   function renderBars(id, rows, metric, labelType) {
@@ -130,22 +137,22 @@
       cursor += Number(item.activeUsers || 0) * 100 / total
       return `${colors[index]} ${start}% ${cursor}%`
     }).join(',') || '#e9efeb 0 100%'
-    byId('ga-devices').innerHTML = `<div class="analytics-donut" style="background:conic-gradient(${stops})"></div><div class="analytics-distribution-list">${values.map((item, index) => `<div><span><i style="display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:2px;background:${colors[index]}"></i>${escapeHtml(translated(item.label || item.key, 'device'))}</span><strong>${(Number(item.activeUsers || 0) * 100 / total).toFixed(1)}%</strong></div>`).join('') || '<p class="analytics-empty">데이터가 없습니다.</p>'}</div>`
+    byId('analytics-devices').innerHTML = `<div class="analytics-donut" style="background:conic-gradient(${stops})"></div><div class="analytics-distribution-list">${values.map((item, index) => `<div><span><i style="display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:2px;background:${colors[index]}"></i>${escapeHtml(translated(item.label || item.key, 'device'))}</span><strong>${(Number(item.activeUsers || 0) * 100 / total).toFixed(1)}%</strong></div>`).join('') || '<p class="analytics-empty">데이터가 없습니다.</p>'}</div>`
   }
 
   function renderReport(response) {
     const data = response.data || {}
     const current = data.current || {}
-    byId('ga-kpi-active').textContent = number(current.activeUsers)
-    byId('ga-kpi-views').textContent = number(current.views)
-    byId('ga-kpi-sessions').textContent = number(current.sessions)
-    byId('ga-kpi-time').textContent = duration(current.averageEngagementSeconds)
-    byId('ga-kpi-events').textContent = number(current.keyEvents)
-    byId('ga-kpi-views-user').textContent = `사용자당 ${current.activeUsers ? (current.views / current.activeUsers).toFixed(1) : '—'}`
-    byId('ga-kpi-engagement').textContent = `참여율 ${percent(current.engagementRate)}`
-    byId('ga-kpi-new').textContent = `신규 사용자 ${number(current.newUsers)}`
+    byId('analytics-kpi-active').textContent = number(current.activeUsers)
+    byId('analytics-kpi-views').textContent = number(current.views)
+    byId('analytics-kpi-sessions').textContent = number(current.sessions)
+    byId('analytics-kpi-time').textContent = duration(current.averageEngagementSeconds)
+    byId('analytics-kpi-events').textContent = number(current.keyEvents)
+    byId('analytics-kpi-views-user').textContent = `사용자당 ${current.activeUsers ? (current.views / current.activeUsers).toFixed(1) : '—'}`
+    byId('analytics-kpi-engagement').textContent = `참여율 ${percent(current.engagementRate)}`
+    byId('analytics-kpi-new').textContent = `신규 사용자 ${number(current.newUsers)}`
     const change = data.activeUsersChangePercent
-    const changeTarget = byId('ga-kpi-change')
+    const changeTarget = byId('analytics-kpi-change')
     changeTarget.className = ''
     if (change == null) changeTarget.textContent = '이전 기간 비교 없음'
     else {
@@ -154,80 +161,79 @@
       changeTarget.className = change >= 0 ? 'is-up' : 'is-down'
     }
     renderTrend(data.trend)
-    renderTable('ga-pages', data.pages, 'page')
-    renderTable('ga-events', data.events, 'event')
-    renderBars('ga-channels', data.channels, 'sessions', 'channel')
-    renderCompact('ga-sources', data.sources, 'sessions')
+    renderTable('analytics-pages', data.pages, 'page')
+    renderTable('analytics-events', data.events, 'event')
+    renderBars('analytics-channels', data.channels, 'sessions', 'channel')
+    renderCompact('analytics-sources', data.sources, 'sessions')
     renderDevices(data.devices)
-    renderBars('ga-os', data.operatingSystems, 'activeUsers')
-    renderBars('ga-browsers', data.browsers, 'activeUsers')
-    renderCompact('ga-countries', data.countries, 'activeUsers')
-    renderCompact('ga-cities', data.cities, 'activeUsers')
+    renderBars('analytics-os', data.operatingSystems, 'activeUsers')
+    renderBars('analytics-browsers', data.browsers, 'activeUsers')
+    renderCompact('analytics-countries', data.countries, 'activeUsers')
+    renderCompact('analytics-cities', data.cities, 'activeUsers')
     setCollectionState(response.status, response.lastSuccessfulAt)
-    byId('ga-connection').hidden = response.status !== 'NOT_CONFIGURED'
+    byId('analytics-connection').hidden = response.status !== 'NOT_CONFIGURED'
   }
 
   function renderRealtime(response) {
     const data = response.data || {}
-    byId('ga-live-users').textContent = number(data.activeUsers)
-    byId('ga-live-views').textContent = number(data.views)
-    byId('ga-live-events').textContent = number(data.events)
-    byId('ga-live-key-events').textContent = number(data.keyEvents)
-    byId('ga-realtime-note').textContent = `${response.message || '최근 30분 집계입니다.'}${response.lastSuccessfulAt ? ` · ${dateTime(response.lastSuccessfulAt)} 조회` : ''}`
+    byId('analytics-live-users').textContent = number(data.activeUsers)
+    byId('analytics-live-views').textContent = number(data.views)
+    byId('analytics-live-events').textContent = number(data.events)
+    byId('analytics-live-key-events').textContent = number(data.keyEvents)
+    byId('analytics-realtime-note').textContent = `${response.message || '최근 30분 집계입니다.'}${response.lastSuccessfulAt ? ` · ${dateTime(response.lastSuccessfulAt)} 조회` : ''}`
   }
 
   function renderStatus(response) {
-    byId('ga-health-status').textContent = statusLabel(response.status)
-    byId('ga-last-attempt').textContent = dateTime(response.lastAttemptAt)
-    byId('ga-last-success').textContent = dateTime(response.lastSuccessfulAt)
-    byId('ga-next-refresh').textContent = dateTime(response.nextScheduledAt)
-    byId('ga-quota-hour').textContent = response.quotaRemaining?.tokensPerHour == null ? '—' : number(response.quotaRemaining.tokensPerHour)
-    byId('ga-health-message').textContent = response.message
-    if (response.dashboardUrl) byId('ga-dashboard-link').href = response.dashboardUrl
-    byId('ga-connection').hidden = response.configured
+    byId('analytics-health-status').textContent = statusLabel(response.status)
+    byId('analytics-last-attempt').textContent = dateTime(response.lastAttemptAt)
+    byId('analytics-last-success').textContent = dateTime(response.lastSuccessfulAt)
+    byId('analytics-next-refresh').textContent = dateTime(response.nextScheduledAt)
+    byId('analytics-retention').textContent = response.rawEventRetentionDays ? `${number(response.rawEventRetentionDays)}일` : '—'
+    byId('analytics-health-message').textContent = response.message
+    byId('analytics-connection').hidden = response.configured
   }
 
   async function loadAll(force = false) {
     root.classList.add('is-loading')
-    byId('ga-refresh').disabled = true
+    byId('analytics-refresh').disabled = true
     try {
       const query = currentQuery()
       const reportRequest = force
-        ? json(`/api/admin/v1/google-analytics/refresh?${query}`, { method: 'POST' })
-        : json(`/api/admin/v1/google-analytics/trend?${query}`)
+        ? json(`/api/admin/v1/service-analytics/refresh?${query}`)
+        : json(`/api/admin/v1/service-analytics/trend?${query}`)
       const [report, realtime, status] = await Promise.all([
         reportRequest,
-        json('/api/admin/v1/google-analytics/realtime'),
-        json('/api/admin/v1/google-analytics/collection-status'),
+        json('/api/admin/v1/service-analytics/realtime'),
+        json('/api/admin/v1/service-analytics/collection-status'),
       ])
       renderReport(report)
       renderRealtime(realtime)
       renderStatus(status)
     } catch {
       setCollectionState('API_UNAVAILABLE')
-      byId('ga-health-status').textContent = '조회 실패'
-      byId('ga-health-message').textContent = '관리자 분석 데이터를 불러오지 못했습니다. 다른 운영 기능에는 영향이 없습니다.'
+      byId('analytics-health-status').textContent = '조회 실패'
+      byId('analytics-health-message').textContent = '관리자 분석 데이터를 불러오지 못했습니다. 다른 운영 기능에는 영향이 없습니다.'
     } finally {
       root.classList.remove('is-loading')
-      byId('ga-refresh').disabled = false
+      byId('analytics-refresh').disabled = false
     }
   }
 
   function bind() {
-    byId('ga-refresh').addEventListener('click', () => loadAll(true))
+    byId('analytics-refresh').addEventListener('click', () => loadAll(true))
     document.querySelectorAll('[data-range]').forEach((button) => button.addEventListener('click', () => {
       const range = button.dataset.range
       document.querySelectorAll('[data-range]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)))
-      byId('ga-custom-range').hidden = range !== 'custom'
+      byId('analytics-custom-range').hidden = range !== 'custom'
       if (range === 'custom') return
       state.range = range
       loadAll()
     }))
-    byId('ga-custom-range').addEventListener('submit', (event) => {
+    byId('analytics-custom-range').addEventListener('submit', (event) => {
       event.preventDefault()
       state.range = 'custom'
-      state.from = byId('ga-from').value
-      state.to = byId('ga-to').value
+      state.from = byId('analytics-from').value
+      state.to = byId('analytics-to').value
       if (state.from && state.to) loadAll()
     })
   }
@@ -249,10 +255,10 @@
       const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date())
       const start = new Date(`${today}T00:00:00+09:00`)
       start.setDate(start.getDate() - 6)
-      byId('ga-to').value = today
-      byId('ga-to').max = today
-      byId('ga-from').value = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(start)
-      byId('ga-from').max = today
+      byId('analytics-to').value = today
+      byId('analytics-to').max = today
+      byId('analytics-from').value = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(start)
+      byId('analytics-from').max = today
       bind()
       await loadAll()
     } catch {

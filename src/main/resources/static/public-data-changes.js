@@ -1,4 +1,7 @@
-const API_BASE = 'https://api.geupddong.com'
+const LOCAL_DUPLICATE_PREVIEW = location.hostname === '127.0.0.1' && location.port === '8796'
+const DUPLICATE_PREVIEW_ROOT = location.hostname === 'preview.geupddong.com' && location.pathname.startsWith('/admin-duplicates/') ? '/admin-duplicates' : ''
+const ISOLATED_DUPLICATE_PREVIEW = LOCAL_DUPLICATE_PREVIEW || !!DUPLICATE_PREVIEW_ROOT
+const API_BASE = DUPLICATE_PREVIEW_ROOT || (LOCAL_DUPLICATE_PREVIEW ? '' : 'https://api.geupddong.com')
 const PAGE_SIZE = 15
 const $ = id => document.getElementById(id)
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character])
@@ -7,7 +10,7 @@ const DEMO = window.location.pathname.startsWith('/preview') && query.get('demo'
 const initialReviewId = Number(query.get('reviewId'))
 const stateLabels = { PENDING:'검토 대기', APPLIED:'반영 완료', KEPT_CURRENT:'현재 값 유지', SUPERSEDED:'대체됨' }
 const actionLabels = { APPLY:'변경 반영', KEEP_CURRENT:'현재 값 유지', DEFER:'나중에 검토' }
-const fieldLabels = { LATITUDE:'위도', LONGITUDE:'경도', ROAD_ADDRESS:'도로명 주소', JIBUN_ADDRESS:'지번 주소' }
+const fieldLabels = { NAME:'시설명', LATITUDE:'위도', LONGITUDE:'경도', ROAD_ADDRESS:'도로명 주소', JIBUN_ADDRESS:'지번 주소' }
 let currentPage = 0
 let selectedId = Number.isSafeInteger(initialReviewId) && initialReviewId > 0 ? initialReviewId : null
 let currentItems = []
@@ -82,7 +85,7 @@ function changedFields(item) {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, { credentials:'include', ...options })
+  const response = await fetch(`${API_BASE}${path}`, { credentials:ISOLATED_DUPLICATE_PREVIEW?'omit':'include', ...options })
   const payload = await response.json().catch(() => null)
   if (!response.ok) {
     const error = new Error(payload?.error?.message || payload?.message || `요청을 처리하지 못했습니다. (${response.status})`)
@@ -192,12 +195,13 @@ async function loadList(page = 0) {
   }
 }
 
-function valueRows(value, changed, highlight) {
+function valueRows(value, changed, highlight, facilityName) {
   const rows = [
     [['LATITUDE', 'LONGITUDE'], '좌표', `${coordinate(value?.latitude)}, ${coordinate(value?.longitude)}`, 'coordinate'],
     [['ROAD_ADDRESS'], '도로명 주소', value?.roadAddress || '없음', 'address'],
     [['JIBUN_ADDRESS'], '지번 주소', value?.jibunAddress || '없음', 'address'],
   ]
+  if(facilityName!=null)rows.unshift([['NAME'],'시설명',facilityName,'name'])
   return rows.map(([keys, label, text, type]) => `<div class="change-value-row is-${type}"><dt>${label}</dt><dd${highlight && keys.some(key => changed.includes(key)) ? ' class="is-changed"' : ''}>${escapeHtml(text)}</dd></div>`).join('')
 }
 
@@ -211,13 +215,16 @@ function detailMarkup(detail) {
   const changed = Array.isArray(review.changedFields) ? review.changedFields : []
   const issues = Array.isArray(detail.validation?.issues) ? detail.validation.issues : []
   const pending = review.status === 'PENDING'
+  const hidden = detail.hiddenContext
   return `<header class="change-detail-head"><div><span class="change-section-kicker">CHANGE #${escapeHtml(review.id)} · TOILET #${escapeHtml(review.toiletId)}</span><h2>${escapeHtml(review.name || '이름 없는 화장실')}</h2><p>${escapeHtml(review.managementNumber || '관리번호 없음')} · ${escapeHtml(detail.dataSource || '공공데이터')} · 최초 ${escapeHtml(date(review.firstReceivedAt))}</p></div>${statusBadge(review.status)}</header>
+    ${ISOLATED_DUPLICATE_PREVIEW ? '<div class="change-validation-alert"><strong>분리된 기능 검증 프리뷰</strong><span>실제 시설 정보 사본과 시험용 변경 후보입니다. 운영 데이터는 변경하지 않습니다.</span><a href="/duplicate-names.html">중복 이름 관리로</a></div>' : ''}
+    ${hidden ? `<section class="change-validation-alert"><strong>중복 숨김 시설 · 대표 #${escapeHtml(hidden.representativeToiletId)}</strong><span>숨김 근거: ${escapeHtml(hidden.reason)}</span><span>숨김 시각: ${escapeHtml(date(hidden.hiddenAt))} · 현재 상태: ${escapeHtml(hidden.currentVisibility)}</span><span>당시 시설명: ${escapeHtml(hidden.baselineName)} → 수신 이름: ${escapeHtml(hidden.proposalName)}</span><span>변경을 반영해도 숨김은 유지됩니다. 숨김 해제는 중복 이름 관리에서 별도로 진행하세요.</span></section>` : ''}
     ${detail.isStale ? '<div class="change-stale-alert"><strong>다시 비교 필요</strong><span>후보를 연 뒤 현재 확정값이나 새 제안이 바뀌었습니다. 새로고침 후 결정해 주세요.</span></div>' : ''}
     ${issues.length ? `<div class="change-validation-alert"><strong>확인 필요</strong><span>${issues.map(issue => escapeHtml(issue.message)).join(' · ')}</span></div>` : ''}
     <div class="change-comparison-head"><div><span class="change-section-kicker">VALUE COMPARISON</span><h3>현재 서비스 값과 수신 값 비교</h3></div><p>달라진 수신 값은 주황색으로 표시합니다.</p></div>
     <section class="change-comparison-grid" aria-label="변경값 비교">
-      <article class="change-value-card current"><header><span>현재</span><div><small>CURRENT SERVICE</small><strong>현재 서비스 값</strong></div><time>${escapeHtml(date(detail.current?.confirmedAt))} 확정</time></header><dl>${valueRows(detail.current, changed, false)}</dl></article>
-      <article class="change-value-card proposed"><header><span>수신</span><div><small>PUBLIC DATA RECEIVED</small><strong>공공데이터 수신 값</strong></div><time>${escapeHtml(date(detail.proposal?.providerUpdatedAt || review.lastReceivedAt))} 수신</time></header><dl>${valueRows(detail.proposal, changed, true)}</dl></article>
+      <article class="change-value-card current"><header><span>현재</span><div><small>CURRENT SERVICE</small><strong>현재 서비스 값</strong></div><time>${escapeHtml(date(detail.current?.confirmedAt))} 확정</time></header><dl>${valueRows(detail.current, changed, false, hidden?.currentName)}</dl></article>
+      <article class="change-value-card proposed"><header><span>수신</span><div><small>PUBLIC DATA RECEIVED</small><strong>공공데이터 수신 값</strong></div><time>${escapeHtml(date(detail.proposal?.providerUpdatedAt || review.lastReceivedAt))} 수신</time></header><dl>${valueRows(detail.proposal, changed, true, hidden?.proposalName)}</dl></article>
     </section>
     <section class="change-work-grid">
       <div>
@@ -320,7 +327,7 @@ async function loadKakaoMaps() {
   if (window.kakao?.maps?.LatLng) return window.kakao.maps
   if (kakaoMapsReady) return kakaoMapsReady
   kakaoMapsReady = (async () => {
-    const response = await fetch('/api/admin/v1/map-config')
+    const response = await fetch(DUPLICATE_PREVIEW_ROOT + '/api/admin/v1/map-config', {credentials:ISOLATED_DUPLICATE_PREVIEW?'omit':'same-origin'})
     const config = await response.json().catch(() => null)
     if (!response.ok || !config?.enabled || !config.javascriptKey) throw new Error('지도 설정을 불러오지 못했습니다.')
     await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(config.javascriptKey)}&autoload=false`; script.onload = resolve; script.onerror = () => reject(new Error('카카오 지도 SDK를 불러오지 못했습니다.')); document.head.append(script) })
@@ -340,6 +347,7 @@ async function mountMap(detail, sequence) {
   try {
     const K = await loadKakaoMaps()
     if (sequence !== detailSequence || !$('change-map')) return
+    target.replaceChildren()
     const center = current || proposed
     const map = new K.Map(target, { center:new K.LatLng(center.latitude, center.longitude), level:4 })
     const bounds = new K.LatLngBounds()
@@ -373,7 +381,7 @@ function showLogin(status) {
 
 async function start() {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials:'include' })
+    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials:ISOLATED_DUPLICATE_PREVIEW?'omit':'include' })
     if (response.status === 401) return showLogin(401)
     if (!response.ok) return showLogin(403)
     const profile = await response.json()

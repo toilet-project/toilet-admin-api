@@ -1,5 +1,6 @@
 const el = (id) => document.getElementById(id)
-const API_BASE = 'https://api.geupddong.com'
+const QUALITY_PREVIEW = location.hostname === 'preview.geupddong.com' && location.pathname.startsWith('/admin-duplicates/')
+const API_BASE = QUALITY_PREVIEW ? '/admin-duplicates' : 'https://api.geupddong.com'
 const PAGE_SIZE = 20
 const initialGroupKey = new URLSearchParams(window.location.search).get('groupKey')
 let groups = []
@@ -15,6 +16,7 @@ let coordinateEditorState = null
 let selectedToiletIds = new Set()
 let activeDisplayGroupId = null
 let currentGroupToilets = []
+let groupRequestSequence = 0
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character])
 const statusLabel = (status) => ({ PENDING: '미확인', NEEDS_CORRECTION: '보정 필요', CONFIRMED_SHARED: '실제 공동 위치' })[status] || status
@@ -134,7 +136,7 @@ function syncDisplayGroupComposer() {
   if (activeDisplayGroupId && nameInput && !nameInput.value && document.activeElement !== nameInput) nameInput.value = activeGroupName
   const saveButton = el('save-display-group')
   if (saveButton) {
-    saveButton.disabled = selected.length < 2 || !nameInput?.value.trim()
+    saveButton.disabled = QUALITY_PREVIEW || selected.length < 2 || !nameInput?.value.trim()
     saveButton.textContent = activeDisplayGroupId ? '그룹 수정' : '그룹 지정'
   }
   const deleteButton = el('delete-display-group')
@@ -180,6 +182,7 @@ function revisionMarkup(item, names) {
 }
 
 async function selectGroup(groupKey) {
+  const requestSequence = ++groupRequestSequence
   selectedGroupKey = groupKey
   const url = new URL(window.location.href)
   url.searchParams.set('groupKey', groupKey)
@@ -195,6 +198,7 @@ async function selectGroup(groupKey) {
     const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates/${encodeURIComponent(groupKey)}`, { credentials: 'include' })
     if (!response.ok) throw new Error('중복 좌표 상세를 불러오지 못했습니다.')
     const data = await response.json()
+    if (requestSequence !== groupRequestSequence) return
     currentGroupToilets = data.toilets
     const names = new Map(data.toilets.map((item) => [item.id, item.name]))
     const reports = data.pendingReports.length
@@ -227,8 +231,18 @@ async function selectGroup(groupKey) {
     el('quality-detail-close').addEventListener('click', closeDetail)
     el('save-group-review').addEventListener('click', () => void saveGroupReview(data.group))
     bindDisplayGroupControls(data.group)
+    void window.CoordinateVisibility?.mount({container: detail.querySelector('.quality-toilets-section'),group:data.group,base:API_BASE,refresh:async()=>{
+      await loadGroups(page)
+      el('quality-status-text').textContent='선택한 시설을 사용자에게 숨겼습니다. 대표 시설은 그대로 표시됩니다.'
+    }})
+    if (QUALITY_PREVIEW) {
+      for (const id of ['save-group-review','save-display-group','delete-display-group']) {
+        const button=el(id);if(button){button.disabled=true;button.title='이 프리뷰에서는 사용자 숨김만 저장할 수 있습니다.'}
+      }
+    }
     detail.querySelectorAll('.coordinate-edit').forEach((button) => button.addEventListener('click', () => void openCoordinateEditor(data.toilets.find((item) => item.id === Number(button.dataset.toiletId)))))
   } catch (error) {
+    if (requestSequence !== groupRequestSequence) return
     detail.innerHTML = `<p class="status is-error quality-panel-loading">${escapeHtml(error.message)}</p>`
   }
 }
@@ -277,6 +291,7 @@ async function deleteDisplayGroup(group) {
 }
 
 function closeDetail() {
+  ++groupRequestSequence
   selectedGroupKey = null
   const url = new URL(window.location.href)
   url.searchParams.delete('groupKey')
@@ -313,7 +328,7 @@ async function saveGroupReview(group) {
 async function loadKakaoMaps() {
   if (kakaoMapsReady) return kakaoMapsReady
   kakaoMapsReady = (async () => {
-    const response = await fetch('/api/admin/v1/map-config')
+    const response = await fetch(`${QUALITY_PREVIEW ? API_BASE : ''}/api/admin/v1/map-config`)
     if (!response.ok) throw new Error('지도 설정을 불러오지 못했습니다.')
     const config = await response.json()
     if (!config.enabled || !config.javascriptKey) throw new Error('카카오 지도 키가 아직 배포되지 않았습니다.')
@@ -674,6 +689,10 @@ async function openCoordinateEditor(toilet) {
   el('coordinate-editor-close').addEventListener('click', resetCoordinateEditor)
   document.querySelectorAll('[data-coordinate-note]').forEach((button) => button.addEventListener('click', () => appendCoordinateNote(button.dataset.coordinateNote)))
   el('coordinate-place-search').addEventListener('submit', searchCoordinatePlace)
+  if (QUALITY_PREVIEW) {
+    el('save-coordinate').disabled=true
+    el('save-coordinate').title='이 프리뷰는 시설 숨김만 저장하며 좌표 보정은 저장하지 않습니다.'
+  }
   try {
     await loadKakaoMaps()
     if (sequence !== coordinateEditorSequence || !el('quality-coordinate-map')) return
@@ -861,6 +880,12 @@ async function bootstrap() {
     if (!profile.roles?.includes('ADMIN')) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.')
     el('loading-shell').hidden = true
     el('quality-shell').hidden = false
+    if (QUALITY_PREVIEW) {
+      const notice=document.createElement('p')
+      notice.className='coordinate-preview-notice'
+      notice.textContent='공개 시설 사본 · 숨김은 시험 DB에만 저장 · 운영 데이터 변경 없음'
+      el('quality-shell').querySelector('.quality-page-header').after(notice)
+    }
     el('quality-search').addEventListener('input', () => {
       window.clearTimeout(searchTimer)
       searchTimer = window.setTimeout(() => void loadGroups(0), 250)

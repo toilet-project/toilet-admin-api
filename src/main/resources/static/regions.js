@@ -116,6 +116,7 @@ async function loadList(nextPage = 0) {
     const query = new URLSearchParams({ status:filterStatus, page:String(nextPage), size:'15' })
     const data = await request(`/api/admin/v1/regions?${query}`)
     if (sequence !== listSequence || !$('auth-shell').hidden) return
+    if (data.page > 0 && data.page >= data.totalPages) return loadList(Math.max(0, data.totalPages - 1))
     page = data.page
     $('region-list').replaceChildren()
     for (const item of data.items) {
@@ -145,11 +146,11 @@ function detailMarkup(detail) {
   const sourceHint = sourceRegion(item.location?.roadAddress || item.location?.jibunAddress)
   const finalRegion = detail.confirmation?.region
   const reason = conciseReason(item, data)
-  return `<header class="region-detail-head"><div><span class="region-detail-kicker">TOILET #${item.toiletId}${item.managementNumber ? ` · ${escape(item.managementNumber)}` : ''}</span><h2>${escape(item.name || '이름 없는 화장실')}</h2></div>${badge(item.status)}</header>
+  return `<header class="region-detail-head"><div><span class="region-detail-kicker">TOILET #${item.toiletId}${item.managementNumber ? ` · ${escape(item.managementNumber)}` : ''}</span><h2>${escape(item.name || '이름 없는 화장실')}</h2></div><span id="region-current-status">${badge(item.status)}</span></header>
     <section class="region-evidence-grid" aria-label="행정구역 판정 근거">
       <article class="region-evidence-card source"><header><span class="region-evidence-icon">${icon('source')}</span><div><small>공공데이터 저장값</small><strong>${escape(sourceHint)}</strong></div></header><dl><dt>도로명</dt><dd>${escape(sourceRoad)}</dd><dt>지번</dt><dd>${escape(sourceJibun)}</dd></dl><p>${escape(sourceLabels[detail.dataSource] || detail.dataSource || '공공데이터')}에서 수집된 현재 주소입니다.</p></article>
       <article class="region-evidence-card logic"><header><span class="region-evidence-icon">${icon('logic')}</span><div><small>우리 판정 로직</small><strong>${escape(regionName(automatic))}</strong></div></header><div class="region-checks"><span class="${data.roadCheck === 'MISMATCH' ? 'bad' : ''}">도로명 ${escape(checkLabels[data.roadCheck] || '판정 전')}</span><span class="${data.jibunCheck === 'MISMATCH' ? 'bad' : ''}">지번 ${escape(checkLabels[data.jibunCheck] || '판정 전')}</span></div><p>${escape(reason)}</p></article>
-      <article class="region-evidence-card final ${finalRegion ? 'confirmed' : ''}"><header><span class="region-evidence-icon">${icon('final')}</span><div><small>서비스에 사용할 값</small><strong id="region-final-preview">${escape(regionName(finalRegion))}</strong></div></header><p>${finalRegion ? `${escape(date(detail.confirmation.confirmedAt))} 관리자 확정` : '아래에서 시·군·구를 선택하면 서비스 데이터에 반영됩니다.'}</p>${finalRegion ? `<small class="region-confirmed-note">${escape(detail.confirmation.note)}</small>` : ''}</article>
+      <article id="region-final-card" class="region-evidence-card final ${finalRegion ? 'confirmed' : ''}"><header><span class="region-evidence-icon">${icon('final')}</span><div><small>서비스에 사용할 값</small><strong id="region-final-preview">${escape(regionName(finalRegion))}</strong></div></header><p id="region-confirmed-at">${finalRegion ? `${escape(date(detail.confirmation.confirmedAt))} 관리자 확정` : '아래에서 시·군·구를 선택하면 서비스 데이터에 반영됩니다.'}</p><small id="region-confirmed-note" class="region-confirmed-note">${escape(detail.confirmation?.note || '')}</small></article>
     </section>
     <section class="region-decision-layout">
       <article class="region-decision-card">
@@ -167,13 +168,13 @@ function detailMarkup(detail) {
       <article class="region-map-card">
         <header class="region-section-head"><span>${icon('map')}</span><div><small>LOCATION CHECK</small><div class="region-map-heading-row"><h3>지도에서 위치 확인</h3><span id="region-map-searched-address" class="region-map-searched-address" aria-live="polite" hidden></span></div></div></header>
         <div class="region-map-search-shell"><div class="region-map-toolbar"><input id="region-map-search" aria-label="지도 주소 검색" autocomplete="off" placeholder="주소 또는 장소명 검색"/><button id="region-map-find" type="button">검색</button><button id="region-reset" class="secondary" type="button">현재 위치</button></div><div id="region-candidates" class="region-candidates" role="listbox" aria-label="연관 위치" aria-live="polite"></div></div><div id="region-map" class="region-map"></div>
-        <details class="region-coordinate-edit"><summary>좌표 자체가 잘못된 경우 수정</summary><strong id="region-draft">저장할 위치를 지도에서 선택해 주세요.</strong><label>수정 사유<textarea id="region-coordinate-note" maxlength="500" rows="2"></textarea></label><p id="region-save-status" class="status" role="status"></p><button id="region-save" type="button" disabled>확정 좌표 저장</button></details>
+        <details id="region-coordinate-edit" class="region-coordinate-edit" ${valid(item.location) ? '' : 'open'}><summary>${valid(item.location) ? '좌표 자체가 잘못된 경우 수정' : '누락된 좌표 지정'}</summary><strong id="region-draft">저장할 위치를 지도에서 선택해 주세요.</strong><label>수정 사유<textarea id="region-coordinate-note" maxlength="500" rows="2"></textarea></label><p id="region-save-status" class="status" role="status"></p><button id="region-save" type="button" disabled>확정 좌표 저장</button></details>
       </article>
     </section>
     <details id="region-technical" class="region-technical"><summary>기술 정보와 판정 이력</summary><div class="region-technical-grid"><dl><dt>최근 판정</dt><dd>${escape(date(item.checkedAt))}</dd><dt>자동 판정 상태</dt><dd>${escape(labels[item.assessmentStatus] || item.assessmentStatus || '-')}</dd><dt>판정 코드</dt><dd>${escape(data.reason || item.reason || '-')}</dd><dt>평가 좌표</dt><dd>${escape(coordinate({latitude:detail.evaluatedLatitude, longitude:detail.evaluatedLongitude}))}</dd></dl><pre>${escape(detail.evidenceJson || '원본 응답 없음')}</pre></div><h3>판정 이력</h3><div id="region-history"><p class="status">열면 판정 이력을 불러옵니다.</p></div><nav id="region-history-pages" class="report-pagination" aria-label="판정 이력 페이지"></nav></details>`
 }
 
-async function loadDetail(id) {
+async function loadDetail(id, keepPosition = false) {
   if (saving) return
   selected = id
   const url = new URL(window.location.href)
@@ -190,7 +191,7 @@ async function loadDetail(id) {
     mountDecision(detail, sequence)
     mountTechnical(id, sequence)
     await mountMap(detail.toilet, sequence)
-    if (window.matchMedia('(max-width: 900px)').matches) target.scrollIntoView({ block:'start', behavior:'smooth' })
+    if (!keepPosition && window.matchMedia('(max-width: 900px)').matches) target.scrollIntoView({ block:'start', behavior:'smooth' })
   } catch (error) { if (sequence === detailSequence) target.textContent = error.message }
 }
 
@@ -249,11 +250,17 @@ function mountDecision(detail, sequence) {
     if (!chosen?.sigunguCode || !note || saving) return
     saving = true; update(); $('region-confirm-status').textContent = '시·군·구를 저장하는 중…'
     try {
-      await request(`/api/admin/v1/regions/${item.toiletId}/district`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ sigunguCode:chosen.sigunguCode, note, expectedLocation:item.location }) })
-      saving = false
-      await loadDetail(item.toiletId)
+      const confirmation = await request(`/api/admin/v1/regions/${item.toiletId}/district`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ sigunguCode:chosen.sigunguCode, note, expectedLocation:item.location }) })
+      if (!live()) return
+      // District confirmation does not change the location snapshot. Keep the map and unsaved coordinate draft.
+      detail.confirmation = confirmation
+      $('region-final-card').classList.add('confirmed')
+      $('region-final-preview').textContent = regionName(confirmation.region)
+      $('region-confirmed-at').textContent = `${date(confirmation.confirmedAt)} 관리자 확정`
+      $('region-confirmed-note').textContent = confirmation.note
+      $('region-current-status').innerHTML = badge(valid(item.location) ? 'VERIFIED' : 'NO_COORDINATE')
       await loadList(page)
-      if (selected === item.toiletId && $('region-confirm-status')) $('region-confirm-status').textContent = `${regionName(chosen)}로 확정했습니다.`
+      if (live()) $('region-confirm-status').textContent = `${regionName(chosen)}로 확정했습니다.${valid(item.location) ? '' : ' 이어서 지도에서 좌표를 지정해 주세요.'}`
     } catch (error) { if (live()) $('region-confirm-status').textContent = error.message }
     finally { saving = false; if (live() && $('region-confirm')) update() }
   })
@@ -398,8 +405,9 @@ async function mountMap(item, sequence) {
       try {
         await request(`/api/admin/v1/regions/${item.toiletId}/coordinates`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ...draft, note, expectedLocation:item.location }) })
         saving = false
-        await loadDetail(item.toiletId)
+        await loadDetail(item.toiletId, true)
         await loadList(page)
+        if (selected === item.toiletId && $('region-save-status')) $('region-save-status').textContent = '확정 좌표를 저장했습니다.'
       } catch (error) { if (live()) { $('region-save-status').textContent = error.message; $('region-save').disabled = false } }
       finally { saving = false }
     })

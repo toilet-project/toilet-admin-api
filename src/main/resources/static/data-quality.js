@@ -8,6 +8,7 @@ let page = 0
 let totalPages = 0
 let totalElements = 0
 let selectedGroupKey = null
+let groupListSequence = 0
 let searchTimer
 let kakaoMapsReady
 let coordinateDraft = null
@@ -196,9 +197,12 @@ async function selectGroup(groupKey) {
   detail.innerHTML = '<p class="status quality-panel-loading">그룹 화장실을 불러오는 중입니다.</p>'
   try {
     const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates/${encodeURIComponent(groupKey)}`, { credentials: 'include' })
+    if (requestSequence !== groupRequestSequence) return
+    if (response.status === 404) { renderCompletedGroup(); return }
     if (!response.ok) throw new Error('중복 좌표 상세를 불러오지 못했습니다.')
     const data = await response.json()
     if (requestSequence !== groupRequestSequence) return
+    if (!data.toilets.length) { renderCompletedGroup(); return }
     currentGroupToilets = data.toilets
     const names = new Map(data.toilets.map((item) => [item.id, item.name]))
     const reports = data.pendingReports.length
@@ -232,7 +236,7 @@ async function selectGroup(groupKey) {
     el('save-group-review').addEventListener('click', () => void saveGroupReview(data.group))
     bindDisplayGroupControls(data.group)
     void window.CoordinateVisibility?.mount({container: detail.querySelector('.quality-toilets-section'),group:data.group,base:API_BASE,refresh:async()=>{
-      await loadGroups(page)
+      await refreshWorkingGroup(data.group.groupKey, requestSequence)
       el('quality-status-text').textContent='선택한 시설을 사용자에게 숨겼습니다. 대표 시설은 그대로 표시됩니다.'
     }})
     if (QUALITY_PREVIEW) {
@@ -247,7 +251,20 @@ async function selectGroup(groupKey) {
   }
 }
 
+function renderCompletedGroup() {
+  currentGroupToilets = []
+  el('quality-detail').innerHTML = '<header class="quality-pane-head is-detail"><div><span>그룹 화장실 목록</span><h2>남은 작업 0개</h2><p>이 좌표의 검토 작업을 마쳤습니다.</p></div><button id="quality-detail-close" class="icon-button" type="button" aria-label="그룹 선택 해제">×</button></header><p class="status">다음 그룹을 선택해 주세요.</p>'
+  el('quality-detail-close').addEventListener('click', closeDetail)
+}
+
+async function refreshWorkingGroup(key, expectedSequence = groupRequestSequence) {
+  await loadGroups(page, false)
+  // A group's rank/page can change after each correction. Its key remains the workspace identity.
+  if (key && selectedGroupKey === key && groupRequestSequence === expectedSequence) await selectGroup(key)
+}
+
 async function saveDisplayGroup(group) {
+  const workingSequence = groupRequestSequence
   const displayName = el('display-group-name').value.trim()
   const toiletIds = [...selectedToiletIds]
   if (toiletIds.length < 2 || !displayName) return
@@ -262,7 +279,7 @@ async function saveDisplayGroup(group) {
     })
     const payload = await response.json().catch(() => null)
     if (!response.ok) throw new Error(payload?.error?.message || payload?.message || '지도 노출 그룹을 저장하지 못했습니다.')
-    await selectGroup(group.groupKey)
+    await refreshWorkingGroup(group.groupKey, workingSequence)
   } catch (error) {
     window.alert(error.message)
   } finally {
@@ -271,6 +288,7 @@ async function saveDisplayGroup(group) {
 }
 
 async function deleteDisplayGroup(group) {
+  const workingSequence = groupRequestSequence
   if (!activeDisplayGroupId || !window.confirm('이 지도 노출 그룹을 해제할까요? 원본 화장실 데이터는 삭제되지 않습니다.')) return
   const button = el('delete-display-group')
   button.disabled = true
@@ -282,7 +300,7 @@ async function deleteDisplayGroup(group) {
       const payload = await response.json().catch(() => null)
       throw new Error(payload?.error?.message || payload?.message || '지도 노출 그룹을 해제하지 못했습니다.')
     }
-    await selectGroup(group.groupKey)
+    await refreshWorkingGroup(group.groupKey, workingSequence)
   } catch (error) {
     window.alert(error.message)
   } finally {
@@ -305,6 +323,7 @@ function closeDetail() {
 }
 
 async function saveGroupReview(group) {
+  const workingSequence = groupRequestSequence
   const button = el('save-group-review')
   button.disabled = true
   try {
@@ -315,8 +334,7 @@ async function saveGroupReview(group) {
       body: JSON.stringify({ latitude: group.latitude, longitude: group.longitude, status: el('group-review-status').value, note: el('group-review-note').value.trim() })
     })
     if (!response.ok) throw new Error('확인 상태를 저장하지 못했습니다.')
-    await loadGroups(page, false)
-    await selectGroup(group.groupKey)
+    await refreshWorkingGroup(group.groupKey, workingSequence)
   } catch (error) {
     window.alert(error.message)
   } finally {
@@ -757,6 +775,7 @@ async function openCoordinateEditor(toilet) {
 }
 
 async function submitCoordinateChange(toiletId, displayGroup, confirmation, actionButton) {
+  const workingKey = selectedGroupKey, workingSequence = groupRequestSequence
   if (!coordinateDraft) return
   const roadAddress = el('coordinate-road-address').value.trim()
   if (!window.confirm(confirmation)) return
@@ -773,10 +792,7 @@ async function submitCoordinateChange(toiletId, displayGroup, confirmation, acti
       const payload = await response.json().catch(() => null)
       throw new Error(payload?.error?.message || payload?.message || '좌표를 저장하지 못했습니다.')
     }
-    const previousKey = selectedGroupKey
-    await loadGroups(page, false)
-    if (groups.some((group) => group.groupKey === previousKey)) await selectGroup(previousKey)
-    else closeDetail()
+    await refreshWorkingGroup(workingKey, workingSequence)
   } catch (error) {
     window.alert(error.message)
   } finally {
@@ -786,6 +802,7 @@ async function submitCoordinateChange(toiletId, displayGroup, confirmation, acti
 }
 
 async function createCoordinateDisplayGroup() {
+  const workingKey = selectedGroupKey, workingSequence = groupRequestSequence
   const state = coordinateEditorState
   const nameInput = el('coordinate-marker-group-name')
   if (!state || !state.markerCardPoint || !nameInput) return
@@ -820,10 +837,7 @@ async function createCoordinateDisplayGroup() {
       const payload = await response.json().catch(() => null)
       throw new Error(payload?.error?.message || payload?.message || '좌표 통일 그룹을 만들지 못했습니다.')
     }
-    const previousKey = selectedGroupKey
-    await loadGroups(page, false)
-    if (groups.some((group) => group.groupKey === previousKey)) await selectGroup(previousKey)
-    else closeDetail()
+    await refreshWorkingGroup(workingKey, workingSequence)
   } catch (error) {
     window.alert(error.message)
   } finally {
@@ -842,7 +856,8 @@ async function saveCoordinate(toiletId) {
   await submitCoordinateChange(toiletId, displayGroup, confirmation, el('save-coordinate'))
 }
 
-async function loadGroups(targetPage = 0, clearDetail = true) {
+async function loadGroups(targetPage = 0, clearDetail = false) {
+  const sequence = ++groupListSequence
   const status = el('quality-status-text')
   status.className = 'status'
   status.textContent = '중복 좌표를 불러오는 중입니다.'
@@ -856,6 +871,8 @@ async function loadGroups(targetPage = 0, clearDetail = true) {
       throw new Error('중복 좌표 목록을 불러오지 못했습니다.')
     }
     const data = await response.json()
+    if (sequence !== groupListSequence) return
+    if (data.page > 0 && data.page >= data.totalPages) return loadGroups(Math.max(0, data.totalPages - 1), false)
     groups = data.items
     page = data.page
     totalPages = data.totalPages
@@ -863,6 +880,7 @@ async function loadGroups(targetPage = 0, clearDetail = true) {
     renderGroups()
     status.textContent = `중복 좌표 그룹 ${totalElements.toLocaleString()}건 · ${totalPages ? page + 1 : 0}페이지`
   } catch (error) {
+    if (sequence !== groupListSequence) return
     groups = []
     totalPages = totalElements = 0
     renderGroups()
@@ -888,10 +906,10 @@ async function bootstrap() {
     }
     el('quality-search').addEventListener('input', () => {
       window.clearTimeout(searchTimer)
-      searchTimer = window.setTimeout(() => void loadGroups(0), 250)
+      searchTimer = window.setTimeout(() => void loadGroups(0, true), 250)
     })
-    el('quality-status').addEventListener('change', () => void loadGroups(0))
-    el('quality-refresh').addEventListener('click', () => void loadGroups(page))
+    el('quality-status').addEventListener('change', () => void loadGroups(0, true))
+    el('quality-refresh').addEventListener('click', () => void refreshWorkingGroup(selectedGroupKey))
     await loadGroups()
     if (initialGroupKey) await selectGroup(initialGroupKey)
   } catch {

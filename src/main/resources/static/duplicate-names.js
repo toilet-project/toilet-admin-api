@@ -59,46 +59,72 @@
     $('dn-pagination').innerHTML=button('맨앞',0,current===0,'first')+button('이전',current-1,current===0,'previous')+Array.from({length:count},(_,i)=>button(String(start+i+1),start+i,start+i===current)).join('')+button('다음',current+1,current===pages-1,'next')+button('맨뒤',pages-1,current===pages-1,'last')
     document.querySelectorAll('.dn-page-button').forEach(b=>b.onclick=()=>{if(saving||b.disabled)return;page=Number(b.dataset.page);void groups()})
   }
-  async function groups(keep=false){
+  async function groups(keep=false,advance=null){
     if(saving&&!keep)return
     const token=++sequence
     if(!keep)clearGroup()
     try{
       const data=await request(`${endpoint}?keyword=${encodeURIComponent($('dn-search').value.trim())}&includeHidden=${$('dn-filter').value}&workVisibility=${$('dn-work-filter').value||'VISIBLE'}&match=${match()}&page=${page}&size=20`)
-      if(token!==sequence)return
-      total=data.totalElements;groupItems=data.items;if(page>0&&page>=Math.ceil(total/20)){page=Math.max(0,Math.ceil(total/20)-1);return groups(keep)}
+      if(token!==sequence)return false
+      total=data.totalElements;groupItems=data.items;if(page>0&&page>=Math.ceil(total/20)){page=Math.max(0,Math.ceil(total/20)-1);return groups(keep,advance)}
       $('dn-total').textContent=total.toLocaleString('ko-KR')+'개';pagination()
       $('dn-groups').innerHTML=groupItems.map((g,index)=>`<div class="dn-group-row ${g.workHidden?'is-work-hidden':''}"><button type="button" class="dn-group quality-list-item" data-index="${index}" aria-pressed="${!!activeGroup&&groupKey(activeGroup)===groupKey(g)}"><span class="quality-count">${g.total}</span><span class="quality-main"><strong>${esc(g.name)}</strong>${match()!=='ALL'?`<small>${esc(match()==='DISTRICT'?g.regionName:coordinateKey(g))}</small>`:''}<small>표시 ${g.total-g.hidden} · 시설 숨김 ${g.hidden}</small></span></button><button type="button" class="dn-work-toggle" role="switch" aria-checked="${!!g.workHidden}" aria-label="${esc(g.name)} 작업 숨김" data-work-hide="${index}" title="${g.workHidden?'작업 숨김 해제':'내 작업 목록에서 숨기기'}"><i aria-hidden="true"></i></button></div>`).join('')||`<p class="dn-empty">${$('dn-work-filter').value==='HIDDEN'?'작업에서 숨긴 그룹이 없습니다.':'조건에 맞는 중복 그룹이 없습니다.'}</p>`
       document.querySelectorAll('.dn-group').forEach(b=>b.onclick=()=>{if(!saving)void facilities(groupItems[Number(b.dataset.index)])})
       document.querySelectorAll('[data-work-hide]').forEach(b=>b.onclick=()=>void toggleWorkVisibility(groupItems[Number(b.dataset.workHide)]))
       message(`${match()==='ALL'?'중복 이름':match()==='COORDINATES'?'같은 이름·좌표':'같은 이름·지역구'} 그룹 ${total.toLocaleString('ko-KR')}건 · ${match()==='DISTRICT'?'확인된 시·군·구 코드 기준입니다.':'같은 이름만으로 동일 시설을 판단하지 마세요.'}`)
-      if(keep&&activeGroup)await facilities(activeGroup,true)
+      if(advance){
+        // Work hiding is name-scoped, including coordinate/district buckets with that name.
+        const eligible=g=>g.name!==advance.name&&!g.workHidden
+        const previous=groupItems.filter(eligible).at(-1)
+        if(advance.returning){
+          const target=groupItems.find(g=>eligible(g)&&groupKey(g)===advance.fallback.key)||previous
+          if(target)return facilities(target)
+          if(page>0){page--;return groups(true,advance)}
+          clearGroup();return true
+        }
+        const target=page>advance.page?groupItems.find(eligible):page===advance.page?
+          groupItems.find(g=>eligible(g)&&advance.nextKeys.includes(groupKey(g)))||
+          ($('dn-work-filter').value!=='ALL'?groupItems.slice(advance.position).find(eligible):null):null
+        if(target)return facilities(target)
+        const fallback=previous?{page,key:groupKey(previous)}:advance.fallback
+        if(page+1<Math.ceil(total/20)){page++;return groups(true,{...advance,fallback})}
+        if(fallback){page=fallback.page;return groups(true,{...advance,fallback,returning:true})}
+        if(page>0){page--;return groups(true,{...advance,fallback:{key:null},returning:true})}
+        clearGroup()
+      }
+      else if(keep&&activeGroup)return facilities(activeGroup,true)
       else clearGroup()
-    }catch(e){message(e.message)}
+      return true
+    }catch(e){message(e.message);return false}
   }
   async function toggleWorkVisibility(group){
     if(saving||!group)return
     saving=true;++sequence;controls();const hidden=!group.workHidden
+    const index=groupItems.findIndex(g=>groupKey(g)===groupKey(group))
+    const advance=hidden?{name:group.name,page,position:groupItems.slice(0,index).filter(g=>g.name!==group.name).length,nextKeys:groupItems.slice(index+1).map(groupKey)}:null
     try{
       await post(endpoint+'/work-visibility',{name:group.name,hidden,expectedVersion:group.workVersion||0})
-      clearGroup();await groups(true)
-      message(hidden?`${group.name} · 작업에서 숨겼습니다. 제목 오른쪽 눈 아이콘으로 다시 볼 수 있어요.`:`${group.name} · 작업 숨김을 해제했습니다.`)
+      clearGroup();const loaded=await groups(true,advance)
+      if(loaded)message(hidden?`${group.name} · 작업에서 숨겼습니다. 제목 오른쪽 눈 아이콘으로 다시 볼 수 있어요.`:`${group.name} · 작업 숨김을 해제했습니다.`)
     }catch(e){message(`작업 숨김을 저장하지 못했습니다. ${e.message}`)}finally{saving=false;controls()}
   }
   async function facilities(value,keep=false){
     const previousDetail=keep?detailId:null
+    const showOverview=!keep||groupMapMode
     const previousMode=keep?$('dn-member-match').value:match(),previousScope=keep?$('dn-member-scope').value:bucketKey(value,match())
     clearGroup()
     const token=++detailSequence;activeGroup=value;name=value.name
     document.querySelectorAll('.dn-group').forEach(b=>b.setAttribute('aria-pressed',String(groupKey(groupItems[Number(b.dataset.index)])===groupKey(value))))
     $('dn-facilities').innerHTML='<p class="quality-panel-loading dn-empty">그룹 화장실을 불러오는 중입니다.</p>'
-    try{const result=await request(`${endpoint}/facilities?name=${encodeURIComponent(name)}`);if(token!==detailSequence)return
+    try{const result=await request(`${endpoint}/facilities?name=${encodeURIComponent(name)}`);if(token!==detailSequence)return false
       rows=result;selected.clear();representative=null;$('dn-reason').value='';$('dn-group-name').textContent=`${name} · ${rows.length}개`
       $('dn-group-head').hidden=false;$('dn-selection').hidden=false;$('dn-facilities').classList.remove('dn-unselected')
       $('dn-member-match').value=previousMode;memberScopes(previousScope)
       const visible=shown();detailId=visible.some(x=>x.id===previousDetail)?previousDetail:null
-      renderRows();await detail()
-    }catch(e){if(token!==detailSequence)return;message(e.message);$('dn-facilities').innerHTML='<div class="quality-empty-panel"><span>불러오기 실패</span><strong>그룹을 다시 선택해 주세요</strong><p>상단 새로고침으로 다시 시도할 수도 있습니다.</p></div>'}
+      // Start the overview immediately without keeping the write lock during SDK loading.
+      renderRows();if(showOverview)void groupMap(true);else await detail()
+      return true
+    }catch(e){if(token!==detailSequence)return false;message(e.message);$('dn-facilities').innerHTML='<div class="quality-empty-panel"><span>불러오기 실패</span><strong>그룹을 다시 선택해 주세요</strong><p>상단 새로고침으로 다시 시도할 수도 있습니다.</p></div>';return false}
   }
   function available(){return rows.filter(r=>$('dn-filter').value==='true'||r.visibilityStatus==='VISIBLE')}
   function memberScopes(preferred){
@@ -149,8 +175,8 @@
     if(isolatedPreview&&hidden){$('dn-proposed-name').value=f.name+' (변경 시험)';if(previewRoot){$('dn-simulate').textContent='실제 배치 로직으로 변경 수신 시험';$('dn-simulate').closest('section').querySelector('p').textContent='시험 입력을 실제 upsert 코드로 처리합니다. 공공데이터의 실제 변경 수신은 아닙니다.'}$('dn-simulate').onclick=async()=>{const button=$('dn-simulate');if(button.disabled)return;button.disabled=true;try{const review=await post('/preview/simulate-change',{toiletId:f.id,name:$('dn-proposed-name').value});location.href=previewRoot+'/public-data-changes.html?reviewId='+review.id}catch(e){message(e.message);button.disabled=false}}}
     try{const events=await request(`${endpoint}/${id}/history`);if(detailId!==id||groupMapMode||generation!==mapGeneration)return;$('dn-history-content').innerHTML=events.length?events.map(e=>`<div><strong>${e.action==='HIDE'?'숨김':'숨김 해제'}</strong> · ${esc(e.occurredAt)}<p>${esc(e.reason)}</p><small>당시 시설명 ${esc(e.snapshotName)} · ${esc(e.snapshotRoadAddress||'주소 없음')}</small></div>`).join(''):'처리 이력이 없습니다.'}catch(e){if(detailId===id&&!groupMapMode&&generation===mapGeneration)$('dn-history-content').textContent=e.message}
   }
-  async function groupMap(){
-    if(saving||!activeGroup)return
+  async function groupMap(allowSaving=false){
+    if((saving&&!allowSaving)||!activeGroup)return
     clearDetail();groupMapMode=true;const generation=mapGeneration
     $('dn-group-map').setAttribute('aria-pressed','true');$('dn-detail-head').hidden=false
     $('dn-detail-name').textContent=name+' · 전체 지도';$('dn-detail').classList.remove('dn-unselected');$('dn-detail').classList.add('dn-overview')

@@ -24,6 +24,7 @@ const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle:'me
 const badge = (status) => `<span class="region-badge ${status === 'VERIFIED' ? 'verified' : ''}">${escape(labels[status] || status)}</span>`
 const icon = (name) => ({ source:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM9 11h6M9 15h6M9 7h3"/></svg>', logic:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h7M5 12h4M5 17h7M15 6l4 4-7 7-4 1 1-4z"/></svg>', final:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12z"/><path d="m9 10 2 2 4-4"/></svg>', map:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>' }[name] || '')
 let page = 0, selected = null, listSequence = 0, detailSequence = 0, historySequence = 0, mapReady, optionTimer, saving = false, filterStatus = 'REVIEW'
+let listData = null, displayedItems = [], workingRow = null
 const initialToiletId = Number(new URLSearchParams(window.location.search).get('toiletId'))
 
 function showLogin(status) {
@@ -34,6 +35,8 @@ function showLogin(status) {
   $('auth-shell').hidden = false
   $('auth-title').textContent = status === 403 ? '관리자 권한이 필요합니다' : '관리자 로그인'
   selected = null
+  listData = null; displayedItems = []; workingRow = null
+  ++listSequence
   ++detailSequence
 }
 
@@ -108,6 +111,58 @@ function conciseReason(item, data) {
   return reasonLabels[data.reason || item.reason] || '주소와 좌표 근거를 비교해 최종 지역을 선택해 주세요.'
 }
 
+function matchesFilter(item) {
+  return filterStatus === 'ALL' || (filterStatus === 'REVIEW' ? item.status !== 'VERIFIED' : item.status === filterStatus)
+}
+
+function workingRowOnPage() {
+  return workingRow?.item.toiletId === selected && workingRow.page === page && workingRow.filter === filterStatus
+}
+
+function renderList() {
+  if (!listData) return
+  const scrollTop = $('region-list').scrollTop
+  const pinned = workingRowOnPage() ? workingRow.item : null
+  displayedItems = listData.items.filter(item => item.toiletId !== pinned?.toiletId)
+  if (pinned) displayedItems.splice(Math.min(workingRow.index, displayedItems.length), 0, pinned)
+  $('region-list').replaceChildren()
+  for (const item of displayedItems) {
+    const original = sourceRegion(item.location?.roadAddress || item.location?.jibunAddress)
+    const button = document.createElement('button')
+    const isWorking = item.toiletId === pinned?.toiletId
+    button.type = 'button'
+    button.className = 'region-item'
+    button.dataset.id = item.toiletId
+    button.setAttribute('aria-pressed', String(selected === item.toiletId))
+    const progress = !isWorking ? '' : `<span class="region-item-progress">${item.status === 'VERIFIED' ? '검토 완료' : '작업 중'}${matchesFilter(item) ? ' · 현재 위치 유지' : ' · 현재 필터 집계 제외'}</span>`
+    button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-meta"><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span></span>${progress}`
+    button.addEventListener('click', () => { if (!saving) void loadDetail(item.toiletId) })
+    $('region-list').append(button)
+  }
+  const countLabel = filterStatus === 'REVIEW' ? '검토 대상' : filterStatus === 'ALL' ? '전체' : labels[filterStatus]
+  $('region-status').innerHTML = `<strong>${escape(countLabel)} ${listData.totalElements.toLocaleString()}건</strong><span>${pinned ? '작업 중인 항목은 다음 시설을 선택할 때까지 유지합니다.' : '오래된 판정부터 표시합니다.'}</span>`
+  if (!displayedItems.length) $('region-list').innerHTML = '<p class="region-list-empty">조건에 맞는 화장실이 없습니다.</p>'
+  $('region-list').scrollTop = scrollTop
+  pagination('region-pages', listData, p => { if (!saving) void loadList(p) })
+}
+
+function updateWorkingItem(item) {
+  if (selected !== item.toiletId) return
+  if (!workingRow) workingRow = { item, index:0, page, filter:filterStatus }
+  else if (workingRow.item.toiletId === item.toiletId) workingRow.item = item
+  renderList()
+}
+
+function workProgress(detail) {
+  const located = valid(detail.toilet.location)
+  const districtConfirmed = Boolean(detail.confirmation) || detail.toilet.status === 'VERIFIED'
+  const complete = located && detail.toilet.status === 'VERIFIED'
+  const message = complete ? '검토를 완료했습니다. 다음 시설을 선택해 주세요.'
+    : !located ? '좌표를 저장한 뒤, 해당 위치의 시·군·구를 최종 확인해 주세요.'
+    : '좌표는 입력되어 있습니다. 현재 위치의 시·군·구를 확인하고 확정해 주세요.'
+  return `<div class="region-work-steps"><span class="${located ? 'done' : ''}">1. 좌표 ${located ? '입력됨' : '입력 필요'}</span><span class="${districtConfirmed ? 'done' : ''}">2. 시·군·구 ${districtConfirmed ? '확인됨' : '확인 필요'}</span></div><p>${message}</p>`
+}
+
 async function loadList(nextPage = 0) {
   const sequence = ++listSequence
   $('region-workspace').setAttribute('aria-busy', 'true')
@@ -116,23 +171,18 @@ async function loadList(nextPage = 0) {
     const query = new URLSearchParams({ status:filterStatus, page:String(nextPage), size:'15' })
     const data = await request(`/api/admin/v1/regions?${query}`)
     if (sequence !== listSequence || !$('auth-shell').hidden) return
-    if (data.page > 0 && data.page >= data.totalPages) return loadList(Math.max(0, data.totalPages - 1))
-    page = data.page
-    $('region-list').replaceChildren()
-    for (const item of data.items) {
-      const original = sourceRegion(item.location?.roadAddress || item.location?.jibunAddress)
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.className = 'region-item'
-      button.dataset.id = item.toiletId
-      button.setAttribute('aria-pressed', String(selected === item.toiletId))
-      button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-meta"><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span></span>`
-      button.addEventListener('click', () => { if (!saving) void loadDetail(item.toiletId) })
-      $('region-list').append(button)
+    if (data.page > 0 && data.page >= data.totalPages) {
+      const lastPage = Math.max(0, data.totalPages - 1)
+      if (workingRow?.page === nextPage && workingRow.filter === filterStatus) workingRow.page = lastPage
+      return loadList(lastPage)
     }
-    $('region-status').innerHTML = `<strong>${data.totalElements.toLocaleString()}건</strong><span>확정이 필요한 항목을 오래된 판정부터 표시합니다.</span>`
-    if (!data.items.length) $('region-list').innerHTML = '<p class="region-list-empty">조건에 맞는 화장실이 없습니다.</p>'
-    pagination('region-pages', data, loadList)
+    const changedPage = page !== data.page
+    page = data.page
+    listData = data
+    const current = data.items.find(item => item.toiletId === selected)
+    if (current && workingRowOnPage()) workingRow.item = current
+    if (changedPage) $('region-list').scrollTop = 0
+    renderList()
   } catch (error) { if (sequence === listSequence) $('region-status').textContent = error.message }
   finally { if (sequence === listSequence) $('region-workspace').setAttribute('aria-busy', 'false') }
 }
@@ -147,6 +197,7 @@ function detailMarkup(detail) {
   const finalRegion = detail.confirmation?.region
   const reason = conciseReason(item, data)
   return `<header class="region-detail-head"><div><span class="region-detail-kicker">TOILET #${item.toiletId}${item.managementNumber ? ` · ${escape(item.managementNumber)}` : ''}</span><h2>${escape(item.name || '이름 없는 화장실')}</h2></div><span id="region-current-status">${badge(item.status)}</span></header>
+    <section id="region-work-progress" class="region-work-progress" role="status" aria-label="남은 검토 작업">${workProgress(detail)}</section>
     <section class="region-evidence-grid" aria-label="행정구역 판정 근거">
       <article class="region-evidence-card source"><header><span class="region-evidence-icon">${icon('source')}</span><div><small>공공데이터 저장값</small><strong>${escape(sourceHint)}</strong></div></header><dl><dt>도로명</dt><dd>${escape(sourceRoad)}</dd><dt>지번</dt><dd>${escape(sourceJibun)}</dd></dl><p>${escape(sourceLabels[detail.dataSource] || detail.dataSource || '공공데이터')}에서 수집된 현재 주소입니다.</p></article>
       <article class="region-evidence-card logic"><header><span class="region-evidence-icon">${icon('logic')}</span><div><small>우리 판정 로직</small><strong>${escape(regionName(automatic))}</strong></div></header><div class="region-checks"><span class="${data.roadCheck === 'MISMATCH' ? 'bad' : ''}">도로명 ${escape(checkLabels[data.roadCheck] || '판정 전')}</span><span class="${data.jibunCheck === 'MISMATCH' ? 'bad' : ''}">지번 ${escape(checkLabels[data.jibunCheck] || '판정 전')}</span></div><p>${escape(reason)}</p></article>
@@ -176,7 +227,12 @@ function detailMarkup(detail) {
 
 async function loadDetail(id, keepPosition = false) {
   if (saving) return
+  if (selected !== id || !workingRow) {
+    const index = displayedItems.findIndex(item => item.toiletId === id)
+    workingRow = index < 0 ? null : { item:displayedItems[index], index, page, filter:filterStatus }
+  }
   selected = id
+  renderList()
   const url = new URL(window.location.href)
   url.searchParams.set('toiletId', String(id))
   window.history.replaceState(null, '', url)
@@ -187,6 +243,7 @@ async function loadDetail(id, keepPosition = false) {
   try {
     const detail = await request(`/api/admin/v1/regions/${id}`)
     if (sequence !== detailSequence) return
+    updateWorkingItem(detail.toilet)
     target.innerHTML = detailMarkup(detail)
     mountDecision(detail, sequence)
     mountTechnical(id, sequence)
@@ -254,13 +311,17 @@ function mountDecision(detail, sequence) {
       if (!live()) return
       // District confirmation does not change the location snapshot. Keep the map and unsaved coordinate draft.
       detail.confirmation = confirmation
+      item.status = valid(item.location) ? 'VERIFIED' : 'NO_COORDINATE'
+      Object.assign(item, confirmation.region)
+      updateWorkingItem(item)
       $('region-final-card').classList.add('confirmed')
       $('region-final-preview').textContent = regionName(confirmation.region)
       $('region-confirmed-at').textContent = `${date(confirmation.confirmedAt)} 관리자 확정`
       $('region-confirmed-note').textContent = confirmation.note
       $('region-current-status').innerHTML = badge(valid(item.location) ? 'VERIFIED' : 'NO_COORDINATE')
+      $('region-work-progress').innerHTML = workProgress(detail)
       await loadList(page)
-      if (live()) $('region-confirm-status').textContent = `${regionName(chosen)}로 확정했습니다.${valid(item.location) ? '' : ' 이어서 지도에서 좌표를 지정해 주세요.'}`
+      if (live()) $('region-confirm-status').textContent = `${regionName(chosen)}로 확정했습니다.${valid(item.location) ? ' 검토 완료 — 다음 시설을 선택해 주세요.' : ' 이어서 좌표를 지정한 뒤 시·군·구를 최종 확인해 주세요.'}`
     } catch (error) { if (live()) $('region-confirm-status').textContent = error.message }
     finally { saving = false; if (live() && $('region-confirm')) update() }
   })
@@ -407,7 +468,7 @@ async function mountMap(item, sequence) {
         saving = false
         await loadDetail(item.toiletId, true)
         await loadList(page)
-        if (selected === item.toiletId && $('region-save-status')) $('region-save-status').textContent = '확정 좌표를 저장했습니다.'
+        if (selected === item.toiletId && $('region-save-status')) $('region-save-status').textContent = '확정 좌표를 저장했습니다. 상단에서 현재 위치의 시·군·구 확인 상태를 확인해 주세요.'
       } catch (error) { if (live()) { $('region-save-status').textContent = error.message; $('region-save').disabled = false } }
       finally { saving = false }
     })

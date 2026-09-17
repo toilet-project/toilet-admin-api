@@ -45,6 +45,7 @@
       </header>
     </div>`
 
+  frame.querySelector('a[href="/data-quality.html"]')?.insertAdjacentHTML('afterend', nav('duplicate-names','/duplicate-names.html','중복 이름 품질 관리','scan'))
   main.parentNode.insertBefore(frame, main)
   frame.querySelector('.admin-workspace').append(main)
   const syncVisibility = () => { frame.hidden = main.hidden }
@@ -82,6 +83,8 @@
   const rootRoute = String.fromCharCode(47)
   const routeNames = new Set([rootRoute, '/toilets', '/reports', '/public-data-changes', '/data-quality', '/regions', '/operations', '/service-analytics', '/members', '/permissions', '/batch-syncs', '/features', '/cloudflare', '/notifications'])
   let navigationSequence = 0
+  routeNames.add('/duplicate-names')
+  pageStyleNames.add('duplicate-names.css')
   let visibilityObserver = null
 
   const normalizedRoute = (pathname) => {

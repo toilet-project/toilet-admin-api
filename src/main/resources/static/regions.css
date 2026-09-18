@@ -44,7 +44,6 @@
 .admin-page .region-item-flow i { color: #aab6af; font-style: normal; }
 .admin-page .region-badge { display: inline-flex; flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; background: #fff2df; color: #96601c; font-size: 9px; font-weight: 750; }
 .admin-page .region-badge.verified { background: #e5f5eb; color: #176c3d; }
-.admin-page .region-item-progress { color: var(--admin-accent); font-size: 10px; line-height: 1.4; }
 .admin-page .region-work-progress { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--admin-line); border-radius: 8px; background: #f8fbf9; }
 .admin-page .region-work-steps { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; font-weight: 650; color: #96601c; }
 .admin-page .region-work-steps .done { color: var(--admin-accent); }

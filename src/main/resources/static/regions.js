@@ -129,13 +129,11 @@ function renderList() {
   for (const item of displayedItems) {
     const original = sourceRegion(item.location?.roadAddress || item.location?.jibunAddress)
     const button = document.createElement('button')
-    const isWorking = item.toiletId === pinned?.toiletId
     button.type = 'button'
     button.className = 'region-item'
     button.dataset.id = item.toiletId
     button.setAttribute('aria-pressed', String(selected === item.toiletId))
-    const progress = !isWorking ? '' : `<span class="region-item-progress">${item.status === 'VERIFIED' ? '검토 완료' : '작업 중'}${matchesFilter(item) ? ' · 현재 위치 유지' : ' · 현재 필터 집계 제외'}</span>`
-    button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-meta"><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span></span>${progress}`
+    button.innerHTML = `<span class="region-item-head"><strong>${escape(item.name || '이름 없는 화장실')}</strong>${badge(item.status)}</span><span class="region-item-meta"><span class="region-item-address">${escape(address(item.location))}</span><span class="region-item-flow"><b>${escape(original)}</b><i aria-hidden="true">→</i><b>${escape(item.sigunguName || '미결정')}</b></span></span>`
     button.addEventListener('click', () => { if (!saving) void loadDetail(item.toiletId) })
     $('region-list').append(button)
   }

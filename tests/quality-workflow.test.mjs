@@ -16,13 +16,54 @@ function fixture(file, fetch, kakao) {
   }
   parse(readFileSync(new URL(file+'.html',root),'utf8'))
   const location={href:'https://admin.example/'+file+'.html',search:'',hostname:'admin.example',pathname:'/'+file+'.html'}
-  const window={location,history:{replaceState(){}},matchMedia:()=>({matches:false}),clearTimeout,confirm:()=>true,alert(){},kakao}
-  const context=createContext({window,location,fetch,URL,URLSearchParams,setTimeout,clearTimeout,console,
+  const window={location,history:{replaceState(){}},matchMedia:()=>({matches:false}),setTimeout,clearTimeout,confirm:()=>true,alert(){},kakao}
+  const context=createContext({window,location,fetch,URL,URLSearchParams,AbortController,setTimeout,clearTimeout,console,
     document:{getElementById:id=>nodes.get(id)||null,createElement:()=>make('new'),querySelectorAll:()=>[]}})
   runInContext(readFileSync(new URL(file+'.js',root),'utf8').replace(/(?:void start\(\)|bootstrap\(\))\s*;?\s*$/,''),context)
   return {context,node:id=>nodes.get(id),state:expression=>runInContext(expression,context)}
 }
 const response=(data,status=200)=>({ok:status<400,status,json:async()=>data})
+
+test('coordinate search aborts obsolete requests and ignores late authentication errors', async()=>{
+  const pending=[]
+  const h=fixture('data-quality',(path,options)=>new Promise(resolve=>pending.push({resolve,signal:options.signal})))
+  const first=h.context.loadGroups()
+  const second=h.context.loadGroups()
+  assert.equal(pending[0].signal.aborted,true)
+  pending[1].resolve(response({items:[],page:0,totalPages:0,totalElements:0}))
+  await second
+  const status=h.node('quality-status-text').textContent
+  pending[0].resolve(response({},401));await first
+  assert.equal(h.node('quality-status-text').textContent,status)
+  assert.notEqual(h.node('quality-shell').hidden,true)
+})
+
+test('Korean composition waits until completion and Enter cancels the pending debounce',async()=>{
+  const h=qualityFixture(),timers=new Map();let next=0
+  h.context.window.setTimeout=fn=>{timers.set(++next,fn);return next}
+  h.context.window.clearTimeout=id=>timers.delete(id)
+  h.context.bindQualitySearch()
+  const input=h.node('quality-search')
+  input.handlers.compositionstart();input.value='대';input.handlers.input({isComposing:true})
+  assert.equal(timers.size,0);assert.equal(h.data.calls.length,0)
+  input.value='대학';input.handlers.compositionend();input.handlers.input({isComposing:false})
+  assert.equal(timers.size,1)
+  input.handlers.keydown({key:'Enter',isComposing:false,preventDefault(){}})
+  await new Promise(resolve=>setImmediate(resolve))
+  assert.equal(timers.size,0);assert.equal(h.data.calls.length,1)
+  assert.match(h.data.calls[0],/keyword=%EB%8C%80%ED%95%99/)
+})
+
+test('new input immediately invalidates old results before its debounce fires',async()=>{
+  let finish
+  const h=fixture('data-quality',()=>new Promise(resolve=>{finish=resolve}))
+  h.context.window.setTimeout=()=>1;h.context.window.clearTimeout=()=>{}
+  h.context.bindQualitySearch()
+  const first=h.context.loadGroups()
+  h.node('quality-search').handlers.input({isComposing:false})
+  finish(response({items:[],page:0,totalPages:1,totalElements:99}));await first
+  assert.notEqual(h.state('totalElements'),99)
+})
 
 function qualityFixture() {
   const group={groupKey:'a',latitude:37,longitude:127,toiletCount:3,status:'PENDING',region:'시험 주소',representativeName:'시험 시설'}

@@ -10,6 +10,8 @@ let totalElements = 0
 let selectedGroupKey = null
 let groupListSequence = 0
 let searchTimer
+let groupListController
+let searchComposing = false
 let kakaoMapsReady
 let coordinateDraft = null
 let coordinateEditorSequence = 0
@@ -857,6 +859,10 @@ async function saveCoordinate(toiletId) {
 }
 
 async function loadGroups(targetPage = 0, clearDetail = false) {
+  window.clearTimeout(searchTimer)
+  groupListController?.abort()
+  const controller = new AbortController()
+  groupListController = controller
   const sequence = ++groupListSequence
   const status = el('quality-status-text')
   status.className = 'status'
@@ -864,7 +870,8 @@ async function loadGroups(targetPage = 0, clearDetail = false) {
   if (clearDetail) closeDetail()
   try {
     const query = new URLSearchParams({ keyword: el('quality-search').value.trim(), status: el('quality-status').value, page: String(Math.max(targetPage, 0)), size: String(PAGE_SIZE) })
-    const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates?${query}`, { credentials: 'include' })
+    const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates?${query}`, { credentials: 'include', signal: controller.signal })
+    if (sequence !== groupListSequence) return
     if (!response.ok) {
       if (response.status === 401) return showLogin('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
       if (response.status === 403) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.')
@@ -880,13 +887,42 @@ async function loadGroups(targetPage = 0, clearDetail = false) {
     renderGroups()
     status.textContent = `중복 좌표 그룹 ${totalElements.toLocaleString()}건 · ${totalPages ? page + 1 : 0}페이지`
   } catch (error) {
-    if (sequence !== groupListSequence) return
+    if (sequence !== groupListSequence || error.name === 'AbortError') return
     groups = []
     totalPages = totalElements = 0
     renderGroups()
     status.className = 'status is-error'
     status.textContent = error.message
+  } finally {
+    if (groupListController === controller) groupListController = null
   }
+}
+
+function cancelGroupSearch() {
+  window.clearTimeout(searchTimer)
+  ++groupListSequence
+  groupListController?.abort()
+  groupListController = null
+}
+
+function bindQualitySearch() {
+  const input = el('quality-search')
+  const schedule = () => {
+    cancelGroupSearch()
+    if (!searchComposing) searchTimer = window.setTimeout(() => void loadGroups(0, true), 350)
+  }
+  input.addEventListener('compositionstart', () => { searchComposing = true; cancelGroupSearch() })
+  input.addEventListener('compositionend', () => { searchComposing = false; schedule() })
+  input.addEventListener('input', event => {
+    if (event.isComposing || searchComposing) { cancelGroupSearch(); return }
+    schedule()
+  })
+  input.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.isComposing || searchComposing || event.keyCode === 229) return
+    event.preventDefault()
+    void loadGroups(0, true)
+  })
+  document.addEventListener?.('admin:before-route-change', cancelGroupSearch, { once: true })
 }
 
 async function bootstrap() {
@@ -904,10 +940,7 @@ async function bootstrap() {
       notice.textContent='공개 시설 사본 · 숨김은 시험 DB에만 저장 · 운영 데이터 변경 없음'
       el('quality-shell').querySelector('.quality-page-header').after(notice)
     }
-    el('quality-search').addEventListener('input', () => {
-      window.clearTimeout(searchTimer)
-      searchTimer = window.setTimeout(() => void loadGroups(0, true), 250)
-    })
+    bindQualitySearch()
     el('quality-status').addEventListener('change', () => void loadGroups(0, true))
     el('quality-refresh').addEventListener('click', () => void refreshWorkingGroup(selectedGroupKey))
     await loadGroups()

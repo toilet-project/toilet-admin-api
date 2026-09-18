@@ -12,7 +12,7 @@
 <section class="panel quality-workspace dn-workspace">
 <p id="dn-preview" class="dn-preview" hidden></p>
 <details id="dn-map-settings" class="dn-preview" hidden><summary>프리뷰 카카오 지도 설정</summary><form id="dn-map-form"><label for="dn-map-key">기존 카카오 JavaScript 키</label><input id="dn-map-key" type="password" autocomplete="off" maxlength="32" spellcheck="false" required><button type="submit" class="secondary-button">연결</button><span id="dn-map-status" role="status">이 PC의 시험 서버 메모리에만 보관됩니다. REST API 키는 사용하지 않습니다.</span></form></details>
-<div class="quality-toolbar dn-toolbar"><input id="dn-search" type="search" placeholder="화장실명·주소·관리번호 검색" aria-label="중복 시설 검색"><select id="dn-match" aria-label="그룹 비교 기준"><option value="ALL">이름 같음 · 전체</option><option value="COORDINATES">이름·좌표 같음</option><option value="DISTRICT">지역구 같음</option></select><select id="dn-filter" aria-label="조회 범위"><option value="false">미처리 그룹</option><option value="true">숨긴 항목 포함</option></select><button id="dn-refresh" type="button" class="secondary-button">새로고침</button></div>
+<div class="quality-toolbar dn-toolbar"><input id="dn-search" type="search" placeholder="화장실명·주소·관리번호 검색" aria-label="중복 시설 검색"><select id="dn-match" aria-label="그룹 비교 기준"><option value="ALL">이름 같음 · 전체</option><option value="COORDINATES">이름·좌표 같음</option><option value="DISTRICT">지역구 같음</option></select><select id="dn-filter" aria-label="조회 범위"><option value="false">미처리 그룹</option><option value="true">숨긴 항목 포함</option></select><button id="dn-cleanup-open" type="button" class="secondary-button">동일 이름·좌표 정리</button><button id="dn-refresh" type="button" class="secondary-button">새로고침</button></div>
 <p id="dn-status" class="status dn-status" role="status" aria-live="polite">불러오는 중…</p>
 <div class="quality-workbench dn-columns">
 <div class="quality-stack">
@@ -38,5 +38,6 @@
 </div>
 </section>
 <dialog id="dn-confirm"><form method="dialog"><h2>선택한 항목만 숨길까요?</h2><p id="dn-confirm-message"></p><p>사용자 지도·검색·사이트맵과 관리자 기본 목록에서 제외됩니다. 원본·리뷰·제보·처리 이력은 삭제하지 않습니다.</p><div class="dn-dialog-actions"><button value="cancel">취소</button><button value="confirm" class="dn-primary">숨김 확정</button></div></form></dialog>
-</main><script src="/admin-shell.js?v=7"></script><script src="/duplicate-names.js?v=3"></script>
+<dialog id="dn-cleanup-dialog"><form method="dialog"><h2>동일 이름·좌표 자동 정리</h2><p id="dn-cleanup-summary">정리 대상을 확인하고 있습니다.</p><p>현재 표시 중인 화장실만 비교합니다. 이미 숨긴 항목은 제외하고, 기존 대표 연결과 처리 이력은 유지합니다.</p><div class="dn-dialog-actions"><button value="cancel">취소</button><button id="dn-cleanup-confirm" value="confirm" class="dn-primary">정리 시작</button></div></form></dialog>
+</main><script src="/admin-shell.js?v=7"></script><script src="/duplicate-names.js?v=4"></script>
 </body></html>

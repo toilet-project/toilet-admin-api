@@ -48,6 +48,7 @@
     }catch(e){if(generation===mapGeneration&&id===detailId&&target.isConnected)target.innerHTML=`<p>${esc(e.message)} 아래 좌표와 시설 정보는 계속 확인할 수 있습니다.</p>`}
   }
   const message=text=>$('dn-status').textContent=text
+  let cleanupPreview=null
   const groupEmpty=$('dn-facilities').innerHTML, detailEmpty=$('dn-detail').innerHTML
   function clearDetail(){releaseMap();groupMapMode=false;detailId=null;$('dn-group-map').setAttribute('aria-pressed','false');$('dn-detail-head').hidden=true;$('dn-detail').classList.remove('dn-overview');$('dn-detail').classList.add('dn-unselected');$('dn-detail').innerHTML=detailEmpty}
   function clearGroup(){
@@ -61,7 +62,7 @@
     const exactRows=exactCandidates()
     $('dn-auto-exact').hidden=$('dn-member-match').value!=='COORDINATES'||exactRows.length<2
     $('dn-auto-exact').disabled=saving
-    for(const id of ['dn-match','dn-member-match','dn-member-scope','dn-filter','dn-search','dn-work-filter'])$(id).disabled=saving
+    for(const id of ['dn-match','dn-member-match','dn-member-scope','dn-filter','dn-search','dn-work-filter','dn-cleanup-open'])$(id).disabled=saving
     document.querySelectorAll('[data-work-hide]').forEach(b=>b.disabled=saving)
   }
   function pagination(){
@@ -224,6 +225,35 @@
     }catch(e){for(const overlay of overlays)overlay.setMap(null);if(generation===mapGeneration&&target.isConnected){target.innerHTML=`<p class="dn-empty">${esc(e.message)} 전체 지도 버튼으로 다시 시도해 주세요.</p>`;$('dn-fit-map').disabled=true}}
   }
   $('dn-group-map').onclick=()=>void groupMap()
+  $('dn-cleanup-open').onclick=async()=>{
+    if(saving||isolatedPreview)return
+    saving=true;controls();$('dn-cleanup-confirm').disabled=true;$('dn-cleanup-summary').textContent='정리 대상을 확인하고 있습니다.';$('dn-cleanup-dialog').showModal()
+    try{
+      cleanupPreview=await request(endpoint+'/exact-cleanup')
+      $('dn-cleanup-summary').textContent=`자동 정리 ${cleanupPreview.groups.toLocaleString('ko-KR')}그룹 · 숨김 ${cleanupPreview.facilitiesToHide.toLocaleString('ko-KR')}개${cleanupPreview.blockedGroups?` · 안전 확인 필요 ${cleanupPreview.blockedGroups.toLocaleString('ko-KR')}그룹`:''}`
+      $('dn-cleanup-confirm').disabled=cleanupPreview.groups===0
+    }catch(e){cleanupPreview=null;$('dn-cleanup-summary').textContent=e.message}
+    finally{saving=false;controls()}
+  }
+  $('dn-cleanup-dialog').onclose=async()=>{
+    if($('dn-cleanup-dialog').returnValue!=='confirm'||saving||!cleanupPreview?.groups)return
+    saving=true;controls();let processed=0,hidden=0
+    try{
+      let remaining=cleanupPreview
+      for(let batch=0;batch<200;batch++){
+        const result=await post(endpoint+'/exact-cleanup',{maxGroups:50,reason:'화장실명과 위도·경도가 모두 같은 표시 항목 자동 정리'})
+        processed+=result.processedGroups;hidden+=result.hiddenFacilities
+        remaining=result.remaining
+        message(`동일 이름·좌표 자동 정리 중 · ${processed.toLocaleString('ko-KR')}그룹, ${hidden.toLocaleString('ko-KR')}개 숨김`)
+        if(result.remaining.groups===0){cleanupPreview=result.remaining;break}
+        if(result.processedGroups===0)throw new Error('자동 처리 가능한 그룹이 남지 않았습니다. 안전 확인 필요 항목을 확인해 주세요.')
+      }
+      if(remaining.groups>0)throw new Error('한 번에 처리할 수 있는 범위를 넘었습니다. 다시 실행해 남은 항목을 이어서 처리해 주세요.')
+      await groups()
+      message(`동일 이름·좌표 정리 완료 · ${processed.toLocaleString('ko-KR')}그룹에서 ${hidden.toLocaleString('ko-KR')}개를 숨겼습니다.`)
+    }catch(e){message(`자동 정리가 중단됐습니다. 완료된 항목은 유지됩니다. 다시 실행하면 남은 항목부터 처리합니다. ${e.message}`)}
+    finally{saving=false;controls()}
+  }
   $('dn-hide').onclick=()=>{$('dn-confirm-message').textContent=`대표 #${representative} 유지 · 숨길 시설 ${Array.from(selected).map(id=>'#'+id).join(', ')}`;$('dn-confirm').showModal()}
   $('dn-confirm').onclose=async()=>{if($('dn-confirm').returnValue!=='confirm'||saving)return;saving=true;controls();try{const ids=[representative,...selected],path=$('dn-member-match').value==='COORDINATES'?'/exact-hide':'/hide';await post(endpoint+path,{representativeId:representative,toiletIds:Array.from(selected),expectedVersions:Object.fromEntries(rows.filter(f=>ids.includes(f.id)).map(f=>[f.id,f.version])),reason:$('dn-reason').value.trim()});$('dn-filter').value='true';await groups(true)}catch(e){message(e.message)}finally{saving=false;controls()}}
   $('dn-reason').oninput=controls;$('dn-search').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{page=0;void groups()},250)};$('dn-filter').onchange=$('dn-match').onchange=()=>{if(saving)return;page=0;void groups()};$('dn-refresh').onclick=()=>{if(!saving)void groups(true)}
@@ -246,7 +276,7 @@
   $('dn-clear-selection').onclick=()=>{if(saving)return;representative=null;selected.clear();renderRows()}
   if(localPreview)$('dn-map-form').onsubmit=async event=>{event.preventDefault();try{await post('/preview/map-config',{javascriptKey:$('dn-map-key').value.trim()});$('dn-map-key').value='';mapsReady=null;$('dn-map-status').textContent='기존 JavaScript 지도 설정을 연결했습니다.';$('dn-map-settings').open=false;if(detailId)await detail()}catch(e){$('dn-map-status').textContent=e.message}}
   async function start(){try{if(isolatedPreview){const meta=await request('/preview/status');$('dn-preview').hidden=false;$('dn-preview').textContent=meta.realApi?`실제 API·배치 코드 + 별도 MySQL · 공개 시설 ${meta.facilityCount.toLocaleString()}개 사본 · 지역 검증 자료 ${meta.regionSourceDate||'미연결'} 기준 · 시험 관리자 · 운영 DB 변경 없음`:`실제 공개 시설 정보 기반 · ${meta.sourceDate} 수집본 · 가상 관리자 / 시험 저장만 가능 · 운영 DB 연결 없음`;$('dn-map-settings').hidden=!localPreview}
-    const me=await request('/api/v1/auth/me');if(!me.roles?.includes('ADMIN'))throw new Error('관리자 권한이 필요합니다.');await groups()
+    const me=await request('/api/v1/auth/me');if(!me.roles?.includes('ADMIN'))throw new Error('관리자 권한이 필요합니다.');$('dn-cleanup-open').hidden=isolatedPreview;await groups()
   }catch(e){message(e.message)}}
   void start()
 })();

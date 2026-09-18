@@ -15,6 +15,14 @@ test('preview writes are loopback scoped and separate from production credential
   assert.ok(js.includes('showModal()'))
   assert.ok(js.includes('esc(f.hiddenReason)'))
 })
+test('exact duplicate cleanup states that existing hidden rows are excluded and runs in restartable batches',async()=>{
+  const html=await readFile(new URL('duplicate-names.html',root),'utf8')
+  const js=await readFile(new URL('duplicate-names.js',root),'utf8')
+  assert.match(html,/이미 숨긴 항목은 제외/)
+  assert.match(js,/endpoint\+'\/exact-cleanup'/)
+  assert.match(js,/maxGroups:50/)
+  assert.match(js,/다시 실행하면 남은 항목부터 처리/)
+})
 test('change review exposes frozen hiding evidence without automatic visibility release',async()=>{
   const js=await readFile(new URL('public-data-changes.js',root),'utf8')
   assert.ok(js.includes('escapeHtml(hidden.reason)'))

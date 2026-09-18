@@ -96,10 +96,10 @@
 .dn-preview-actions input { width: 100%; margin: 6px 0; }
 .dn-preview-actions label { display: block; }
 .dn-preview-actions input,.dn-preview-actions button,#dn-restore,.dn-dialog-actions button { min-height: 35px; padding: 7px 10px; border: 1px solid #cfe0d4; border-radius: 7px; background: white; color: var(--admin-text); font: inherit; font-size: 11px; }
-#dn-confirm { max-width: 480px; padding: 24px; border: 1px solid #cbdcd1; border-radius: 12px; color: var(--admin-text); }
-#dn-confirm::backdrop { background: #142d2255; }
-#dn-confirm h2 { font-size: 18px; }
-#dn-confirm p { font-size: 13px; line-height: 1.6; }
+#dn-confirm,#dn-cleanup-dialog { max-width: 480px; padding: 24px; border: 1px solid #cbdcd1; border-radius: 12px; color: var(--admin-text); }
+#dn-confirm::backdrop,#dn-cleanup-dialog::backdrop { background: #142d2255; }
+#dn-confirm h2,#dn-cleanup-dialog h2 { font-size: 18px; }
+#dn-confirm p,#dn-cleanup-dialog p { font-size: 13px; line-height: 1.6; }
 .dn-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .duplicate-name-shell :is(button,input,select,textarea):focus-visible { outline: 2px solid #428b62; outline-offset: 2px; }
 @media(max-width:1600px) {

@@ -4,7 +4,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>급똥 관리자 | 중복 이름 품질 관리</title>
 <link rel="stylesheet" href="/dashboard.css?v=15"><link rel="stylesheet" href="/admin-shell.css?v=4">
-<link rel="stylesheet" href="/quality-review-shell.css?v=2"><link rel="stylesheet" href="/duplicate-names.css?v=2">
+<link rel="stylesheet" href="/quality-review-shell.css?v=2"><link rel="stylesheet" href="/duplicate-names.css?v=3">
 </head>
 <body class="admin-page quality-page duplicate-name-page">
 <main class="dashboard-shell quality-shell duplicate-name-shell" data-admin-page="duplicate-names" data-admin-title="중복 이름 품질 관리">
@@ -12,7 +12,7 @@
 <section class="panel quality-workspace dn-workspace">
 <p id="dn-preview" class="dn-preview" hidden></p>
 <details id="dn-map-settings" class="dn-preview" hidden><summary>프리뷰 카카오 지도 설정</summary><form id="dn-map-form"><label for="dn-map-key">기존 카카오 JavaScript 키</label><input id="dn-map-key" type="password" autocomplete="off" maxlength="32" spellcheck="false" required><button type="submit" class="secondary-button">연결</button><span id="dn-map-status" role="status">이 PC의 시험 서버 메모리에만 보관됩니다. REST API 키는 사용하지 않습니다.</span></form></details>
-<div class="quality-toolbar dn-toolbar"><input id="dn-search" type="search" placeholder="화장실명·주소·관리번호 검색" aria-label="중복 시설 검색"><select id="dn-match" aria-label="그룹 비교 기준"><option value="ALL">이름 같음 · 전체</option><option value="COORDINATES">좌표 같음</option><option value="DISTRICT">지역구 같음</option></select><select id="dn-filter" aria-label="조회 범위"><option value="false">미처리 그룹</option><option value="true">숨긴 항목 포함</option></select><button id="dn-refresh" type="button" class="secondary-button">새로고침</button></div>
+<div class="quality-toolbar dn-toolbar"><input id="dn-search" type="search" placeholder="화장실명·주소·관리번호 검색" aria-label="중복 시설 검색"><select id="dn-match" aria-label="그룹 비교 기준"><option value="ALL">이름 같음 · 전체</option><option value="COORDINATES">이름·좌표 같음</option><option value="DISTRICT">지역구 같음</option></select><select id="dn-filter" aria-label="조회 범위"><option value="false">미처리 그룹</option><option value="true">숨긴 항목 포함</option></select><button id="dn-refresh" type="button" class="secondary-button">새로고침</button></div>
 <p id="dn-status" class="status dn-status" role="status" aria-live="polite">불러오는 중…</p>
 <div class="quality-workbench dn-columns">
 <div class="quality-stack">
@@ -24,8 +24,8 @@
 <section class="quality-pane dn-pane dn-middle" aria-label="선택한 그룹의 화장실 목록">
 <header id="dn-group-head" class="quality-pane-head" hidden><div><span>그룹 화장실 목록</span><h2 id="dn-group-name">그룹을 선택하세요</h2><p>정보를 비교한 뒤 대표와 숨길 항목을 선택하세요.</p></div><div class="dn-head-actions"><button id="dn-group-map" class="dn-map-button" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Zm6-2v16m6-14v16"/></svg>전체 지도</button><button id="dn-clear-group" class="dn-close" type="button" aria-label="그룹 선택 해제">×</button></div></header>
 <div id="dn-selection" class="dn-selection" hidden>
-<div class="dn-member-filters"><label for="dn-member-match">목록 비교</label><select id="dn-member-match" aria-label="그룹 안 비교 기준"><option value="ALL">이름 같음 · 전체</option><option value="COORDINATES">좌표 같음</option><option value="DISTRICT">지역구 같음</option></select><select id="dn-member-scope" aria-label="일치하는 묶음 선택" hidden></select><small id="dn-member-hint"></small></div>
-<div class="dn-selection-line"><strong id="dn-selection-text">대표 미선택 · 숨김 0개</strong><button id="dn-clear-selection" type="button">선택 해제</button></div>
+<div class="dn-member-filters"><label for="dn-member-match">목록 비교</label><select id="dn-member-match" aria-label="그룹 안 비교 기준"><option value="ALL">이름 같음 · 전체</option><option value="COORDINATES">이름·좌표 같음</option><option value="DISTRICT">지역구 같음</option></select><select id="dn-member-scope" aria-label="일치하는 묶음 선택" hidden></select><small id="dn-member-hint"></small></div>
+<div class="dn-selection-line"><strong id="dn-selection-text">대표 미선택 · 숨김 0개</strong><div class="dn-selection-actions"><button id="dn-auto-exact" type="button" hidden>첫 항목만 유지</button><button id="dn-clear-selection" type="button">선택 해제</button></div></div>
 <div class="dn-hide-form"><textarea id="dn-reason" rows="1" maxlength="500" aria-label="숨김 처리 근거" placeholder="주소·출입구 등 동일 시설로 판단한 근거"></textarea><button id="dn-hide" type="button" class="dn-primary" disabled>숨기기</button></div>
 </div>
 <div id="dn-facilities" class="dn-scroll dn-unselected"><div class="quality-empty-panel"><span>그룹 화장실 목록</span><strong>검토할 그룹을 선택해 주세요</strong><p>같은 이름으로 등록된 화장실을 비교하고 대표 시설과 숨길 항목을 선택할 수 있습니다.</p></div></div>
@@ -38,5 +38,5 @@
 </div>
 </section>
 <dialog id="dn-confirm"><form method="dialog"><h2>선택한 항목만 숨길까요?</h2><p id="dn-confirm-message"></p><p>사용자 지도·검색·사이트맵과 관리자 기본 목록에서 제외됩니다. 원본·리뷰·제보·처리 이력은 삭제하지 않습니다.</p><div class="dn-dialog-actions"><button value="cancel">취소</button><button value="confirm" class="dn-primary">숨김 확정</button></div></form></dialog>
-</main><script src="/admin-shell.js?v=7"></script><script src="/duplicate-names.js?v=2"></script>
+</main><script src="/admin-shell.js?v=7"></script><script src="/duplicate-names.js?v=3"></script>
 </body></html>

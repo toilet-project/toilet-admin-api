@@ -15,6 +15,11 @@
   const coordinateKey=f=>f.latitude!=null&&f.longitude!=null&&Number.isFinite(Number(f.latitude))&&Number.isFinite(Number(f.longitude))&&Math.abs(Number(f.latitude))<=90&&Math.abs(Number(f.longitude))<=180&&(Number(f.latitude)!==0||Number(f.longitude)!==0)?`${Number(f.latitude).toFixed(7)}, ${Number(f.longitude).toFixed(7)}`:null
   const regionKey=f=>/^\d{5}$/.test(f.sigunguCode||'')?f.sigunguCode:null
   const bucketKey=(f,mode)=>mode==='COORDINATES'?coordinateKey(f):mode==='DISTRICT'?regionKey(f):null
+  function exactCandidates(){
+    const visible=shown().filter(f=>f.visibilityStatus==='VISIBLE'),groups=new Map()
+    for(const row of visible){const key=JSON.stringify([row.name,coordinateKey(row)]),group=groups.get(key)||[];group.push(row);groups.set(key,group)}
+    return [...groups.values()].filter(group=>group.length>=2).sort((a,b)=>b.length-a.length||visible.indexOf(a[0])-visible.indexOf(b[0]))[0]||[]
+  }
   const groupKey=g=>JSON.stringify([g.name,g.latitude??null,g.longitude??null,g.sigunguCode??null])
   async function request(path,options={}){
     const r=await fetch(base+path,{credentials:isolatedPreview?'omit':'include',...options});const data=await r.json().catch(()=>null)
@@ -50,7 +55,15 @@
     $('dn-group-head').hidden=true;$('dn-selection').hidden=true;$('dn-facilities').classList.add('dn-unselected');$('dn-facilities').innerHTML=groupEmpty
     document.querySelectorAll('.dn-group').forEach(b=>b.setAttribute('aria-pressed','false'));clearDetail();controls()
   }
-  function controls(){ $('dn-selection-text').textContent=`대표 ${representative?'#'+representative:'미선택'} · 숨김 ${selected.size}개`; $('dn-hide').disabled=saving||!representative||!selected.size||!$('dn-reason').value.trim();for(const id of ['dn-match','dn-member-match','dn-member-scope','dn-filter','dn-search','dn-work-filter'])$(id).disabled=saving;document.querySelectorAll('[data-work-hide]').forEach(b=>b.disabled=saving) }
+  function controls(){
+    $('dn-selection-text').textContent=`대표 ${representative?'#'+representative:'미선택'} · 숨김 ${selected.size}개`
+    $('dn-hide').disabled=saving||!representative||!selected.size||!$('dn-reason').value.trim()
+    const exactRows=exactCandidates()
+    $('dn-auto-exact').hidden=$('dn-member-match').value!=='COORDINATES'||exactRows.length<2
+    $('dn-auto-exact').disabled=saving
+    for(const id of ['dn-match','dn-member-match','dn-member-scope','dn-filter','dn-search','dn-work-filter'])$(id).disabled=saving
+    document.querySelectorAll('[data-work-hide]').forEach(b=>b.disabled=saving)
+  }
   function pagination(){
     const pages=Math.ceil(total/20),current=Math.min(page,Math.max(0,pages-1)),count=Math.min(5,pages),start=Math.min(Math.max(current-Math.floor(count/2),0),pages-count)
     if(pages<=1){$('dn-pagination').innerHTML='';return}
@@ -212,9 +225,19 @@
   }
   $('dn-group-map').onclick=()=>void groupMap()
   $('dn-hide').onclick=()=>{$('dn-confirm-message').textContent=`대표 #${representative} 유지 · 숨길 시설 ${Array.from(selected).map(id=>'#'+id).join(', ')}`;$('dn-confirm').showModal()}
-  $('dn-confirm').onclose=async()=>{if($('dn-confirm').returnValue!=='confirm'||saving)return;saving=true;controls();try{const ids=[representative,...selected];await post(endpoint+'/hide',{representativeId:representative,toiletIds:Array.from(selected),expectedVersions:Object.fromEntries(rows.filter(f=>ids.includes(f.id)).map(f=>[f.id,f.version])),reason:$('dn-reason').value.trim()});$('dn-filter').value='true';await groups(true)}catch(e){message(e.message)}finally{saving=false;controls()}}
+  $('dn-confirm').onclose=async()=>{if($('dn-confirm').returnValue!=='confirm'||saving)return;saving=true;controls();try{const ids=[representative,...selected],path=$('dn-member-match').value==='COORDINATES'?'/exact-hide':'/hide';await post(endpoint+path,{representativeId:representative,toiletIds:Array.from(selected),expectedVersions:Object.fromEntries(rows.filter(f=>ids.includes(f.id)).map(f=>[f.id,f.version])),reason:$('dn-reason').value.trim()});$('dn-filter').value='true';await groups(true)}catch(e){message(e.message)}finally{saving=false;controls()}}
   $('dn-reason').oninput=controls;$('dn-search').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{page=0;void groups()},250)};$('dn-filter').onchange=$('dn-match').onchange=()=>{if(saving)return;page=0;void groups()};$('dn-refresh').onclick=()=>{if(!saving)void groups(true)}
   $('dn-work-filter').onclick=()=>{if(saving)return;const button=$('dn-work-filter'),include=button.value!=='ALL';button.value=include?'ALL':'VISIBLE';button.setAttribute('aria-pressed',String(include));button.title=include?'숨긴 그룹 제외':'숨긴 그룹도 표시';page=0;void groups()}
+  $('dn-auto-exact').onclick=()=>{
+    if(saving||$('dn-member-match').value!=='COORDINATES')return
+    const candidates=exactCandidates()
+    if(candidates.length<2)return
+    representative=candidates[0].id
+    selected=new Set(candidates.slice(1).map(f=>f.id))
+    $('dn-reason').value='화장실명과 위도·경도가 모두 같아 첫 번째 항목을 대표로 유지'
+    renderRows()
+    message(`${name} · 첫 번째 항목 #${representative}을 유지하고 나머지 ${selected.size}개를 숨김 대상으로 선택했습니다.`)
+  }
   function resetMemberSelection(){const keepMap=groupMapMode;representative=null;selected.clear();$('dn-reason').value='';clearDetail();renderRows();if(keepMap)void groupMap()}
   $('dn-member-match').onchange=()=>{if(saving)return;memberScopes();resetMemberSelection()}
   $('dn-member-scope').onchange=()=>{if(saving)return;resetMemberSelection()}

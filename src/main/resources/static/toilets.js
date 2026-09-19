@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id)
 const API = 'https://api.geupddong.com'
-const PAGE_SIZE = 15
+const PAGE_SIZE = 10
 const SEARCH_DELAY_MS = 260
 const SUGGESTION_DELAY_MS = 60
 const SUGGESTION_CACHE_LIMIT = 40
@@ -565,9 +565,45 @@ function markerImage(K, color) {
   return new K.MarkerImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, new K.Size(38,46), { offset:new K.Point(19,45) })
 }
 
-function nearbyMarkerImage(K) {
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="36" viewBox="0 0 30 36"><path fill="#4f8463" stroke="white" stroke-width="2" d="M15 1C7.3 1 1 7.3 1 15c0 9.8 14 20 14 20s14-10.2 14-20C29 7.3 22.7 1 15 1z"/><circle cx="15" cy="15" r="5" fill="white"/></svg>'
-  return new K.MarkerImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, new K.Size(30,36), { offset:new K.Point(15,35) })
+function nearbyMarkerOverlay(map, K, toilet, sequence, showName) {
+  const name = toilet.name || '이름 없는 화장실'
+  const content = document.createElement('button')
+  content.type = 'button'
+  content.className = 'toilet-public-marker'
+  content.setAttribute('aria-label', `${name} 수정하기`)
+
+  const pin = document.createElement('span')
+  pin.className = 'toilet-public-marker-pin'
+  pin.setAttribute('aria-hidden', 'true')
+  const logo = document.createElement('img')
+  logo.className = 'toilet-public-marker-logo'
+  logo.src = '/toilet-marker-logo.svg'
+  logo.alt = ''
+  pin.append(logo)
+  content.append(pin)
+
+  if (showName) {
+    const label = document.createElement('span')
+    label.className = 'toilet-public-marker-name'
+    label.textContent = name
+    content.append(label)
+  }
+
+  content.addEventListener('click', event => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (sequence === mapSequence) void selectToilet(Number(toilet.id))
+  })
+
+  const overlay = new K.CustomOverlay({
+    position:new K.LatLng(Number(toilet.latitude), Number(toilet.longitude)),
+    content,
+    yAnchor:1,
+    zIndex:5,
+    clickable:true
+  })
+  overlay.setMap(map)
+  return overlay
 }
 
 async function loadNearbyMarkers(map, K, sequence, activeId, markers) {
@@ -590,17 +626,10 @@ async function loadNearbyMarkers(map, K, sequence, activeId, markers) {
     const data = await request(`/api/v1/toilets?${query}`, { signal:mapAbort.signal })
     if (sequence !== mapSequence) return
     markers.splice(0).forEach(marker => marker.setMap(null))
+    const showName = map.getLevel() <= 4
     for (const toilet of data.toilets || []) {
       if (Number(toilet.id) === Number(activeId) || !validCoordinates(toilet)) continue
-      const marker = new K.Marker({
-        map,
-        position:new K.LatLng(Number(toilet.latitude), Number(toilet.longitude)),
-        image:nearbyMarkerImage(K),
-        title:`${toilet.name || '이름 없는 화장실'} · 눌러서 수정`
-      })
-      marker.setZIndex(5)
-      K.event.addListener(marker, 'click', () => { if (sequence === mapSequence) void selectToilet(Number(toilet.id)) })
-      markers.push(marker)
+      markers.push(nearbyMarkerOverlay(map, K, toilet, sequence, showName))
     }
   } catch (error) {
     if (error.name !== 'AbortError') console.warn('주변 화장실을 불러오지 못했습니다.', error)

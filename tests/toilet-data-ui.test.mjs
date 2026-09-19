@@ -44,8 +44,17 @@ test('Korean IME input schedules suggestions before composition ends', () => {
 test('map loads nearby public toilet markers and opens their editor on click', () => {
   assert.match(source, /\/api\/v1\/toilets\?\$\{query\}/)
   assert.match(source, /includeList:'true'/)
-  assert.match(source, /addListener\(marker, 'click',[\s\S]*selectToilet\(Number\(toilet\.id\)\)/)
+  assert.match(source, /toilet-public-marker/)
+  assert.match(source, /toilet-marker-logo\.svg/)
+  assert.match(source, /label\.textContent = name/)
+  assert.match(source, /selectToilet\(Number\(toilet\.id\)\)/)
   assert.match(source, /map\.getLevel\(\) > 6/)
+})
+
+test('list shows ten readable address cards per page', () => {
+  assert.match(source, /const PAGE_SIZE = 10/)
+  assert.match(css, /\.toilet-list-address\s*\{[^}]*-webkit-line-clamp:\s*2/)
+  assert.match(css, /\.toilet-list-item\s*\{[^}]*min-height:\s*82px/)
 })
 
 test('page exposes the requested search, region, list, map and comparison workspaces', () => {

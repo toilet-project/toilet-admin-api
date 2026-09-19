@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급똥 관리자 | 운영 홈</title>
   <link rel="stylesheet" href="/dashboard.css?v=4" />
-  <link rel="stylesheet" href="/home.css?v=9" />
+  <link rel="stylesheet" href="/home.css?v=10" />
   <link rel="stylesheet" href="/admin-shell.css?v=4" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
 </head>
@@ -111,11 +111,14 @@
     <section id="service-overview" class="home-top-grid" aria-label="핵심 운영 상태">
       <article class="home-card home-host-card" aria-labelledby="home-host-title">
         <div class="home-card-heading"><h2 id="home-host-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>미니 PC</h2><a class="home-detail-link" href="/operations.html">상세 보기 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
-        <dl class="home-host-metrics">
-          <div><dt>CPU 사용률</dt><dd><strong id="home-host-cpu">—</strong><small id="home-host-cpu-note">오늘 평균 — · 최대 —</small></dd></div>
-          <div><dt>메모리 사용률</dt><dd><strong id="home-host-memory">—</strong><small id="home-host-memory-note">오늘 평균 — · 최대 —</small></dd></div>
-          <div><dt>디스크 사용률</dt><dd><strong id="home-host-disk">—</strong><small id="home-host-disk-note">남은 공간 —</small></dd></div>
-          <div><dt>네트워크 · 송신</dt><dd><strong id="home-host-network">—</strong><small id="home-host-network-note">수신 —</small></dd></div>
+        <dl class="home-host-gauges" aria-label="미니 PC 자원 사용률">
+          <div class="home-host-metric" data-kind="cpu"><dt><svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4"/></svg>CPU</dt><dd><div id="home-host-cpu-gauge" class="home-host-gauge" data-level="unknown"><strong id="home-host-cpu">—</strong></div><small id="home-host-cpu-note">평균 —<br>최대 —</small></dd></div>
+          <div class="home-host-metric" data-kind="memory"><dt><svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10v4m5-4v4m5-4v4M7 18v3m5-3v3m5-3v3"/></svg>메모리</dt><dd><div id="home-host-memory-gauge" class="home-host-gauge" data-level="unknown"><strong id="home-host-memory">—</strong></div><small id="home-host-memory-note">평균 —<br>최대 —</small></dd></div>
+          <div class="home-host-metric" data-kind="disk"><dt><svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 13h18m-5 3h2m-6 0h.01"/></svg>디스크</dt><dd><div id="home-host-disk-gauge" class="home-host-gauge" data-level="unknown"><strong id="home-host-disk">—</strong></div><small id="home-host-disk-note">남은 공간<br>—</small></dd></div>
+        </dl>
+        <dl class="home-host-network" aria-label="미니 PC 네트워크 송수신량">
+          <div><dt><svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 19V5m-5 5 5-5 5 5"/></svg>송신</dt><dd id="home-host-network">—</dd></div>
+          <div><dt><svg class="admin-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14m-5-5 5 5 5-5"/></svg>수신</dt><dd id="home-host-network-note">—</dd></div>
         </dl>
         <p id="home-host-note" class="home-card-note" role="status">미니 PC 기록을 확인하고 있습니다.</p>
       </article>
@@ -126,18 +129,9 @@
           <div><dt>공개 API</dt><dd id="service-api">확인 중</dd></div>
           <div><dt>데이터베이스</dt><dd id="service-db">확인 중</dd></div>
           <div><dt>디스크</dt><dd id="service-disk">확인 중</dd></div>
+          <div class="home-batch-row"><dt><a href="/batch-syncs.html" title="배치 실행 이력 보기">배치 수집</a></dt><dd><time id="batch-last" title="마지막 배치 완료 시각">—</time><span id="batch-overall" class="state state-loading">확인 중</span></dd></div>
         </dl>
         <p id="service-note" class="home-card-note">서비스 상태를 확인하고 있습니다.</p>
-      </article>
-
-      <article class="home-card home-batch-card" aria-labelledby="batch-title">
-        <div class="home-card-heading"><h2 id="batch-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-refresh"/></svg>배치 상태</h2><span id="batch-overall" class="state state-loading">확인 중</span></div>
-        <div class="home-emphasis"><span>마지막 수집 성공</span><strong id="batch-last">-</strong></div>
-        <dl class="home-definition-list compact">
-          <div><dt>실행 주기</dt><dd>매일 02:00 KST</dd></div>
-          <div><dt>다음 예정</dt><dd id="batch-next">-</dd></div>
-          <div><dt>최근 소요 시간</dt><dd id="batch-duration">-</dd></div>
-        </dl>
       </article>
 
       <article class="home-card" aria-labelledby="cloudflare-title">
@@ -222,6 +216,6 @@
       </main>
     </div>
   </div>
-  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=10"></script>
+  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=11"></script>
 </body>
 </html>

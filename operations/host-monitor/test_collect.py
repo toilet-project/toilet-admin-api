@@ -68,6 +68,11 @@ class CollectorTest(unittest.TestCase):
             self.assertIsNone(value['metrics']['diskPercent']['avg'])
             self.assertIsNone(value['txBytes'])
 
+    def test_small_network_mean_keeps_sample_precision(self):
+        metric = c.stats([{'ts': 60, 'intervalSeconds': 60, 'txMbps': .006}], 'txMbps', 0, 60)
+        self.assertEqual(metric['avg'], .006)
+        self.assertLessEqual(metric['avg'], metric['max'])
+
     def test_weighted_percentile_and_coverage_with_gap(self):
         start=c.day_bounds('2026-09-19')[0]
         samples=[dict(ts=start+60,intervalSeconds=60,cpuPercent=10),dict(ts=start+180,intervalSeconds=0,cpuPercent=None),dict(ts=start+240,intervalSeconds=60,cpuPercent=90)]

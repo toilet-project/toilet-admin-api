@@ -46,6 +46,8 @@ SQLite의 오래된 행과 과거 날짜 JSON은 매번 정리한다. SQLite 빈
 
 ## 운영 적용 순서
 
+상위 저장 디렉터리는 `0751`로 설정해 일반 배포 계정도 `exports` 디렉터리의 존재를 확인할 수 있게 한다. 상위 디렉터리 목록 조회와 원본 기록 읽기는 허용하지 않는다. `exports`는 `0750`, SQLite·JSON 파일은 `0640`이며 관리자 컨테이너에는 요약 디렉터리만 읽기 전용으로 전달한다. 기존 설치가 `0750`이면 설치 스크립트를 다시 적용해 상위 디렉터리의 통과 권한만 보완한다.
+
 1. 최신 main과 관리자 #107 등 다른 배포와 충돌을 다시 확인한다. 이 PR은 operations 파일과 새 host 파일 중심이며 다른 데이터 관리 UI를 변경하지 않는다.
 2. 검토한 `operations/host-monitor` 파일을 기존 Cloudflare Tunnel로 전달한다. 기존 DDNS를 사용하지 않는다.
 3. `sudo sh operations/host-monitor/install.sh`는 전용 비로그인 계정·파일·systemd 정의만 설치한다. 설치만으로 타이머를 켜지 않는다. 기존 config는 덮어쓰지 않는다.

@@ -183,7 +183,9 @@ def stats(samples, key, start, end):
         if cumulative >= weight_sum * .95:
             p95 = value
             break
-    return {"avg": round(sum(v * w for v, w in values) / weight_sum, 2),
+    # Preserve the same precision as sampled Mbps so a rounded mean cannot exceed its maximum.
+    digits = 3 if key in ("rxMbps", "txMbps") else 2
+    return {"avg": round(sum(v * w for v, w in values) / weight_sum, digits),
             "max": max(v for v, _ in values), "p95": p95,
             "above80Minutes": round(sum(w for v, w in values if v >= 80) / 60, 1),
             "observedMinutes": round(weight_sum / 60, 1)}

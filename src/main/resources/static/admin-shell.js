@@ -32,7 +32,7 @@
       <a class="admin-brand" href="/" aria-label="급똥 관리자 운영 홈"><span class="admin-brand-mark">${icon('map-pin')}</span><span><strong>급똥</strong><small>WORKSPACE</small></span></a>
       <nav class="admin-nav" aria-label="업무별 탐색">
         <div class="admin-nav-group">${nav('home','/','운영 홈','dashboard')}</div>
-        <div class="admin-nav-group"><p>데이터 관리</p>${nav('toilets','/toilets.html','화장실 데이터','map')}${nav('reports','/reports.html','제보 검토','inbox')}${nav('public-data-changes','/public-data-changes.html','공공데이터 변경 검토','compare')}${nav('quality','/data-quality.html','중복 좌표 품질 관리','scan')}${nav('regions','/regions.html','행정구역 검토','map')}</div>
+        <div class="admin-nav-group"><p>데이터 관리</p>${nav('reports','/reports.html','제보 검토','inbox')}${nav('toilets','/toilets.html','화장실 데이터','map')}${nav('public-data-changes','/public-data-changes.html','공공데이터 변경 검토','compare')}${nav('quality','/data-quality.html','중복 좌표 품질 관리','scan')}${nav('regions','/regions.html','행정구역 검토','map')}</div>
         <div class="admin-nav-group"><p>서비스 운영</p>${nav('operations','/operations.html','수집·서비스 상태','activity')}${nav('analytics','/service-analytics.html','서비스 이용 분석','chart')}${nav('members','/members.html','회원 관리','users')}${nav('permissions','/permissions.html','권한 관리','shield')}${nav('history','/batch-syncs.html','배치 실행 이력','history')}</div>
         <div class="admin-nav-group"><p>워크스페이스</p>${nav('features','/features.html','전체 기능','grid')}${nav('cloudflare','/cloudflare.html','Cloudflare','cloud')}${nav('notifications','/notifications.html','알림 센터','bell','기초')}</div>
       </nav>

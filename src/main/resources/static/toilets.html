@@ -7,7 +7,8 @@
   <link rel="stylesheet" href="/dashboard.css?v=15" />
   <link rel="stylesheet" href="/admin-shell.css?v=4" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
-  <link rel="stylesheet" href="/toilets.css?v=1" />
+  <link rel="stylesheet" href="/quality-review-shell.css?v=3" />
+  <link rel="stylesheet" href="/toilets.css?v=2" />
 </head>
 <body class="admin-page toilet-data-page">
 <main id="loading-shell" class="page-loading" aria-live="polite" hidden><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
@@ -34,13 +35,11 @@
         <div id="toilet-list" class="toilet-list" aria-live="polite"><div class="toilet-list-skeleton"></div><div class="toilet-list-skeleton"></div><div class="toilet-list-skeleton"></div><div class="toilet-list-skeleton"></div><div class="toilet-list-skeleton"></div></div>
         <nav id="toilet-pagination" class="report-pagination" aria-label="화장실 목록 페이지"></nav>
       </section>
-      <section class="toilet-detail-pane" aria-label="선택한 화장실 상세">
-        <article id="toilet-map-card" class="toilet-map-card"><div class="toilet-empty is-map"><span>LOCATION</span><strong>화장실을 선택해 주세요</strong><p>왼쪽 목록에서 시설을 선택하면 현재 위치와 수정 좌표가 표시됩니다.</p></div></article>
-        <article id="toilet-editor-card" class="toilet-editor-card"><div class="toilet-empty"><span>DETAIL EDITOR</span><strong>수정할 화장실을 선택해 주세요</strong><p>현재값을 왼쪽에서 확인하고 오른쪽 입력값을 수정한 뒤 저장할 수 있습니다.</p></div></article>
-      </section>
+      <article id="toilet-map-card" class="toilet-map-card" aria-label="선택한 화장실 위치"><div class="toilet-empty is-map"><span>LOCATION</span><strong>화장실을 선택해 주세요</strong><p>왼쪽 목록에서 시설을 선택하면 현재 위치와 수정 좌표가 표시됩니다.</p></div></article>
+      <article id="toilet-editor-card" class="toilet-editor-card" aria-label="선택한 화장실 정보 수정"><div class="toilet-empty"><span>DETAIL EDITOR</span><strong>수정할 화장실을 선택해 주세요</strong><p>현재값을 왼쪽에서 확인하고 오른쪽 입력값을 수정한 뒤 저장할 수 있습니다.</p></div></article>
     </div>
   </section>
 </main>
-<script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/toilets.js?v=1"></script>
+<script src="/admin-shell.js?v=8"></script><script src="/admin-session.js?v=2"></script><script src="/toilets.js?v=1"></script>
 </body>
 </html>

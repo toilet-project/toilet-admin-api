@@ -26,10 +26,17 @@ test('page exposes the requested search, region, list, map and comparison worksp
   for (const id of ['toilet-search','toilet-suggestions','toilet-sido','toilet-sigungu','toilet-list','toilet-pagination','toilet-map-card','toilet-editor-card']) {
     assert.match(html, new RegExp(`id="${id}"`))
   }
-  assert.match(css, /grid-template-columns:\s*minmax\(350px,.72fr\)\s*minmax\(0,2.28fr\)/)
+  assert.match(html, /toilet-list-pane[\s\S]*toilet-map-card[\s\S]*toilet-editor-card/)
+  assert.match(css, /grid-template-columns:\s*minmax\(320px,.68fr\)\s*minmax\(460px,1.18fr\)\s*minmax\(450px,1.14fr\)/)
+  assert.doesNotMatch(html, /toilet-detail-pane/)
   assert.match(source, /\/api\/admin\/v1\/toilets\/suggestions/)
   assert.match(source, /compositionstart/)
   assert.match(source, /snapshotToken/)
+})
+
+test('data management navigation places toilet data after report review', () => {
+  const shell = readFileSync(new URL('admin-shell.js', root), 'utf8')
+  assert.ok(shell.indexOf("nav('reports'") < shell.indexOf("nav('toilets'"))
 })
 
 test('pre-deployment preview falls back to existing real-data reads without allowing writes', () => {

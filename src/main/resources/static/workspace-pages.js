@@ -54,6 +54,8 @@
   }
 
   async function loadOperations() {
+    const { mountHostMonitor } = await import('/host-monitor.js?v=1')
+    mountHostMonitor(main)
     const day = today()
     const [operations, dashboard, cloudflare] = await Promise.allSettled([
       json('/api/admin/v1/operations/status'),

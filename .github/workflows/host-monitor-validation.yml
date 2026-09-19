@@ -1,0 +1,27 @@
+name: Host monitoring validation
+on:
+  pull_request:
+    paths: ['operations/host-monitor/**', 'src/**/operations/**', 'src/main/resources/static/host-monitor*', 'src/main/resources/static/operations.html', 'src/main/resources/static/workspace-pages.js', '.github/workflows/host-monitor-validation.yml']
+  push:
+    branches: [main]
+    paths: ['operations/host-monitor/**', 'src/**/operations/**', 'src/main/resources/static/host-monitor*', '.github/workflows/host-monitor-validation.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collector accounting and retention
+        run: python3 -m unittest discover -s operations/host-monitor -p 'test_*.py' -v
+      - name: Read-only host sample
+        run: python3 operations/host-monitor/collect.py --once-stdout --no-probes > /tmp/host-sample.json
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Administrator read API and UI contracts
+        run: |
+          chmod +x gradlew
+          ./gradlew test --tests 'com.example.toiletadmin.operations.*' --no-daemon --console=plain
+          node scripts/verify-admin-home.cjs

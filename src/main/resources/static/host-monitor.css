@@ -1,0 +1,44 @@
+.host-monitor { --hm-green:#176940; --hm-muted:#728178; margin:24px 0; color:#243c2d; }
+.host-monitor h2,.host-monitor h3,.host-monitor p { margin:0; }
+.host-monitor .hm-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.host-monitor .hm-heading h2 { font-size:20px; letter-spacing:-.6px; }
+.host-monitor .hm-heading p { color:var(--hm-muted); font-size:12px; margin-top:7px; line-height:1.7; }
+.host-monitor button,.host-monitor select { font:inherit; color:inherit; background:white; border:1px solid #dce6df; border-radius:9px; min-height:38px; padding:8px 13px; cursor:pointer; }
+.host-monitor button:focus-visible,.host-monitor select:focus-visible { outline:3px solid #a7dabc; outline-offset:2px; }
+.host-monitor .hm-status { padding:14px 18px; border-radius:12px; background:#edf5ef; margin-bottom:18px; font-size:13px; line-height:1.7; }
+.host-monitor .hm-status[data-level="WARN"],.host-monitor .hm-status[data-level="WATCH"] { background:#fff5df; color:#775521; }
+.host-monitor .hm-status[data-level="CRITICAL"] { background:#fff0ed; color:#933d31; }
+.host-monitor .hm-status[data-level="UNKNOWN"] { background:#f1f3f2; color:#67756c; }
+.host-monitor .hm-status p+p { margin-top:5px; }
+.host-monitor .hm-cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.host-monitor .hm-card,.host-monitor .hm-panel { border:1px solid #dce6df; background:#fff; border-radius:16px; padding:20px; min-width:0; }
+.host-monitor .hm-card h3 { font-size:12px; font-weight:500; color:var(--hm-muted); }
+.host-monitor .hm-number { display:block; font-size:29px; font-weight:700; letter-spacing:-1px; margin:12px 0 7px; font-variant-numeric:tabular-nums; }
+.host-monitor .hm-card p { color:var(--hm-muted); font-size:11px; line-height:1.7; }
+.host-monitor .hm-bar { height:5px; border-radius:4px; background:#eef3ef; margin:14px 0; overflow:hidden; }
+.host-monitor .hm-bar span { display:block; height:100%; background:var(--hm-green); width:0; }
+.host-monitor .hm-panels { display:grid; grid-template-columns:1.5fr 1fr; gap:14px; margin-top:14px; }
+.host-monitor .hm-panel h3 { font-size:14px; margin-bottom:14px; }
+.host-monitor .hm-facts { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0; }
+.host-monitor .hm-facts dt { font-size:11px; color:var(--hm-muted); margin-bottom:5px; }
+.host-monitor .hm-facts dd { font-size:14px; font-weight:600; margin:0; }
+.host-monitor .hm-note { font-size:11px; line-height:1.8; color:var(--hm-muted); margin-top:14px; }
+.host-monitor .hm-history { margin-top:14px; }
+.host-monitor .hm-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.host-monitor .hm-controls label { font-size:11px; color:var(--hm-muted); }
+.host-monitor .hm-graph { width:100%; height:190px; display:block; }
+.host-monitor .hm-graph text { font-size:11px; fill:#728178; }
+.host-monitor .hm-legend { display:flex; gap:16px; font-size:11px; color:var(--hm-muted); margin:8px 0; }
+.host-monitor .hm-legend span:first-child { color:#176940; }
+.host-monitor .hm-legend span:nth-child(2) { color:#6978b8; }
+.host-monitor .hm-table-scroll { overflow-x:auto; }
+.host-monitor table { width:100%; border-collapse:collapse; white-space:nowrap; font-size:11px; }
+.host-monitor th { color:var(--hm-muted); font-weight:500; text-align:right; padding:12px 10px; border-bottom:1px solid #dce6df; }
+.host-monitor td { text-align:right; padding:12px 10px; border-bottom:1px solid #edf1ee; font-variant-numeric:tabular-nums; }
+.host-monitor th:first-child,.host-monitor td:first-child { text-align:left; padding-left:0; }
+.host-monitor .hm-date { min-height:30px; padding:4px 8px; font-size:11px; color:var(--hm-green); }
+.host-monitor .hm-guide { padding-left:18px; margin:0; font-size:12px; line-height:1.9; color:#53685b; }
+.host-monitor .hm-detail { margin-top:16px; padding-top:16px; border-top:1px solid #e4ebe6; }
+.host-monitor [hidden] { display:none !important; }
+@media(max-width:1100px) { .host-monitor .hm-cards { grid-template-columns:repeat(2,minmax(0,1fr)); } .host-monitor .hm-panels { grid-template-columns:1fr; } }
+@media(max-width:600px) { .host-monitor .hm-card,.host-monitor .hm-panel { padding:15px; } .host-monitor .hm-heading { align-items:flex-start; } .host-monitor .hm-number { font-size:25px; } }

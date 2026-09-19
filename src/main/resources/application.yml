@@ -35,6 +35,7 @@ kakao:
 
 operations:
   api-health-url: ${OPERATIONS_API_HEALTH_URL:https://api.geupddong.com/api/health}
+  host-metrics-directory: ${HOST_METRICS_DIRECTORY:}
 
 cloudflare:
   analytics:

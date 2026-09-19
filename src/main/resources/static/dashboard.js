@@ -10,6 +10,73 @@ const state = {
   reviewPages: { reports: 0, coordinates: 0, regions: 0 },
   reviews: {},
 }
+const homeRoot = document.querySelector('main[data-admin-page="home"]')
+let serviceHealth = null
+let hostDiskStatus = 'UNKNOWN'
+let hostRequest = null
+const hostNumber = (value, digits = 1) => typeof value === 'number' && Number.isFinite(value) ? value.toLocaleString('ko-KR', {maximumFractionDigits: digits}) : '—'
+const hostPercent = value => typeof value === 'number' && Number.isFinite(value) ? `${hostNumber(value)}%` : '—'
+
+function renderServiceHealth() {
+  if (!homeRoot?.isConnected) return
+  const rows = [...(serviceHealth || [['관리자', 'UNKNOWN'], ['공개 API', 'UNKNOWN'], ['데이터베이스', 'UNKNOWN']]), ['디스크', hostDiskStatus]]
+  setState(el('service-overall'), worstStatus(rows.map(([, status]) => status)))
+  const abnormal = rows.filter(([, status]) => status !== 'UP').map(([name]) => name)
+  el('service-note').textContent = abnormal.length ? `${abnormal.join('·')} 상태를 확인해 주세요.` : '확인된 서비스 이상이 없습니다.'
+}
+
+function renderHomeHost(data) {
+  if (!homeRoot?.isConnected) return
+  const v = data.latest || {}
+  const timestamp = Date.parse(data.generatedAt)
+  const age = Date.now() - timestamp
+  const fresh = data.status === 'OK' && Number.isFinite(age) && age >= -60000 && age <= 180000
+  const today = data.days?.find(day => day.date === seoulDateValue(new Date()))
+  for (const [key, metric] of [['cpu','cpuPercent'], ['memory','memoryPercent'], ['disk','diskPercent']]) {
+    el(`home-host-${key}`).textContent = hostPercent(v[metric])
+    if (key !== 'disk') {
+      const values = today?.metrics?.[metric]
+      el(`home-host-${key}-note`).textContent = `평균 ${hostPercent(values?.avg)} · 최대 ${hostPercent(values?.max)}`
+      el(`home-host-${key}-note`).title = '한국 시간 기준 오늘 평균과 최대'
+    }
+  }
+  const speed = value => value == null ? '—' : `${hostNumber(value,3)} Mbps`
+  el('home-host-network').textContent = speed(v.txMbps)
+  el('home-host-network-note').textContent = `수신 ${speed(v.rxMbps)}`
+  el('home-host-disk-note').textContent = `남은 공간 ${v.diskAvailableBytes == null ? '—' : hostNumber(v.diskAvailableBytes / 1024 ** 3,1) + ' GiB'}`
+  el('home-host-note').textContent = fresh ? `${formatDateTime(data.generatedAt)} 수집 · 평균/최대는 오늘 기준` : data.latest ? `수집 지연 · 마지막 기록 ${formatDateTime(data.generatedAt)}` : data.message || '미니 PC 기록을 확인하지 못했습니다.'
+  el('home-host-title').closest('article').dataset.state = fresh ? 'fresh' : 'stale'
+  // Both home cards consume the exact host sample used by the detailed monitor.
+  const validDisk = fresh && typeof v.diskPercent === 'number' && Number.isFinite(v.diskPercent)
+  hostDiskStatus = validDisk ? (v.diskPercent >= 90 ? 'DOWN' : v.diskPercent >= 80 ? 'WARN' : 'UP') : 'UNKNOWN'
+  setState(el('service-disk'), hostDiskStatus, validDisk ? `${hostPercent(v.diskPercent)} 사용` : '확인 필요')
+  renderServiceHealth()
+  return fresh
+}
+
+function loadHomeHost() {
+  if (hostRequest) return hostRequest
+  hostRequest = (async () => {
+    try {
+      const data = await fetchJson('/api/admin/v1/operations/host?days=7', {credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(8000)})
+      return renderHomeHost(data)
+    } catch (error) {
+      if (!homeRoot?.isConnected) return false
+      if (error instanceof AuthError) return handleAuthError(error)
+      renderHomeHost({message:'미니 PC 기록을 확인하지 못했습니다.'})
+      return false
+    } finally { hostRequest = null }
+  })()
+  return hostRequest
+}
+
+function pollHomeHost() {
+  setTimeout(() => {
+    if (!homeRoot?.isConnected) return
+    if (!document.hidden && !el('dashboard-shell').hidden) void loadHomeHost()
+    pollHomeHost()
+  }, 60000)
+}
 
 const reviewConfig = {
   reports: {
@@ -135,25 +202,22 @@ async function fetchJson(url, options) {
 async function loadOperations() {
   try {
     const data = await fetchJson('/api/admin/v1/operations/status')
-    const services = [data.admin, data.publicApi, data.database]
+    if (!homeRoot?.isConnected) return false
     setState(el('service-admin'), data.admin.status)
     setState(el('service-api'), data.publicApi.status)
     setState(el('service-db'), data.database.status)
-    setState(el('service-disk'), data.disk.status, `${data.disk.usedPercent}% 사용`)
-    const overall = worstStatus([...services.map((item) => item.status), data.disk.status])
-    setState(el('service-overall'), overall)
-    const abnormal = [
-      ['관리자', data.admin.status], ['공개 API', data.publicApi.status], ['데이터베이스', data.database.status], ['디스크', data.disk.status],
-    ].filter(([, status]) => status !== 'UP').map(([name]) => name)
-    el('service-note').textContent = abnormal.length ? `${abnormal.join('·')} 상태를 확인해 주세요.` : '확인된 서비스 이상이 없습니다.'
+    serviceHealth = [['관리자', data.admin.status], ['공개 API', data.publicApi.status], ['데이터베이스', data.database.status]]
+    renderServiceHealth()
     setState(el('batch-overall'), data.batch.status)
     if (data.batch.completedAt) el('batch-last').textContent = formatDateTime(data.batch.completedAt)
     el('batch-next').textContent = nextBatchTime()
     return true
   } catch (error) {
     if (error instanceof AuthError) return handleAuthError(error)
-    ;['service-admin', 'service-api', 'service-db', 'service-disk', 'service-overall', 'batch-overall'].forEach((id) => setState(el(id), 'UNKNOWN'))
-    el('service-note').textContent = '서비스 상태를 확인하지 못했습니다.'
+    if (!homeRoot?.isConnected) return false
+    ;['service-admin', 'service-api', 'service-db', 'batch-overall'].forEach((id) => setState(el(id), 'UNKNOWN'))
+    serviceHealth = null
+    renderServiceHealth()
     el('batch-next').textContent = nextBatchTime()
     return false
   }
@@ -470,7 +534,7 @@ async function refreshAll() {
   const button = el('refresh')
   button.disabled = true
   el('home-status').textContent = '운영 데이터를 새로 확인하고 있습니다.'
-  const results = await Promise.all([loadOperations(), loadCloudflare(), loadServiceAnalytics(), loadDashboard(), loadAllReviews()])
+  const results = await Promise.all([loadOperations(), loadHomeHost(), loadCloudflare(), loadServiceAnalytics(), loadDashboard(), loadAllReviews()])
   if (!el('dashboard-shell').hidden) {
     const time = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date())
     el('home-status').textContent = results.every(Boolean) ? `${time} 기준 최신 상태입니다.` : `${time} 기준 · 일부 항목을 확인하지 못했습니다.`
@@ -549,6 +613,7 @@ async function bootstrap() {
     el('dashboard-shell').hidden = false
     bindEvents()
     await refreshAll()
+    pollHomeHost()
   } catch {
     showLoginPage(false)
   }

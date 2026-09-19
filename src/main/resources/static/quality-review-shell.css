@@ -1,13 +1,15 @@
-/* Shared outer layout for the two data-quality review workspaces. */
+/* Shared outer layout for full-width data review and management workspaces. */
 body.quality-page,
 body.region-page,
-body.change-review-page {
+body.change-review-page,
+body.toilet-data-page {
   overflow: hidden;
 }
 
 .quality-page .admin-frame,
 .region-page .admin-frame,
-.change-review-page .admin-frame {
+.change-review-page .admin-frame,
+.toilet-data-page .admin-frame {
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
@@ -15,7 +17,8 @@ body.change-review-page {
 
 .quality-page .admin-workspace,
 .region-page .admin-workspace,
-.change-review-page .admin-workspace {
+.change-review-page .admin-workspace,
+.toilet-data-page .admin-workspace {
   display: flex;
   height: 100dvh;
   min-height: 0;
@@ -24,13 +27,15 @@ body.change-review-page {
 
 .quality-page .admin-topbar,
 .region-page .admin-topbar,
-.change-review-page .admin-topbar {
+.change-review-page .admin-topbar,
+.toilet-data-page .admin-topbar {
   flex: 0 0 auto;
 }
 
 .admin-page .dashboard-shell.quality-shell,
 .admin-page .dashboard-shell.region-shell,
-.admin-page .dashboard-shell.change-review-shell {
+.admin-page .dashboard-shell.change-review-shell,
+.admin-page .dashboard-shell.toilet-data-shell {
   display: flex;
   width: 100%;
   max-width: none;
@@ -43,7 +48,8 @@ body.change-review-page {
 
 .admin-page .quality-page-header,
 .admin-page .region-page-header,
-.admin-page .change-review-page-header {
+.admin-page .change-review-page-header,
+.admin-page .toilet-data-header {
   width: min(calc(100% - 56px), 1850px);
   flex: 0 0 auto;
   margin: 0 auto 14px;
@@ -52,20 +58,23 @@ body.change-review-page {
 
 .admin-page .quality-page-header h1,
 .admin-page .region-page-header h1,
-.admin-page .change-review-page-header h1 {
+.admin-page .change-review-page-header h1,
+.admin-page .toilet-data-header h1 {
   font-size: 27px;
   letter-spacing: -.55px;
 }
 
 .admin-page .quality-page-header p,
 .admin-page .region-page-header p,
-.admin-page .change-review-page-header p {
+.admin-page .change-review-page-header p,
+.admin-page .toilet-data-header p {
   font-size: 13px;
 }
 
 .admin-page .quality-page-header .secondary-link,
 .admin-page .region-page-header .secondary-link,
-.admin-page .change-review-page-header .secondary-link {
+.admin-page .change-review-page-header .secondary-link,
+.admin-page .toilet-data-header .secondary-link {
   min-height: 38px;
   padding: 0 15px;
   border-radius: 7px;
@@ -74,7 +83,8 @@ body.change-review-page {
 
 .admin-page .quality-workspace,
 .admin-page .region-workspace,
-.admin-page .change-review-workspace {
+.admin-page .change-review-workspace,
+.admin-page .toilet-data-workspace {
   display: flex;
   width: calc(100% - 32px);
   max-width: 1850px;
@@ -117,21 +127,25 @@ body.change-review-page {
 
 @media (max-width: 900px) {
   body.region-page,
-  body.change-review-page {
+  body.change-review-page,
+  body.toilet-data-page {
     overflow: auto;
   }
 
   .region-page .admin-frame,
   .region-page .admin-workspace,
   .change-review-page .admin-frame,
-  .change-review-page .admin-workspace {
+  .change-review-page .admin-workspace,
+  .toilet-data-page .admin-frame,
+  .toilet-data-page .admin-workspace {
     height: auto;
     min-height: 100vh;
     overflow: visible;
   }
 
   .admin-page .dashboard-shell.region-shell,
-  .admin-page .dashboard-shell.change-review-shell {
+  .admin-page .dashboard-shell.change-review-shell,
+  .admin-page .dashboard-shell.toilet-data-shell {
     display: block;
     padding: 22px 10px 36px;
     overflow: visible;
@@ -140,12 +154,15 @@ body.change-review-page {
   .admin-page .region-page-header,
   .admin-page .region-workspace,
   .admin-page .change-review-page-header,
-  .admin-page .change-review-workspace {
+  .admin-page .change-review-workspace,
+  .admin-page .toilet-data-header,
+  .admin-page .toilet-data-workspace {
     width: 100%;
   }
 
   .admin-page .region-workspace,
-  .admin-page .change-review-workspace {
+  .admin-page .change-review-workspace,
+  .admin-page .toilet-data-workspace {
     display: block;
     overflow: visible;
   }
@@ -154,21 +171,24 @@ body.change-review-page {
 @media (max-width: 760px) {
   .admin-page .quality-page-header,
   .admin-page .region-page-header,
-  .admin-page .change-review-page-header {
+  .admin-page .change-review-page-header,
+  .admin-page .toilet-data-header {
     width: calc(100% - 28px);
     align-items: flex-start;
   }
 
   .admin-page .quality-workspace,
   .admin-page .region-workspace,
-  .admin-page .change-review-workspace {
+  .admin-page .change-review-workspace,
+  .admin-page .toilet-data-workspace {
     width: calc(100% - 20px);
     padding: 10px;
   }
 
   .admin-page .quality-page-header h1,
   .admin-page .region-page-header h1,
-  .admin-page .change-review-page-header h1 {
+  .admin-page .change-review-page-header h1,
+  .admin-page .toilet-data-header h1 {
     font-size: 25px;
   }
 }

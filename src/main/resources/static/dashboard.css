@@ -114,7 +114,6 @@
 .admin-page .quality-coordinate-map { display: grid; position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; margin: 0; place-items: center; overflow: hidden; border: 0; border-radius: inherit; background: #edf3ef; }
 .admin-page .quality-coordinate-map > p { color: var(--admin-muted); font-size: 11px; }
 .admin-page .coordinate-map-status { position: absolute; top: 10px; left: 10px; margin: 0; padding: 6px 9px; border: 1px solid rgba(207,224,212,.9); border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: 0 2px 7px rgba(27,65,43,.08); color: var(--admin-muted); font-size: 9px; line-height: 1.3; pointer-events: none; z-index: 3; }
-.admin-page .quality-map-origin-marker { display: grid; min-width: 31px; min-height: 21px; place-items: center; border: 1px solid #c86f35; border-radius: 999px; background: #fff8f1; box-shadow: 0 2px 7px rgba(104,57,24,.18); color: #a65321; font-size: 8.5px; font-weight: 800; }
 .admin-page .quality-map-toilet-marker { display: flex; padding: 0; align-items: center; border: 0; background: transparent; filter: drop-shadow(0 3px 5px rgba(19,62,38,.22)); font: inherit; cursor: pointer; }
 .admin-page .quality-map-toilet-pin { display: grid; width: 31px; height: 31px; flex: 0 0 auto; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 4px; background: #21804a; transform: rotate(-45deg); }
 .admin-page .quality-map-toilet-pin img { width: 16px; height: 16px; transform: rotate(45deg); }

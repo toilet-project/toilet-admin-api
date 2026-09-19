@@ -4,6 +4,8 @@ import {createContext, runInContext} from 'node:vm'
 import test from 'node:test'
 
 const root = new URL('../src/main/resources/static/', import.meta.url)
+const qualitySource = readFileSync(new URL('data-quality.js', root), 'utf8')
+const dashboardStyles = readFileSync(new URL('dashboard.css', root), 'utf8')
 function fixture(file, fetch, kakao) {
   const nodes = new Map()
   const parse = html => { for (const [,id] of html.matchAll(/\bid="([^"]+)"/g)) if (!nodes.has(id)) nodes.set(id, make(id)) }
@@ -23,6 +25,16 @@ function fixture(file, fetch, kakao) {
   return {context,node:id=>nodes.get(id),state:expression=>runInContext(expression,context)}
 }
 const response=(data,status=200)=>({ok:status<400,status,json:async()=>data})
+
+test('duplicate coordinate editor uses the district review stem markers', () => {
+  assert.match(qualitySource, /coordinatePositionMarkerImage\(kakao\.maps, '#157d48'\)/)
+  assert.match(qualitySource, /coordinatePositionMarkerImage\(kakao\.maps, '#ee872c'\)/)
+  assert.match(qualitySource, /M12 11V36/)
+  assert.match(qualitySource, /const marker = new kakao\.maps\.Marker\(\{ position: initial,[\s\S]*'#ee872c'/)
+  assert.match(qualitySource, /marker\.setMap\(map\)/)
+  assert.doesNotMatch(qualitySource, /quality-map-origin-marker/)
+  assert.doesNotMatch(dashboardStyles, /\.quality-map-origin-marker/)
+})
 
 test('coordinate search aborts obsolete requests and ignores late authentication errors', async()=>{
   const pending=[]

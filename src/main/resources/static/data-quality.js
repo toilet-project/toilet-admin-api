@@ -40,7 +40,7 @@ function resetCoordinateEditor() {
   if (coordinateEditorState) {
     window.clearTimeout(coordinateEditorState.mapIdleTimer)
     coordinateEditorState.toiletOverlays?.forEach(({ overlay }) => overlay.setMap(null))
-    coordinateEditorState.originOverlay?.setMap(null)
+    coordinateEditorState.originMarker?.setMap(null)
     coordinateEditorState = null
   }
   const editor = el('coordinate-editor')
@@ -374,6 +374,11 @@ function appendCoordinateNote(label) {
   if (!notes.includes(label)) notes.push(label)
   input.value = notes.join(' · ')
   input.focus()
+}
+
+function coordinatePositionMarkerImage(K, color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="38" viewBox="0 0 24 38"><path d="M12 11V36" stroke="${color}" stroke-width="3"/><circle cx="12" cy="10" r="8" fill="${color}" stroke="white" stroke-width="2"/></svg>`
+  return new K.MarkerImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, new K.Size(24,38), { offset:new K.Point(12,36) })
 }
 
 function coordinatePointGroups(toilets) {
@@ -720,17 +725,15 @@ async function openCoordinateEditor(toilet) {
     const mapElement = el('quality-coordinate-map')
     mapElement.replaceChildren()
     const map = new kakao.maps.Map(mapElement, { center: initial, level: 3 })
-    const marker = new kakao.maps.Marker({ map, position: initial, draggable: true, title: '보정할 좌표' })
+    const originMarker = new kakao.maps.Marker({ map, position: initial, image: coordinatePositionMarkerImage(kakao.maps, '#157d48'), title: '기존 위치' })
+    originMarker.setZIndex(10)
+    const marker = new kakao.maps.Marker({ position: initial, image: coordinatePositionMarkerImage(kakao.maps, '#ee872c'), draggable: true, title: '보정할 좌표' })
     marker.setZIndex(20)
     const geocoder = new kakao.maps.services.Geocoder()
     const places = new kakao.maps.services.Places()
-    const originBadge = document.createElement('span')
-    originBadge.className = 'quality-map-origin-marker'
-    originBadge.textContent = '기존'
-    const originOverlay = new kakao.maps.CustomOverlay({ map, position: initial, content: originBadge, yAnchor: 1.8, zIndex: 1 })
     coordinateDraft = { latitude: Number(toilet.latitude), longitude: Number(toilet.longitude) }
     coordinateEditorState = {
-      toilet, map, marker, geocoder, places, originOverlay,
+      toilet, map, marker, originMarker, geocoder, places,
       activeDisplayGroupId: null, activeDisplayGroupName: '', toiletOverlays: [], toiletRequestSequence: 0,
       markerCardOrdinaryToiletIds: [], markerCardSelectedToiletIds: new Set(),
       markerCardPoint: null, markerCardDirection: null,
@@ -740,6 +743,8 @@ async function openCoordinateEditor(toilet) {
       const state = coordinateEditorState
       if (!state) return
       marker.setPosition(position)
+      marker.setMap(map)
+      marker.setZIndex(20)
       coordinateDraft = { latitude: position.getLat(), longitude: position.getLng() }
       el('coordinate-draft-value').textContent = coordinate(coordinateDraft.latitude, coordinateDraft.longitude)
       if (knownAddress) el('coordinate-road-address').value = knownAddress

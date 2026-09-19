@@ -1,13 +1,45 @@
-<!doctype html><html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>화장실 데이터 | 급똥 관리자</title><link rel="stylesheet" href="/dashboard.css?v=5"/><link rel="stylesheet" href="/admin-shell.css?v=4"/><link rel="stylesheet" href="/admin-session.css?v=1" /></head><body class="admin-page">
-<main id="loading-shell" class="page-loading" hidden><span class="loading-spinner"></span><p>불러오는 중...</p></main>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>화장실 데이터 | 급똥 관리자</title>
+  <link rel="stylesheet" href="/dashboard.css?v=15" />
+  <link rel="stylesheet" href="/admin-shell.css?v=4" />
+  <link rel="stylesheet" href="/admin-session.css?v=1" />
+  <link rel="stylesheet" href="/quality-review-shell.css?v=3" />
+  <link rel="stylesheet" href="/toilets.css?v=2" />
+</head>
+<body class="admin-page toilet-data-page">
+<main id="loading-shell" class="page-loading" aria-live="polite" hidden><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
 <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
-<main id="workspace-shell" class="dashboard-shell" data-admin-page="toilets" data-admin-title="화장실 데이터">
-  <header class="page-header"><div><p class="eyebrow">DATA CATALOG</p><h1>화장실 데이터</h1><p>등록 규모와 최근 반영 시각을 확인하고 데이터 관리 화면으로 이동합니다.</p></div><a class="secondary-link" href="https://geupddong.com/" target="_blank" rel="noreferrer">사용자 지도 열기</a></header>
-  <p id="workspace-status" class="status" role="status">등록 현황을 불러오는 중입니다.</p>
-  <section class="workspace-grid">
-    <article class="workspace-card"><div class="workspace-card-head"><h2><svg class="admin-icon"><use href="#admin-icon-map"/></svg>등록 화장실</h2></div><strong id="toilet-total" class="workspace-value">—</strong><p>현재 운영 데이터베이스에 반영된 전체 시설 수입니다.</p></article>
-    <article class="workspace-card"><div class="workspace-card-head"><h2><svg class="admin-icon"><use href="#admin-icon-history"/></svg>마지막 반영</h2></div><strong id="toilet-last-sync" class="workspace-value">—</strong><p>새벽 02:00 KST 배치의 최근 성공 시각입니다.</p></article>
-    <article class="workspace-card"><div class="workspace-card-head"><h2><svg class="admin-icon"><use href="#admin-icon-scan"/></svg>품질 관리</h2></div><p>중복 좌표와 행정구역 검토를 통해 공개 지도에 노출되는 데이터를 정리합니다.</p><div class="workspace-card-actions"><a href="/data-quality.html">중복 좌표</a><a href="/regions.html">행정구역</a></div></article>
-    <article class="workspace-card workspace-wide"><div class="workspace-card-head"><h2>데이터 탐색</h2><span class="workspace-badge">기초 화면</span></div><div class="workspace-empty"><div><strong>관리자용 시설 검색·편집 영역</strong><span>목록 API와 수정 정책을 연결하면 이 영역에서 시설을 직접 검색하고 관리할 수 있습니다.</span><div class="workspace-card-actions"><a class="primary" href="https://geupddong.com/" target="_blank" rel="noreferrer">현재 지도에서 확인</a></div></div></div></article>
+<main id="toilet-shell" class="dashboard-shell toilet-data-shell" data-admin-page="toilets" data-admin-title="화장실 데이터">
+  <header class="page-header toilet-data-header"><div><p class="eyebrow">DATA CATALOG</p><h1>화장실 데이터</h1><p>운영 화장실을 검색하고 지도 위치와 서비스 정보를 한 화면에서 확인·수정합니다.</p></div><a class="secondary-link" href="https://geupddong.com/" target="_blank" rel="noreferrer">사용자 지도 열기</a></header>
+  <section class="panel toilet-data-workspace" aria-busy="true">
+    <div class="toilet-search-area">
+      <div class="toilet-search-wrap">
+        <label for="toilet-search">화장실 검색</label>
+        <div class="toilet-search-control"><svg class="admin-icon" aria-hidden="true"><use href="#admin-icon-search" /></svg><input id="toilet-search" type="search" maxlength="100" autocomplete="off" placeholder="화장실명 일부를 입력하세요 (예: 대학)" aria-autocomplete="list" aria-controls="toilet-suggestions" /><button id="toilet-search-clear" type="button" aria-label="검색어 지우기" hidden>×</button></div>
+        <div id="toilet-suggestions" class="toilet-suggestions" role="listbox" aria-label="화장실 연관검색어" hidden></div>
+      </div>
+      <div class="toilet-region-filters" aria-label="지역 필터">
+        <label><span>시·도</span><select id="toilet-sido"><option value="">전체 시·도</option></select></label>
+        <label><span>시·군·구</span><select id="toilet-sigungu" disabled><option value="">전체 시·군·구</option></select></label>
+        <button id="toilet-refresh" class="secondary-button" type="button">새로고침</button>
+      </div>
+    </div>
+    <p id="toilet-status" class="status" role="status"><strong>화장실 목록</strong><span>실제 데이터를 불러오는 중입니다.</span></p>
+    <div class="toilet-data-layout">
+      <section class="toilet-list-pane" aria-labelledby="toilet-list-title">
+        <header><div><small>TOILET LIST</small><strong id="toilet-list-title">조회 결과</strong></div><b id="toilet-list-count">—</b></header>
+        <div id="toilet-list" class="toilet-list" aria-live="polite"><div class="toilet-list-skeleton"></div><div class="toilet-list-skeleton"></div><div class="toilet-list-skeleton"></div><div class="toilet-list-skeleton"></div><div class="toilet-list-skeleton"></div></div>
+        <nav id="toilet-pagination" class="report-pagination" aria-label="화장실 목록 페이지"></nav>
+      </section>
+      <article id="toilet-map-card" class="toilet-map-card" aria-label="선택한 화장실 위치"><div class="toilet-empty is-map"><span>LOCATION</span><strong>화장실을 선택해 주세요</strong><p>왼쪽 목록에서 시설을 선택하면 현재 위치와 수정 좌표가 표시됩니다.</p></div></article>
+      <article id="toilet-editor-card" class="toilet-editor-card" aria-label="선택한 화장실 정보 수정"><div class="toilet-empty"><span>DETAIL EDITOR</span><strong>수정할 화장실을 선택해 주세요</strong><p>현재값을 왼쪽에서 확인하고 오른쪽 입력값을 수정한 뒤 저장할 수 있습니다.</p></div></article>
+    </div>
   </section>
-</main><script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/workspace-pages.js?v=3"></script></body></html>
+</main>
+<script src="/admin-shell.js?v=8"></script><script src="/admin-session.js?v=2"></script><script src="/toilets.js?v=1"></script>
+</body>
+</html>

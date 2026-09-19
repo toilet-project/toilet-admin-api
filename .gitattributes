@@ -1,3 +1,1 @@
-/gradlew text eol=lf
-*.bat text eol=crlf
-*.jar binary
+operations/host-monitor/* text eol=lf

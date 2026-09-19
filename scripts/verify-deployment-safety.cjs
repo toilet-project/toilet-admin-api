@@ -28,7 +28,8 @@ const secrets = {
   'secrets.KAKAO_JAVASCRIPT_KEY': 'fixture-js', 'secrets.DOCKERHUB_USERNAME': 'fixture',
   'secrets.CLOUDFLARE_ACCOUNT_ID': '11111111111111111111111111111111',
   'secrets.CLOUDFLARE_ANALYTICS_API_TOKEN': 'synthetic-cloudflare-token',
-  'github.sha': '1111111111111111111111111111111111111111'
+  'github.sha': '1111111111111111111111111111111111111111',
+  'vars.HOST_METRICS_ENABLED': 'false'
 };
 let script = source.replace(/\$\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => {
   assert.ok(Object.hasOwn(secrets, key), 'Unexpected secret reference');
@@ -67,16 +68,19 @@ flock() { [ "$TEST_MODE" != locked ]; }
 sleep() { :; }
 `;
 function bashPath(p) {return p.replaceAll('\\', '/').replace(/^([A-Za-z]):/, (_, d) => '/' + d.toLowerCase());}
-for (const mode of ['success', 'first', 'locked', 'imagefail', 'configfail', 'pullfail', 'upfail', 'healthfail', 'healthdown', 'healthinvalid']) {
+for (const mode of ['success', 'first', 'locked', 'imagefail', 'configfail', 'pullfail', 'upfail', 'healthfail', 'healthdown', 'healthinvalid', 'hostmonitor', 'hostmissing']) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'admin-deploy-fixture-'));
   if (mode !== 'first') {
     fs.writeFileSync(path.join(dir, '.env'), 'FIXTURE_OLD=true\n');
     fs.writeFileSync(path.join(dir, 'docker-compose.yml'), 'fixture-old-compose\n');
   }
-  const result = spawnSync(bash, ['-s'], {input: harness + script, encoding: 'utf8', timeout: 30000,
+  if (mode === 'hostmonitor') fs.mkdirSync(path.join(dir, 'exports'));
+  const runScript = script.replaceAll('/var/snap/docker/common/geupddong-host-monitor/exports', bashPath(path.join(dir,'exports')))
+    .replaceAll("if [ 'false' = 'true' ]", `if [ '${mode.startsWith('host') ? 'true' : 'false'}' = 'true' ]`);
+  const result = spawnSync(bash, ['-s'], {input: harness + runScript, encoding: 'utf8', timeout: 30000,
     env: {...process.env, FIXTURE_DIR: bashPath(dir), PYTHON_FOR_TEST: python, TEST_MODE: mode}});
   assert.ok(!result.error, String(result.error));
-  const successful = ['success', 'first'].includes(mode);
+  const successful = ['success', 'first', 'hostmonitor'].includes(mode);
   assert.equal(result.status === 0, successful, mode + ': ' + result.stderr);
   const backups = fs.readdirSync(dir).filter(n => n.startsWith('rollback-preparation.'));
   const commandFile = path.join(dir, 'commands.log');
@@ -91,14 +95,23 @@ for (const mode of ['success', 'first', 'locked', 'imagefail', 'configfail', 'pu
       assert.equal(fs.readFileSync(path.join(dir, backups[0], '.env'), 'utf8'), 'FIXTURE_OLD=true\n');
       assert.equal(fs.readFileSync(path.join(dir, backups[0], 'docker-compose.yml'), 'utf8'), 'fixture-old-compose\n');
     }
-    if (['imagefail', 'configfail', 'pullfail'].includes(mode)) assert.ok(!commands.includes('compose up'));
+    if (['imagefail', 'configfail', 'pullfail', 'hostmissing'].includes(mode)) assert.ok(!commands.includes('compose up'));
     if (mode === 'imagefail') assert.equal(fs.readFileSync(path.join(dir, '.env'), 'utf8'), 'FIXTURE_OLD=true\n');
     if (mode.startsWith('health')) assert.equal(commands.split('\n').filter(x => x === 'health').length, 30);
     if (mode === 'upfail') assert.ok(!commands.includes('health'));
     if (mode === 'success') assert.equal(fs.readFileSync(path.join(dir, backups[0], 'admin-image-id'), 'utf8'), 'sha256:fixture-old\n');
   }
   assert.ok(!commands.includes('prune'));
+  if (mode === 'hostmonitor') {
+    const compose = YAML.parse(fs.readFileSync(path.join(dir,'docker-compose.yml'),'utf8'));
+    assert.deepEqual(compose.services['toilet-admin'].volumes, [{type:'bind',source:bashPath(path.join(dir,'exports')),target:'/var/lib/geupddong-host-metrics',read_only:true,bind:{create_host_path:false}}]);
+    assert.match(fs.readFileSync(path.join(dir,'.env'),'utf8'), /HOST_METRICS_DIRECTORY=/);
+  }
+  if (mode === 'success') {
+    assert.equal(YAML.parse(fs.readFileSync(path.join(dir,'docker-compose.yml'),'utf8')).services['toilet-admin'].volumes, undefined);
+    assert.doesNotMatch(fs.readFileSync(path.join(dir,'.env'),'utf8'), /HOST_METRICS_DIRECTORY=/);
+  }
   assert.equal((commands.match(/compose up/g) || []).length <= 1, true);
   console.log('PASS ' + mode);
 }
-console.log('10 offline scenarios passed; no Docker/server/network/real secrets used. Synthetic temp fixtures retained.');
+console.log('12 offline scenarios passed; no Docker/server/network/real secrets used. Synthetic temp fixtures retained.');

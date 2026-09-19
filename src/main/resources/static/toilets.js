@@ -22,6 +22,7 @@ let suggestionSequence = 0
 let mapSequence = 0
 let listAbort = null
 let suggestionAbort = null
+let mapAbort = null
 let searchTimer = null
 let suggestionTimer = null
 let composing = false
@@ -564,6 +565,48 @@ function markerImage(K, color) {
   return new K.MarkerImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, new K.Size(38,46), { offset:new K.Point(19,45) })
 }
 
+function nearbyMarkerImage(K) {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="36" viewBox="0 0 30 36"><path fill="#4f8463" stroke="white" stroke-width="2" d="M15 1C7.3 1 1 7.3 1 15c0 9.8 14 20 14 20s14-10.2 14-20C29 7.3 22.7 1 15 1z"/><circle cx="15" cy="15" r="5" fill="white"/></svg>'
+  return new K.MarkerImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, new K.Size(30,36), { offset:new K.Point(15,35) })
+}
+
+async function loadNearbyMarkers(map, K, sequence, activeId, markers) {
+  if (sequence !== mapSequence) return
+  if (map.getLevel() > 6) {
+    markers.splice(0).forEach(marker => marker.setMap(null))
+    return
+  }
+  const bounds = map.getBounds()
+  const southWest = bounds.getSouthWest()
+  const northEast = bounds.getNorthEast()
+  const query = new URLSearchParams({
+    southLat:southWest.getLat().toFixed(7), northLat:northEast.getLat().toFixed(7),
+    westLng:southWest.getLng().toFixed(7), eastLng:northEast.getLng().toFixed(7),
+    zoom:String(map.getLevel()), includeList:'true'
+  })
+  mapAbort?.abort()
+  mapAbort = new AbortController()
+  try {
+    const data = await request(`/api/v1/toilets?${query}`, { signal:mapAbort.signal })
+    if (sequence !== mapSequence) return
+    markers.splice(0).forEach(marker => marker.setMap(null))
+    for (const toilet of data.toilets || []) {
+      if (Number(toilet.id) === Number(activeId) || !validCoordinates(toilet)) continue
+      const marker = new K.Marker({
+        map,
+        position:new K.LatLng(Number(toilet.latitude), Number(toilet.longitude)),
+        image:nearbyMarkerImage(K),
+        title:`${toilet.name || '이름 없는 화장실'} · 눌러서 수정`
+      })
+      marker.setZIndex(5)
+      K.event.addListener(marker, 'click', () => { if (sequence === mapSequence) void selectToilet(Number(toilet.id)) })
+      markers.push(marker)
+    }
+  } catch (error) {
+    if (error.name !== 'AbortError') console.warn('주변 화장실을 불러오지 못했습니다.', error)
+  }
+}
+
 async function drawMap(detail) {
   const sequence = ++mapSequence
   const target = $('toilet-map')
@@ -575,6 +618,12 @@ async function drawMap(detail) {
     const fallback = new K.LatLng(37.5665, 126.9780)
     const initial = validCoordinates(original) ? new K.LatLng(Number(original.latitude), Number(original.longitude)) : fallback
     const map = new K.Map(target, { center:initial, level:validCoordinates(original) ? 3 : 12 })
+    const nearbyMarkers = []
+    let nearbyTimer = null
+    const scheduleNearby = () => {
+      window.clearTimeout(nearbyTimer)
+      nearbyTimer = window.setTimeout(() => void loadNearbyMarkers(map, K, sequence, detail.id, nearbyMarkers), 80)
+    }
     const currentMarker = validCoordinates(original) ? new K.Marker({ map, position:initial, image:markerImage(K,'#187343'), title:'현재 등록 위치' }) : null
     if (currentMarker) currentMarker.setZIndex(10)
     const editMarker = new K.Marker({ position:initial, image:markerImage(K,'#e47724'), draggable:true, title:'수정 좌표' })
@@ -596,6 +645,7 @@ async function drawMap(detail) {
       })
     }
     K.event.addListener(map, 'click', event => setCoordinate(event.latLng))
+    K.event.addListener(map, 'idle', scheduleNearby)
     K.event.addListener(editMarker, 'dragend', () => setCoordinate(editMarker.getPosition()))
     $('toilet-origin').addEventListener('click', () => {
       map.setCenter(initial); map.setLevel(validCoordinates(original) ? 3 : 12)
@@ -614,6 +664,7 @@ async function drawMap(detail) {
         $('toilet-coordinate-status').textContent = `${results[0].place_name} · ${results[0].road_address_name || results[0].address_name}`
       })
     })
+    scheduleNearby()
   } catch (error) {
     if (sequence === mapSequence && target?.isConnected) target.innerHTML = `<div class="toilet-empty"><strong>${escapeHtml(error.message)}</strong></div>`
   }
@@ -647,6 +698,7 @@ async function bootstrap() {
 document.addEventListener('admin:before-route-change', () => {
   window.clearTimeout(searchTimer); window.clearTimeout(suggestionTimer)
   listAbort?.abort(); suggestionAbort?.abort()
+  mapAbort?.abort()
   ++listSequence; ++detailSequence; ++suggestionSequence; ++mapSequence
 }, { once:true })
 

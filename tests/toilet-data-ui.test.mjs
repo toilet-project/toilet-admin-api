@@ -41,6 +41,13 @@ test('Korean IME input schedules suggestions before composition ends', () => {
   assert.doesNotMatch(source, /if \(composing\) return/)
 })
 
+test('map loads nearby public toilet markers and opens their editor on click', () => {
+  assert.match(source, /\/api\/v1\/toilets\?\$\{query\}/)
+  assert.match(source, /includeList:'true'/)
+  assert.match(source, /addListener\(marker, 'click',[\s\S]*selectToilet\(Number\(toilet\.id\)\)/)
+  assert.match(source, /map\.getLevel\(\) > 6/)
+})
+
 test('page exposes the requested search, region, list, map and comparison workspaces', () => {
   for (const id of ['toilet-search','toilet-suggestions','toilet-sido','toilet-sigungu','toilet-list','toilet-pagination','toilet-map-card','toilet-editor-card']) {
     assert.match(html, new RegExp(`id="${id}"`))

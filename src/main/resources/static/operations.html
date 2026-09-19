@@ -1,23 +1,19 @@
-<!doctype html><html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>수집·서비스 상태 | 급똥 관리자</title><link rel="stylesheet" href="/dashboard.css?v=5"/><link rel="stylesheet" href="/admin-shell.css?v=4"/><link rel="stylesheet" href="/admin-session.css?v=1" /><link rel="stylesheet" href="/host-monitor.css?v=1" /></head><body class="admin-page">
+<!doctype html><html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>수집·서비스 상태 | 급똥 관리자</title><link rel="stylesheet" href="/dashboard.css?v=5"/><link rel="stylesheet" href="/admin-shell.css?v=4"/><link rel="stylesheet" href="/admin-session.css?v=1" /><link rel="stylesheet" href="/host-monitor.css?v=2" /></head><body class="admin-page">
 <main id="loading-shell" class="page-loading" hidden><span class="loading-spinner"></span><p>불러오는 중...</p></main>
 <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
 <main id="workspace-shell" class="dashboard-shell" data-admin-page="operations" data-admin-title="수집·서비스 상태">
-  <header class="page-header"><div><p class="eyebrow">SERVICE OPERATIONS</p><h1>수집·서비스 상태</h1><p>서비스, 새벽 배치, Cloudflare 이용량을 한 화면에서 점검합니다.</p></div><a class="secondary-link" href="/batch-syncs.html">배치 실행 이력</a></header>
-  <p id="workspace-status" class="status" role="status">운영 상태를 불러오는 중입니다.</p>
+  <header class="page-header"><div><p class="eyebrow">SERVICE OPERATIONS</p><h1>수집·서비스 상태</h1><p>미니 PC의 자원과 연결 상태를 확인하고, 일별 기록으로 서버 여유를 살펴봅니다.</p></div><nav class="hm-shortcuts" aria-label="관련 운영 화면"><a class="secondary-link" href="/">운영 홈</a><a class="secondary-link" href="/batch-syncs.html">배치 이력</a><a class="secondary-link" href="/cloudflare.html">Cloudflare</a></nav></header>
   <section id="host-monitor" class="host-monitor" aria-label="미니 PC 자원 관측">
     <div class="hm-heading"><div><h2>미니 PC 사용량</h2><p data-hm="updated">CPU·메모리·저장 공간·네트워크를 함께 살펴봅니다.</p></div><button type="button" data-hm="refresh">새로고침</button></div>
     <div class="hm-status" data-hm="status" data-level="UNKNOWN" role="status">수집 기록을 확인하고 있습니다.</div>
     <div data-hm="content" hidden>
       <div class="hm-cards">
-        <article class="hm-card"><h3>CPU 사용률</h3><strong class="hm-number" data-hm="cpu">—</strong><div class="hm-bar"><span data-hm="cpu-bar"></span></div><p data-hm="cpu-note">—</p></article>
-        <article class="hm-card"><h3>메모리 사용률</h3><strong class="hm-number" data-hm="memory">—</strong><div class="hm-bar"><span data-hm="memory-bar"></span></div><p data-hm="memory-note">—</p></article>
-        <article class="hm-card"><h3>디스크 사용률</h3><strong class="hm-number" data-hm="disk">—</strong><div class="hm-bar"><span data-hm="disk-bar"></span></div><p data-hm="disk-note">—</p></article>
-        <article class="hm-card"><h3>네트워크 · 송신</h3><strong class="hm-number" data-hm="network">—</strong><p data-hm="network-note">—</p><p class="hm-note">직전 수집 이후의 평균 속도</p></article>
+        <article class="hm-card"><h3>CPU 사용률</h3><strong class="hm-number" data-hm="cpu">—</strong><div class="hm-bar"><span data-hm="cpu-bar"></span></div><p data-hm="cpu-note">—</p><dl class="hm-card-summary"><div><dt>오늘 평균</dt><dd data-hm="cpu-avg">—</dd></div><div><dt>오늘 최대</dt><dd data-hm="cpu-max">—</dd></div></dl></article>
+        <article class="hm-card"><h3>메모리 사용률</h3><strong class="hm-number" data-hm="memory">—</strong><div class="hm-bar"><span data-hm="memory-bar"></span></div><p data-hm="memory-note">—</p><dl class="hm-card-summary"><div><dt>오늘 평균</dt><dd data-hm="memory-avg">—</dd></div><div><dt>오늘 최대</dt><dd data-hm="memory-max">—</dd></div></dl></article>
+        <article class="hm-card"><h3>디스크 사용률</h3><strong class="hm-number" data-hm="disk">—</strong><div class="hm-bar"><span data-hm="disk-bar"></span></div><p data-hm="disk-note">—</p><dl class="hm-card-summary"><div><dt>오늘 평균</dt><dd data-hm="disk-avg">—</dd></div><div><dt>오늘 최대</dt><dd data-hm="disk-max">—</dd></div></dl></article>
+        <article class="hm-card"><h3>네트워크 · 송신</h3><strong class="hm-number" data-hm="network">—</strong><p data-hm="network-note">—</p><p class="hm-note">직전 수집 이후의 평균 속도</p><dl class="hm-card-summary"><div><dt>오늘 평균</dt><dd data-hm="network-avg">—</dd></div><div><dt>오늘 최대</dt><dd data-hm="network-max">—</dd></div></dl></article>
       </div>
-      <div class="hm-panels">
-        <article class="hm-panel"><h3>인터넷과 연결 상태</h3><dl class="hm-facts"><div><dt>랜선 연결</dt><dd data-hm="link">—</dd></div><div><dt>LAN 협상 속도</dt><dd data-hm="link-speed">—</dd></div><div><dt>외부 웹 연결</dt><dd data-hm="internet">—</dd></div><div><dt>공개 API 응답</dt><dd data-hm="api">—</dd></div></dl><p class="hm-note" data-hm="capacity">—</p><p class="hm-note">LAN 속도는 인터넷 요금제 속도와 다릅니다. 송수신량에는 내부망 전송도 포함됩니다. HTTPS 점검은 회선 전체의 속도 측정이 아닙니다.</p></article>
-        <article class="hm-panel"><h3>어느 때 증설을 검토하나요?</h3><ul class="hm-guide"><li>CPU·메모리 80% 이상이 15분 지속되면 부하 원인을 확인합니다.</li><li>여러 날 높은 사용률과 응답 지연이 겹치면 CPU·RAM 증설이나 역할 분리를 검토합니다.</li><li>디스크 80%는 공간 정리, 90%는 즉시 점검이 필요합니다.</li></ul><p class="hm-note" data-hm="swap">—</p></article>
-      </div>
+      <p class="hm-note" data-hm="today-note">오늘 평균·최대는 한국 시간 기준 수집 기록으로 계산합니다.</p>
       <article class="hm-panel hm-history">
         <div class="hm-heading"><div><h3>일별 사용 추이</h3><p data-hm="period">한국 시간 기준</p></div><div class="hm-controls"><label for="host-range">조회 기간</label><select id="host-range" data-hm="range"><option value="7">최근 7일</option><option value="30">최근 30일</option><option value="90">최근 90일</option><option value="365">최근 1년</option></select></div></div>
         <div class="hm-legend"><span>● CPU</span><span>● 메모리</span><span>점선: 80% 관찰 기준</span></div><div data-hm="chart"></div>
@@ -25,12 +21,10 @@
         <p class="hm-note">P95는 관측 시간의 95%가 이 값 이하였다는 뜻입니다. 1분 구간 평균이므로 짧은 순간 부하는 놓칠 수 있습니다. 수집이 끊긴 시간은 0%로 계산하지 않습니다. 분 기록 30일·일별 요약 1년 보관.</p>
         <div data-hm="detail" class="hm-detail" hidden><h3 data-hm="detail-title"></h3><div data-hm="detail-chart"></div><p class="hm-note" data-hm="detail-note"></p></div>
       </article>
+      <div class="hm-panels">
+        <article class="hm-panel"><h3>인터넷과 연결 상태</h3><dl class="hm-facts"><div><dt>랜선 연결</dt><dd data-hm="link">—</dd></div><div><dt>LAN 협상 속도</dt><dd data-hm="link-speed">—</dd></div><div><dt>외부 웹 연결</dt><dd data-hm="internet">—</dd></div><div><dt>공개 API 응답</dt><dd data-hm="api">—</dd></div></dl><p class="hm-note" data-hm="capacity">—</p><p class="hm-note">LAN 속도는 인터넷 요금제 속도와 다릅니다. 송수신량에는 내부망 전송도 포함됩니다. HTTPS 점검은 회선 전체의 속도 측정이 아닙니다.</p></article>
+        <article class="hm-panel"><h3>어느 때 증설을 검토하나요?</h3><ul class="hm-guide"><li>CPU·메모리 80% 이상이 15분 지속되면 부하 원인을 확인합니다.</li><li>여러 날 높은 사용률과 응답 지연이 겹치면 CPU·RAM 증설이나 역할 분리를 검토합니다.</li><li>디스크 80%는 공간 정리, 90%는 즉시 점검이 필요합니다.</li></ul><p class="hm-note" data-hm="swap">—</p></article>
+      </div>
     </div>
   </section>
-  <section class="workspace-grid">
-    <article class="workspace-card workspace-two"><div class="workspace-card-head"><h2><svg class="admin-icon"><use href="#admin-icon-activity"/></svg>서비스 상태</h2></div><div id="operations-services" class="workspace-list"><div><span>관리자 서비스</span><strong>확인 중</strong></div><div><span>공개 API</span><strong>확인 중</strong></div><div><span>데이터베이스</span><strong>확인 중</strong></div><div><span>디스크</span><strong>확인 중</strong></div></div></article>
-    <article class="workspace-card"><div class="workspace-card-head"><h2><svg class="admin-icon"><use href="#admin-icon-history"/></svg>배치 상태</h2><span id="operations-batch-status" class="workspace-badge">확인 중</span></div><strong id="operations-batch-time" class="workspace-value">—</strong><p id="operations-batch-count">최근 반영량 확인 중</p><div class="workspace-card-actions"><a href="/batch-syncs.html">실행 이력</a></div></article>
-    <article class="workspace-card"><div class="workspace-card-head"><h2><svg class="admin-icon"><use href="#admin-icon-cloud"/></svg>Cloudflare</h2><span id="operations-cloudflare-status" class="workspace-badge">확인 중</span></div><strong id="operations-cloudflare-max" class="workspace-value">—</strong><p>Workers, D1, R2 중 가장 높은 현재 이용률입니다.</p><div class="workspace-card-actions"><a href="/cloudflare.html">이용량 상세</a></div></article>
-    <article class="workspace-card workspace-two"><div class="workspace-card-head"><h2>운영 점검 기준</h2></div><div class="workspace-list"><div><span>서비스 또는 데이터베이스 상태 이상</span><small>즉시 확인</small></div><div><span>02:00 KST 배치 실패 또는 지연</span><small>이력 확인</small></div><div><span>Cloudflare 월 포함량 80% 이상</span><small>비용 확인</small></div></div></article>
-  </section>
-</main><script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/workspace-pages.js?v=4"></script></body></html>
+</main><script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/workspace-pages.js?v=5"></script></body></html>

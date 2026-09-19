@@ -27,10 +27,6 @@
     if (byId(id)) byId(id).textContent = value
   }
 
-  function statusLabel(value) {
-    return value === 'UP' || value === 'SUCCESS' ? '정상' : value === 'WARN' ? '주의' : value === 'STALE' ? '지연' : value === 'UNKNOWN' || value === 'UNAVAILABLE' ? '확인 필요' : '이상'
-  }
-
   async function loadToilets() {
     const day = today()
     try {
@@ -43,40 +39,14 @@
     }
   }
 
-  function renderServiceRows(data) {
-    const rows = [['관리자 서비스', data.admin], ['공개 API', data.publicApi], ['데이터베이스', data.database], ['디스크', data.disk]]
-    const target = byId('operations-services')
-    target.replaceChildren(...rows.map(([label, item]) => {
-      const row = document.createElement('div')
-      row.innerHTML = `<span>${label}</span><strong>${statusLabel(item.status)}</strong>`
-      return row
-    }))
-  }
-
   async function loadOperations() {
-    import('/host-monitor.js?v=1').then(({ mountHostMonitor }) => mountHostMonitor(main)).catch(() => {
+    try {
+      const { mountHostMonitor } = await import('/host-monitor.js?v=2')
+      mountHostMonitor(main)
+    } catch {
       const notice = main.querySelector('[data-hm="status"]')
-      if (notice) notice.textContent = '미니 PC 표시 기능을 불러오지 못했습니다. 아래 기존 서비스 상태는 계속 확인할 수 있습니다.'
-    })
-    const day = today()
-    const [operations, dashboard, cloudflare] = await Promise.allSettled([
-      json('/api/admin/v1/operations/status'),
-      json(`/api/admin/v1/dashboard?from=${day}&to=${day}`),
-      json('/api/admin/v1/cloudflare/usage'),
-    ])
-    if (operations.status === 'fulfilled') renderServiceRows(operations.value)
-    if (dashboard.status === 'fulfilled') {
-      const batch = dashboard.value.batch
-      setText('operations-batch-status', batch.failedRuns ? '실패 확인' : '정상')
-      setText('operations-batch-time', dateTime(batch.lastSuccessAt))
-      setText('operations-batch-count', `${number(batch.insertedRecords + batch.updatedRecords)}건 반영`)
+      if (notice) notice.textContent = '미니 PC 표시 기능을 불러오지 못했습니다. 새로고침하거나 운영 홈에서 서비스 상태를 확인해 주세요.'
     }
-    if (cloudflare.status === 'fulfilled') {
-      const data = cloudflare.value
-      setText('operations-cloudflare-status', statusLabel(data.status))
-      setText('operations-cloudflare-max', `${Math.max(data.workersRequests.usedPercent, data.d1RowsRead.usedPercent, data.r2StorageBytes.usedPercent)}%`)
-    }
-    setText('workspace-status', [operations, dashboard, cloudflare].every((result) => result.status === 'fulfilled') ? '운영 상태를 최신 값으로 확인했습니다.' : '일부 운영 지표를 불러오지 못했습니다.')
   }
 
   async function loadCloudflare() {

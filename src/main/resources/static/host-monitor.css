@@ -1,4 +1,5 @@
 .host-monitor { --hm-green:#176940; --hm-muted:#728178; margin:24px 0; color:#243c2d; }
+[data-admin-page="operations"] .hm-shortcuts { display:flex; flex-wrap:wrap; gap:8px; }
 .host-monitor h2,.host-monitor h3,.host-monitor p { margin:0; }
 .host-monitor .hm-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
 .host-monitor .hm-heading h2 { font-size:20px; letter-spacing:-.6px; }
@@ -15,6 +16,12 @@
 .host-monitor .hm-card h3 { font-size:12px; font-weight:500; color:var(--hm-muted); }
 .host-monitor .hm-number { display:block; font-size:29px; font-weight:700; letter-spacing:-1px; margin:12px 0 7px; font-variant-numeric:tabular-nums; }
 .host-monitor .hm-card p { color:var(--hm-muted); font-size:11px; line-height:1.7; }
+.host-monitor .hm-card { display:flex; flex-direction:column; }
+.host-monitor .hm-card > p:last-of-type { margin-bottom:18px; }
+.host-monitor .hm-card-summary { display:flex; flex-wrap:wrap; gap:12px 16px; margin:auto 0 0; padding-top:14px; border-top:1px solid #edf1ee; }
+.host-monitor .hm-card-summary div { flex:1 1 76px; }
+.host-monitor .hm-card-summary dt { font-size:11px; color:var(--hm-muted); margin-bottom:5px; }
+.host-monitor .hm-card-summary dd { margin:0; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
 .host-monitor .hm-bar { height:5px; border-radius:4px; background:#eef3ef; margin:14px 0; overflow:hidden; }
 .host-monitor .hm-bar span { display:block; height:100%; background:var(--hm-green); width:0; }
 .host-monitor .hm-panels { display:grid; grid-template-columns:1.5fr 1fr; gap:14px; margin-top:14px; }

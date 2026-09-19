@@ -7,6 +7,7 @@ export function mountHostMonitor(main) {
   const pct = (value) => value == null ? '—' : `${fmt(value)}%`
   const bytes = (value) => value == null ? '—' : value >= 1024 ** 3 ? `${fmt(value / 1024 ** 3, 2)} GiB` : `${fmt(value / 1024 ** 2, 2)} MiB`
   const at = (value) => new Intl.DateTimeFormat('ko-KR', {timeZone:'Asia/Seoul', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false}).format(new Date(value))
+  const todayKey = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date())
   let pending = false, generation = 0
   const text = (key, value) => { $(key).textContent = value }
   async function json(url) {
@@ -71,7 +72,7 @@ export function mountHostMonitor(main) {
   function renderDays(days) {
     const mapped=new Map(days.map(day=>[day.date,day]))
     const count=Number($('range').value)
-    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date())
+    const today=todayKey()
     const timeline=[]
     for(let offset=count-1;offset>=0;offset--) {
       const date=new Date(`${today}T00:00:00+09:00`);date.setUTCDate(date.getUTCDate()-offset)
@@ -100,6 +101,14 @@ export function mountHostMonitor(main) {
     if (!data.latest) { banner('UNKNOWN',[data.message]);$('content').hidden=true;return }
     $('content').hidden=false
     const v=data.latest, stale=data.status!=='OK'
+    const today=data.days.find(day=>day.date===todayKey())
+    for(const [key,field] of [['cpu','cpuPercent'],['memory','memoryPercent'],['disk','diskPercent'],['network','txMbps']]) {
+      const metric=today?.metrics?.[field]
+      const format=value=>key==='network' ? (value==null?'—':`${fmt(value,3)} Mbps`) : pct(value)
+      text(`${key}-avg`,format(metric?.avg))
+      text(`${key}-max`,format(metric?.max))
+    }
+    text('today-note',`${todayKey()} · 한국 시간 기준 오늘의 수집 기록으로 계산합니다. ${today?.observedMinutes>0?`수집률 ${pct(today.coveragePercent)} · 미수집 시간은 계산에서 제외합니다.`:'오늘 누적 기록이 없으면 평균·최대는 —로 표시합니다.'} 최대는 수집된 값 중 가장 높은 값입니다.`)
     banner(stale?'UNKNOWN':data.assessment.level,stale?[data.message]:data.assessment.messages)
     text('updated',`${stale?'마지막 기록':'최근 수집'} ${at(data.generatedAt)} · 1분 주기`)
     for(const [key,field] of [['cpu','cpuPercent'],['memory','memoryPercent'],['disk','diskPercent']]) {

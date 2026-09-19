@@ -365,7 +365,7 @@ async function loadSuggestions() {
 
 function bindSearch() {
   const input = $('toilet-search')
-  const schedule = () => {
+  const schedule = ({ includeList = !composing } = {}) => {
     $('toilet-search-clear').hidden = !input.value
     window.clearTimeout(searchTimer)
     window.clearTimeout(suggestionTimer)
@@ -373,16 +373,15 @@ function bindSearch() {
     ++suggestionSequence
     listAbort?.abort()
     suggestionAbort?.abort()
-    if (composing) return
     const cached = cachedSuggestions(input.value)
     if (cached?.items.length) renderSuggestions(cached.items)
     else if (!input.value.trim()) closeSuggestions()
-    searchTimer = window.setTimeout(() => void loadList(0), SEARCH_DELAY_MS)
+    if (includeList) searchTimer = window.setTimeout(() => void loadList(0), SEARCH_DELAY_MS)
     suggestionTimer = window.setTimeout(() => void loadSuggestions(), SUGGESTION_DELAY_MS)
   }
   input.addEventListener('compositionstart', () => { composing = true; window.clearTimeout(searchTimer); window.clearTimeout(suggestionTimer) })
   input.addEventListener('compositionend', () => { composing = false; schedule() })
-  input.addEventListener('input', event => { if (!event.isComposing && !composing) schedule() })
+  input.addEventListener('input', event => schedule({ includeList: !event.isComposing && !composing }))
   input.addEventListener('keydown', event => {
     if (event.key === 'Escape') { closeSuggestions(); input.blur(); return }
     if (event.key !== 'Enter' || event.isComposing || composing || event.keyCode === 229) return

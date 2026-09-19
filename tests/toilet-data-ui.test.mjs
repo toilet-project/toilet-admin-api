@@ -35,6 +35,12 @@ test('suggestions start quickly and reuse the closest cached prefix while typing
   }))
 })
 
+test('Korean IME input schedules suggestions before composition ends', () => {
+  assert.match(source, /input\.addEventListener\('input', event => schedule\(\{ includeList: !event\.isComposing && !composing \}\)\)/)
+  assert.match(source, /if \(includeList\) searchTimer = window\.setTimeout/)
+  assert.doesNotMatch(source, /if \(composing\) return/)
+})
+
 test('page exposes the requested search, region, list, map and comparison workspaces', () => {
   for (const id of ['toilet-search','toilet-suggestions','toilet-sido','toilet-sigungu','toilet-list','toilet-pagination','toilet-map-card','toilet-editor-card']) {
     assert.match(html, new RegExp(`id="${id}"`))

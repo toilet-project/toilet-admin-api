@@ -79,7 +79,7 @@
   frame.dataset.adminNavigation = 'initializing'
 
   const pageCache = new Map()
-  const pageStyleNames = new Set(['home.css', 'regions.css', 'quality-review-shell.css', 'public-data-changes.css', 'service-analytics.css'])
+  const pageStyleNames = new Set(['home.css', 'regions.css', 'quality-review-shell.css', 'public-data-changes.css', 'service-analytics.css', 'toilets.css'])
   const rootRoute = String.fromCharCode(47)
   const routeNames = new Set([rootRoute, '/toilets', '/reports', '/public-data-changes', '/data-quality', '/regions', '/operations', '/service-analytics', '/members', '/permissions', '/batch-syncs', '/features', '/cloudflare', '/notifications'])
   let navigationSequence = 0

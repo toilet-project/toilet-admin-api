@@ -57,6 +57,8 @@ test('selected and draft coordinates reuse the district review stem markers', ()
   assert.match(source, /new K\.Size\(24,38\)/)
   assert.match(source, /markerImage\(K,'#157d48'\)/)
   assert.match(source, /markerImage\(K,'#ee872c'\)/)
+  assert.doesNotMatch(source, /if \(validCoordinates\(original\)\) editMarker\.setMap\(map\)/)
+  assert.match(source, /const setCoordinate =[\s\S]*editMarker\.setMap\(map\)/)
 })
 
 test('list shows ten readable address cards per page', () => {

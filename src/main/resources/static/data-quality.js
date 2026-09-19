@@ -727,7 +727,7 @@ async function openCoordinateEditor(toilet) {
     const map = new kakao.maps.Map(mapElement, { center: initial, level: 3 })
     const originMarker = new kakao.maps.Marker({ map, position: initial, image: coordinatePositionMarkerImage(kakao.maps, '#157d48'), title: '기존 위치' })
     originMarker.setZIndex(10)
-    const marker = new kakao.maps.Marker({ map, position: initial, image: coordinatePositionMarkerImage(kakao.maps, '#ee872c'), draggable: true, title: '보정할 좌표' })
+    const marker = new kakao.maps.Marker({ position: initial, image: coordinatePositionMarkerImage(kakao.maps, '#ee872c'), draggable: true, title: '보정할 좌표' })
     marker.setZIndex(20)
     const geocoder = new kakao.maps.services.Geocoder()
     const places = new kakao.maps.services.Places()
@@ -743,6 +743,8 @@ async function openCoordinateEditor(toilet) {
       const state = coordinateEditorState
       if (!state) return
       marker.setPosition(position)
+      marker.setMap(map)
+      marker.setZIndex(20)
       coordinateDraft = { latitude: position.getLat(), longitude: position.getLng() }
       el('coordinate-draft-value').textContent = coordinate(coordinateDraft.latitude, coordinateDraft.longitude)
       if (knownAddress) el('coordinate-road-address').value = knownAddress

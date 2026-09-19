@@ -30,6 +30,8 @@ test('duplicate coordinate editor uses the district review stem markers', () => 
   assert.match(qualitySource, /coordinatePositionMarkerImage\(kakao\.maps, '#157d48'\)/)
   assert.match(qualitySource, /coordinatePositionMarkerImage\(kakao\.maps, '#ee872c'\)/)
   assert.match(qualitySource, /M12 11V36/)
+  assert.match(qualitySource, /const marker = new kakao\.maps\.Marker\(\{ position: initial,[\s\S]*'#ee872c'/)
+  assert.match(qualitySource, /marker\.setMap\(map\)/)
   assert.doesNotMatch(qualitySource, /quality-map-origin-marker/)
   assert.doesNotMatch(dashboardStyles, /\.quality-map-origin-marker/)
 })

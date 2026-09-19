@@ -656,7 +656,6 @@ async function drawMap(detail) {
     const currentMarker = validCoordinates(original) ? new K.Marker({ map, position:initial, image:markerImage(K,'#157d48'), title:'현재 등록 위치' }) : null
     if (currentMarker) currentMarker.setZIndex(10)
     const editMarker = new K.Marker({ position:initial, image:markerImage(K,'#ee872c'), draggable:true, title:'수정 좌표' })
-    if (validCoordinates(original)) editMarker.setMap(map)
     editMarker.setZIndex(20)
     const geocoder = new K.services.Geocoder()
 
@@ -678,7 +677,13 @@ async function drawMap(detail) {
     K.event.addListener(editMarker, 'dragend', () => setCoordinate(editMarker.getPosition()))
     $('toilet-origin').addEventListener('click', () => {
       map.setCenter(initial); map.setLevel(validCoordinates(original) ? 3 : 12)
-      if (validCoordinates(original)) setCoordinate(initial, false)
+      editMarker.setMap(null)
+      if (validCoordinates(original)) {
+        $('edit-latitude').value=Number(original.latitude).toFixed(7)
+        $('edit-longitude').value=Number(original.longitude).toFixed(7)
+        $('toilet-coordinate-status').textContent=`${Number(original.latitude).toFixed(7)}, ${Number(original.longitude).toFixed(7)}`
+        updateDirtyState()
+      }
       else { editMarker.setMap(null); $('edit-latitude').value=''; $('edit-longitude').value=''; $('toilet-coordinate-status').textContent='좌표 없음'; updateDirtyState() }
     })
     $('toilet-map-search-form').addEventListener('submit', event => {

@@ -1,6 +1,9 @@
 const $ = id => document.getElementById(id)
 const API = 'https://api.geupddong.com'
 const PAGE_SIZE = 15
+const SEARCH_DELAY_MS = 260
+const SUGGESTION_DELAY_MS = 60
+const SUGGESTION_CACHE_LIMIT = 40
 const number = value => new Intl.NumberFormat('ko-KR').format(Number(value || 0))
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[char])
 const primaryAddress = value => value?.roadAddress?.trim() || value?.jibunAddress?.trim() || '주소 정보 없음'
@@ -25,6 +28,7 @@ let composing = false
 let kakaoReady = null
 let saving = false
 let legacyPreview = false
+const suggestionCache = new Map()
 
 const legacySidoNames = [
   '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시',
@@ -244,6 +248,12 @@ async function loadList(targetPage = 0) {
     if (sequence !== listSequence) return
     listData = data
     page = data.page
+    const keyword = $('toilet-search').value.trim()
+    if (keyword) {
+      const items = data.items.slice(0, 8).map(item => ({ id:item.id, name:item.name, address:primaryAddress(item) }))
+      rememberSuggestions(keyword, items)
+      if (document.activeElement === $('toilet-search') && $('toilet-suggestions').hidden && items.length) renderSuggestions(items)
+    }
     renderList()
     status.querySelector('span').textContent = data.totalElements
       ? `${number(data.totalElements)}개 시설 · ${data.page + 1}페이지`
@@ -261,6 +271,36 @@ async function loadList(targetPage = 0) {
 function closeSuggestions() {
   $('toilet-suggestions').hidden = true
   $('toilet-suggestions').replaceChildren()
+}
+
+function suggestionKey(value) {
+  return String(value || '').trim().toLocaleLowerCase('ko-KR')
+}
+
+function rememberSuggestions(keyword, items) {
+  const key = suggestionKey(keyword)
+  if (!key) return
+  suggestionCache.delete(key)
+  suggestionCache.set(key, items.slice(0, 8))
+  while (suggestionCache.size > SUGGESTION_CACHE_LIMIT) suggestionCache.delete(suggestionCache.keys().next().value)
+}
+
+function cachedSuggestions(keyword) {
+  const key = suggestionKey(keyword)
+  if (!key) return null
+  const exact = suggestionCache.get(key)
+  if (exact) return { exact:true, items:exact }
+
+  let prefix = ''
+  let items = null
+  for (const [cachedKey, cachedItems] of suggestionCache) {
+    if (!key.startsWith(cachedKey) || cachedKey.length <= prefix.length) continue
+    const filtered = cachedItems.filter(item => suggestionKey(item.name).includes(key))
+    if (!filtered.length) continue
+    prefix = cachedKey
+    items = filtered
+  }
+  return items ? { exact:false, items } : null
 }
 
 function renderSuggestions(items) {
@@ -293,6 +333,9 @@ function renderSuggestions(items) {
 async function loadSuggestions() {
   const keyword = $('toilet-search').value.trim()
   if (!keyword) return closeSuggestions()
+  const cached = cachedSuggestions(keyword)
+  if (cached?.items.length) renderSuggestions(cached.items)
+  if (cached?.exact) return
   const sequence = ++suggestionSequence
   suggestionAbort?.abort()
   suggestionAbort = new AbortController()
@@ -311,7 +354,10 @@ async function loadSuggestions() {
         items = data.items.map(item => ({ id:item.toiletId, name:item.name, address:item.location?.roadAddress || item.location?.jibunAddress || '주소 정보 없음' }))
       }
     }
-    if (sequence === suggestionSequence && $('toilet-search').value.trim() === keyword) renderSuggestions(items)
+    if (sequence === suggestionSequence && $('toilet-search').value.trim() === keyword) {
+      rememberSuggestions(keyword, items)
+      renderSuggestions(items)
+    }
   } catch (error) {
     if (error.name !== 'AbortError' && sequence === suggestionSequence) closeSuggestions()
   }
@@ -328,8 +374,11 @@ function bindSearch() {
     listAbort?.abort()
     suggestionAbort?.abort()
     if (composing) return
-    searchTimer = window.setTimeout(() => void loadList(0), 320)
-    suggestionTimer = window.setTimeout(() => void loadSuggestions(), 180)
+    const cached = cachedSuggestions(input.value)
+    if (cached?.items.length) renderSuggestions(cached.items)
+    else if (!input.value.trim()) closeSuggestions()
+    searchTimer = window.setTimeout(() => void loadList(0), SEARCH_DELAY_MS)
+    suggestionTimer = window.setTimeout(() => void loadSuggestions(), SUGGESTION_DELAY_MS)
   }
   input.addEventListener('compositionstart', () => { composing = true; window.clearTimeout(searchTimer); window.clearTimeout(suggestionTimer) })
   input.addEventListener('compositionend', () => { composing = false; schedule() })
@@ -479,6 +528,7 @@ async function saveDetail() {
       body:JSON.stringify({ snapshotToken:selectedDetail.snapshotToken, editable:collectEditable() })
     })
     selectedDetail = updated
+    suggestionCache.clear()
     renderDetail(updated)
     await loadList(page)
     $('toilet-status').querySelector('span').textContent = `${updated.editable.name}의 변경 내용을 저장했습니다.`

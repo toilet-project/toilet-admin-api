@@ -22,6 +22,19 @@ test('pagination keeps the current page near the center and stays inside bounds'
   assert.deepEqual([...state('pageWindow(11, 12)')], [7,8,9,10,11])
 })
 
+test('suggestions start quickly and reuse the closest cached prefix while typing', () => {
+  const state = pureContext()
+  state(`rememberSuggestions('충남', [
+    { id:1, name:'충남대학교병원', address:'대전광역시 중구' },
+    { id:2, name:'충남도청 남문화장실', address:'충청남도 홍성군' }
+  ])`)
+  assert.equal(state('SUGGESTION_DELAY_MS'), 60)
+  assert.equal(state(`JSON.stringify(cachedSuggestions('충남대'))`), JSON.stringify({
+    exact:false,
+    items:[{ id:1, name:'충남대학교병원', address:'대전광역시 중구' }]
+  }))
+})
+
 test('page exposes the requested search, region, list, map and comparison workspaces', () => {
   for (const id of ['toilet-search','toilet-suggestions','toilet-sido','toilet-sigungu','toilet-list','toilet-pagination','toilet-map-card','toilet-editor-card']) {
     assert.match(html, new RegExp(`id="${id}"`))

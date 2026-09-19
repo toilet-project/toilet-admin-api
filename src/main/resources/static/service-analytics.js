@@ -90,13 +90,16 @@
   function translated(value, type) {
     const maps = {
       device: { mobile: '모바일', desktop: '데스크톱', tablet: '태블릿' },
-      channel: { Direct: '직접 유입', 'Organic Search': '검색', Referral: '외부 링크', 'Organic Social': '소셜', Unassigned: '미분류' },
-      event: { page_view: '페이지 조회', session_start: '세션 시작', engagement: '체류 시간', scroll_depth: '스크롤 도달', toilet_search: '화장실 검색', nearby_search: '주변 검색', search_result_select: '검색 결과 선택', toilet_marker_select: '지도 마커 선택', toilet_detail_open: '화장실 상세 열기', directions_click: '길찾기 선택', report_start: '제보 시작', report_submit: '제보 제출', login_result: '로그인 결과', review_submit: '리뷰 제출' },
-      page: { '/': '지도 홈', '/toilet/:id': '화장실 상세', '/profile': '내 정보', '/notifications': '알림', '/review-preview': '리뷰 작성', '/other': '기타 화면' },
+      channel: { Direct: '직접/출처 없음', Internal: '내부 이동', 'Organic Search': '자연 검색', Referral: '외부 링크', 'Organic Social': '소셜', 'Paid Search': '유료 검색', 'Paid Social': '유료 소셜', Email: '이메일', Offline: 'QR·오프라인', Campaign: '캠페인', Unassigned: '미분류' },
+      source: { none: '출처 없음', geupddong: '급똥 내부', google: 'Google', naver: 'Naver', daum: 'Daum', bing: 'Bing', kakao: 'Kakao', instagram: 'Instagram', facebook: 'Facebook', threads: 'Threads', x: 'X' },
+      screen: { notifications: '알림', account_home: '내 페이지', my_reports: '내 제보', my_reviews: '내 리뷰', account_settings: '계정 관리', review_list: '리뷰 전체보기', review_write: '리뷰 작성', not_found: '찾을 수 없는 화면' },
+      event: { page_view: '페이지 조회', session_start: '세션 시작', engagement: '체류 시간', screen_view: '화면 열기', scroll_depth: '스크롤 도달', toilet_search: '화장실 검색', nearby_search: '주변 검색', search_result_select: '검색 결과 선택', toilet_marker_select: '지도 마커 선택', toilet_detail_open: '화장실 상세 열기', directions_click: '길찾기 선택', report_start: '제보 시작', report_submit: '제보 제출', login_result: '로그인 결과', review_submit: '리뷰 제출' },
+      page: { '/': '지도 홈', '/toilet/:id': '화장실 상세', '/policies/terms': '서비스 이용약관', '/policies/privacy': '개인정보 처리방침', '/policies/location': '위치정보 안내', '/policies/all': '전체 정책', '/other': '알 수 없는 경로' },
     }
     if (type === 'event' && String(value || '').includes(':')) {
       const [name, detail] = String(value).split(':', 2)
       const label = maps.event[name] || name
+      if (name === 'screen_view') return `${label} · ${maps.screen[detail] || detail}`
       return name === 'scroll_depth' ? `${label} ${detail}%` : `${label} · ${detail}`
     }
     return maps[type]?.[value] || value || '(값 없음)'
@@ -164,7 +167,7 @@
     renderTable('analytics-pages', data.pages, 'page')
     renderTable('analytics-events', data.events, 'event')
     renderBars('analytics-channels', data.channels, 'sessions', 'channel')
-    renderCompact('analytics-sources', data.sources, 'sessions')
+    renderCompact('analytics-sources', data.sources, 'sessions', 'source')
     renderDevices(data.devices)
     renderBars('analytics-os', data.operatingSystems, 'activeUsers')
     renderBars('analytics-browsers', data.browsers, 'activeUsers')

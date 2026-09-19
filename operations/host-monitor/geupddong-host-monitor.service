@@ -1,0 +1,28 @@
+[Unit]
+Description=Geupddong host capacity sample
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=geupddong-monitor
+Group=geupddong-monitor
+ExecStart=/usr/bin/python3 /opt/geupddong-host-monitor/collect.py --config /etc/geupddong-host-monitor.json
+ReadWritePaths=/var/snap/docker/common/geupddong-host-monitor
+UMask=0027
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+Nice=10
+CPUQuota=10%
+MemoryMax=128M
+TimeoutStartSec=20
+
+[Install]
+WantedBy=multi-user.target

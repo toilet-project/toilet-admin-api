@@ -129,6 +129,17 @@ jobs:
             CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
             EOF
 
+            # BEGIN OPTIONAL HOST MONITOR CONFIG
+            # Optional host summaries only; never expose the SQLite store or Docker socket.
+            # Installation and this repository variable are enabled as a separate rollout step.
+            if [ '${{ vars.HOST_METRICS_ENABLED }}' = 'true' ]; then
+              host_exports=/var/snap/docker/common/geupddong-host-monitor/exports
+              [ -d "$host_exports" ]
+              [ ! -L "$host_exports" ]
+              printf '%s\n' 'HOST_METRICS_DIRECTORY=/var/lib/geupddong-host-metrics' >> .env
+            fi
+            # END OPTIONAL HOST MONITOR CONFIG
+
             cat <<EOF > docker-compose.yml
             services:
               toilet-admin:
@@ -141,6 +152,7 @@ jobs:
                   - "127.0.0.1:${{ secrets.ADMIN_PORT }}:${{ secrets.ADMIN_PORT }}"
                 networks:
                   - toilet-network
+                # HOST_MONITOR_READ_ONLY_VOLUME
                 logging:
                   driver: json-file
                   options:
@@ -151,6 +163,20 @@ jobs:
               toilet-network:
                 external: true
             EOF
+
+            # BEGIN OPTIONAL HOST MONITOR MOUNT
+            if [ '${{ vars.HOST_METRICS_ENABLED }}' = 'true' ]; then
+              python3 - <<'PY'
+            from pathlib import Path
+            path = Path('docker-compose.yml')
+            text = path.read_text()
+            marker = '    # HOST_MONITOR_READ_ONLY_VOLUME'
+            assert text.count(marker) == 1
+            mount = '    volumes:\n      - type: bind\n        source: /var/snap/docker/common/geupddong-host-monitor/exports\n        target: /var/lib/geupddong-host-metrics\n        read_only: true\n        bind:\n          create_host_path: false'
+            path.write_text(text.replace(marker, mount))
+            PY
+            fi
+            # END OPTIONAL HOST MONITOR MOUNT
 
             docker compose config --quiet
             docker compose pull toilet-admin

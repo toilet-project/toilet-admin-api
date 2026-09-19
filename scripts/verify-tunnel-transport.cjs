@@ -33,6 +33,15 @@ const cloudflareEnvironmentBlock = [
  'CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}'
 ].join('\n');
 let reviewedDeployment = deploy.env.DEPLOY_SCRIPT;
+// Exact new blocks are pinned separately; disabling the flag must preserve the prior deployment.
+const hostBlocks = JSON.parse(fs.readFileSync(path.join(root,'scripts/host-monitor-deployment-blocks.json'),'utf8'));
+for (const [name, expected] of Object.entries(hostBlocks)) {
+ const actual = reviewedDeployment.match(new RegExp('# BEGIN OPTIONAL HOST MONITOR '+name+'\\n[\\s\\S]*?# END OPTIONAL HOST MONITOR '+name+'\\n\\n','g'));
+ assert.deepEqual(actual,[expected], 'Host monitor '+name+' block must match reviewed commands');
+ reviewedDeployment=reviewedDeployment.replace(expected,'');
+}
+assert.equal(reviewedDeployment.split('    # HOST_MONITOR_READ_ONLY_VOLUME\n').length-1,1);
+reviewedDeployment=reviewedDeployment.replace('    # HOST_MONITOR_READ_ONLY_VOLUME\n','');
 assert.equal(reviewedDeployment.split(cloudflareEnvironmentBlock).length-1,1,
  'The reviewed Cloudflare environment block must appear exactly once');
 assert.ok(!/GOOGLE_ANALYTICS|GA4_|Google Analytics|run\/secrets\/ga4/.test(reviewedDeployment),

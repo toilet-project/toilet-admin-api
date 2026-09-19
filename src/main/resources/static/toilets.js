@@ -561,8 +561,8 @@ async function loadKakaoMaps() {
 }
 
 function markerImage(K, color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46"><path fill="${color}" stroke="white" stroke-width="2" d="M19 1C9.6 1 2 8.6 2 18c0 12.2 17 27 17 27s17-14.8 17-27C36 8.6 28.4 1 19 1z"/><circle cx="19" cy="18" r="6" fill="white"/></svg>`
-  return new K.MarkerImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, new K.Size(38,46), { offset:new K.Point(19,45) })
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="38" viewBox="0 0 24 38"><path d="M12 11V36" stroke="${color}" stroke-width="3"/><circle cx="12" cy="10" r="8" fill="${color}" stroke="white" stroke-width="2"/></svg>`
+  return new K.MarkerImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, new K.Size(24,38), { offset:new K.Point(12,36) })
 }
 
 function nearbyMarkerOverlay(map, K, toilet, sequence, showName) {
@@ -653,9 +653,9 @@ async function drawMap(detail) {
       window.clearTimeout(nearbyTimer)
       nearbyTimer = window.setTimeout(() => void loadNearbyMarkers(map, K, sequence, detail.id, nearbyMarkers), 80)
     }
-    const currentMarker = validCoordinates(original) ? new K.Marker({ map, position:initial, image:markerImage(K,'#187343'), title:'현재 등록 위치' }) : null
+    const currentMarker = validCoordinates(original) ? new K.Marker({ map, position:initial, image:markerImage(K,'#157d48'), title:'현재 등록 위치' }) : null
     if (currentMarker) currentMarker.setZIndex(10)
-    const editMarker = new K.Marker({ position:initial, image:markerImage(K,'#e47724'), draggable:true, title:'수정 좌표' })
+    const editMarker = new K.Marker({ position:initial, image:markerImage(K,'#ee872c'), draggable:true, title:'수정 좌표' })
     if (validCoordinates(original)) editMarker.setMap(map)
     editMarker.setZIndex(20)
     const geocoder = new K.services.Geocoder()

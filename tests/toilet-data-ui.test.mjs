@@ -51,6 +51,14 @@ test('map loads nearby public toilet markers and opens their editor on click', (
   assert.match(source, /map\.getLevel\(\) > 6/)
 })
 
+test('selected and draft coordinates reuse the district review stem markers', () => {
+  assert.match(source, /width="24" height="38" viewBox="0 0 24 38"/)
+  assert.match(source, /M12 11V36/)
+  assert.match(source, /new K\.Size\(24,38\)/)
+  assert.match(source, /markerImage\(K,'#157d48'\)/)
+  assert.match(source, /markerImage\(K,'#ee872c'\)/)
+})
+
 test('list shows ten readable address cards per page', () => {
   assert.match(source, /const PAGE_SIZE = 10/)
   assert.match(css, /\.toilet-list-address\s*\{[^}]*-webkit-line-clamp:\s*2/)

@@ -34,16 +34,22 @@ function renderHomeHost(data) {
   const today = data.days?.find(day => day.date === seoulDateValue(new Date()))
   for (const [key, metric] of [['cpu','cpuPercent'], ['memory','memoryPercent'], ['disk','diskPercent']]) {
     el(`home-host-${key}`).textContent = hostPercent(v[metric])
+    const value = v[metric]
+    const valid = typeof value === 'number' && Number.isFinite(value)
+    const gauge = el(`home-host-${key}-gauge`)
+    gauge.style.setProperty('--gauge-value', `${valid ? Math.max(0, Math.min(100, value)) : 0}%`)
+    gauge.dataset.level = !fresh || !valid ? 'unknown' : value >= 90 ? 'critical' : value >= 80 ? 'warning' : 'normal'
+    gauge.title = !fresh || !valid ? '최근 수집 상태를 확인해 주세요.' : value >= 80 ? '높은 사용률입니다. 상세 화면에서 지속 시간과 추이를 확인하세요.' : '최근 수집한 사용률'
     if (key !== 'disk') {
       const values = today?.metrics?.[metric]
-      el(`home-host-${key}-note`).textContent = `평균 ${hostPercent(values?.avg)} · 최대 ${hostPercent(values?.max)}`
+      el(`home-host-${key}-note`).textContent = `평균 ${hostPercent(values?.avg)}\n최대 ${hostPercent(values?.max)}`
       el(`home-host-${key}-note`).title = '한국 시간 기준 오늘 평균과 최대'
     }
   }
   const speed = value => value == null ? '—' : `${hostNumber(value,3)} Mbps`
   el('home-host-network').textContent = speed(v.txMbps)
-  el('home-host-network-note').textContent = `수신 ${speed(v.rxMbps)}`
-  el('home-host-disk-note').textContent = `남은 공간 ${v.diskAvailableBytes == null ? '—' : hostNumber(v.diskAvailableBytes / 1024 ** 3,1) + ' GiB'}`
+  el('home-host-network-note').textContent = speed(v.rxMbps)
+  el('home-host-disk-note').textContent = `남은 공간\n${v.diskAvailableBytes == null ? '—' : hostNumber(v.diskAvailableBytes / 1024 ** 3,1) + ' GiB'}`
   el('home-host-note').textContent = fresh ? `${formatDateTime(data.generatedAt)} 수집 · 평균/최대는 오늘 기준` : data.latest ? `수집 지연 · 마지막 기록 ${formatDateTime(data.generatedAt)}` : data.message || '미니 PC 기록을 확인하지 못했습니다.'
   el('home-host-title').closest('article').dataset.state = fresh ? 'fresh' : 'stale'
   // Both home cards consume the exact host sample used by the detailed monitor.

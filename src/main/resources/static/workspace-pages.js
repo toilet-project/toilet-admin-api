@@ -54,8 +54,10 @@
   }
 
   async function loadOperations() {
-    const { mountHostMonitor } = await import('/host-monitor.js?v=1')
-    mountHostMonitor(main)
+    import('/host-monitor.js?v=1').then(({ mountHostMonitor }) => mountHostMonitor(main)).catch(() => {
+      const notice = main.querySelector('[data-hm="status"]')
+      if (notice) notice.textContent = '미니 PC 표시 기능을 불러오지 못했습니다. 아래 기존 서비스 상태는 계속 확인할 수 있습니다.'
+    })
     const day = today()
     const [operations, dashboard, cloudflare] = await Promise.allSettled([
       json('/api/admin/v1/operations/status'),

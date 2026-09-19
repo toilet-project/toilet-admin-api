@@ -9,7 +9,9 @@ if ! id geupddong-monitor >/dev/null 2>&1; then
 fi
 install -d -m 0755 /opt/geupddong-host-monitor
 install -m 0644 "$SOURCE/collect.py" /opt/geupddong-host-monitor/collect.py
-install -d -o geupddong-monitor -g geupddong-monitor -m 0750 /var/snap/docker/common/geupddong-host-monitor
+# Deployment checks exports before asking the Docker daemon to mount it.
+# Permit traversal of this parent only, never listing or reading private records.
+install -d -o geupddong-monitor -g geupddong-monitor -m 0751 /var/snap/docker/common/geupddong-host-monitor
 install -d -o geupddong-monitor -g geupddong-monitor -m 0750 /var/snap/docker/common/geupddong-host-monitor/exports
 if [ ! -f /etc/geupddong-host-monitor.json ]; then
     install -o root -g geupddong-monitor -m 0640 "$SOURCE/config.example.json" /etc/geupddong-host-monitor.json

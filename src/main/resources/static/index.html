@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급똥 관리자 | 운영 홈</title>
   <link rel="stylesheet" href="/dashboard.css?v=4" />
-  <link rel="stylesheet" href="/home.css?v=9" />
+  <link rel="stylesheet" href="/home.css?v=10" />
   <link rel="stylesheet" href="/admin-shell.css?v=4" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
 </head>
@@ -126,18 +126,9 @@
           <div><dt>공개 API</dt><dd id="service-api">확인 중</dd></div>
           <div><dt>데이터베이스</dt><dd id="service-db">확인 중</dd></div>
           <div><dt>디스크</dt><dd id="service-disk">확인 중</dd></div>
+          <div class="home-batch-row"><dt><a href="/batch-syncs.html" title="배치 실행 이력 보기">배치 수집</a></dt><dd><time id="batch-last" title="마지막 배치 완료 시각">—</time><span id="batch-overall" class="state state-loading">확인 중</span></dd></div>
         </dl>
         <p id="service-note" class="home-card-note">서비스 상태를 확인하고 있습니다.</p>
-      </article>
-
-      <article class="home-card home-batch-card" aria-labelledby="batch-title">
-        <div class="home-card-heading"><h2 id="batch-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-refresh"/></svg>배치 상태</h2><span id="batch-overall" class="state state-loading">확인 중</span></div>
-        <div class="home-emphasis"><span>마지막 수집 성공</span><strong id="batch-last">-</strong></div>
-        <dl class="home-definition-list compact">
-          <div><dt>실행 주기</dt><dd>매일 02:00 KST</dd></div>
-          <div><dt>다음 예정</dt><dd id="batch-next">-</dd></div>
-          <div><dt>최근 소요 시간</dt><dd id="batch-duration">-</dd></div>
-        </dl>
       </article>
 
       <article class="home-card" aria-labelledby="cloudflare-title">
@@ -222,6 +213,6 @@
       </main>
     </div>
   </div>
-  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=10"></script>
+  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=11"></script>
 </body>
 </html>

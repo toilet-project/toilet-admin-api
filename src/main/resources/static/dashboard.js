@@ -19,7 +19,7 @@ const hostPercent = value => typeof value === 'number' && Number.isFinite(value)
 
 function renderServiceHealth() {
   if (!homeRoot?.isConnected) return
-  const rows = [...(serviceHealth || [['관리자', 'UNKNOWN'], ['공개 API', 'UNKNOWN'], ['데이터베이스', 'UNKNOWN']]), ['디스크', hostDiskStatus]]
+  const rows = [...(serviceHealth || [['관리자', 'UNKNOWN'], ['공개 API', 'UNKNOWN'], ['데이터베이스', 'UNKNOWN'], ['배치 수집', 'UNKNOWN']]), ['디스크', hostDiskStatus]]
   setState(el('service-overall'), worstStatus(rows.map(([, status]) => status)))
   const abnormal = rows.filter(([, status]) => status !== 'UP').map(([name]) => name)
   el('service-note').textContent = abnormal.length ? `${abnormal.join('·')} 상태를 확인해 주세요.` : '확인된 서비스 이상이 없습니다.'
@@ -153,21 +153,6 @@ function periodRange(days) {
   return { from: seoulDateValue(from), to: seoulDateValue(today) }
 }
 
-function nextBatchTime(now = new Date()) {
-  const next = AdminHomeModel.nextBatchInstant(now)
-  return new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
-  }).format(next)
-}
-
-function duration(seconds) {
-  if (seconds == null) return '-'
-  const value = Math.max(0, Number(seconds))
-  const minutes = Math.floor(value / 60)
-  const remains = Math.round(value % 60)
-  return minutes ? `${minutes}분 ${remains}초` : `${remains}초`
-}
-
 function statusText(status) {
   return ({ UP: '정상', SUCCESS: '성공', NO_DATA: '데이터 대기', NOT_CONFIGURED: '연동 필요', WAITING_FOR_DATA: '데이터 대기', WARN: '주의', STALE: '확인 필요', DOWN: '장애', FAILED: '실패', UNKNOWN: '정보 없음', UNAVAILABLE: '연동 필요', AUTH_ERROR: '권한 확인', QUOTA_LIMITED: '한도 확인', API_UNAVAILABLE: '조회 지연' })[status] || '확인 필요'
 }
@@ -206,11 +191,11 @@ async function loadOperations() {
     setState(el('service-admin'), data.admin.status)
     setState(el('service-api'), data.publicApi.status)
     setState(el('service-db'), data.database.status)
-    serviceHealth = [['관리자', data.admin.status], ['공개 API', data.publicApi.status], ['데이터베이스', data.database.status]]
-    renderServiceHealth()
     setState(el('batch-overall'), data.batch.status)
-    if (data.batch.completedAt) el('batch-last').textContent = formatDateTime(data.batch.completedAt)
-    el('batch-next').textContent = nextBatchTime()
+    el('batch-last').textContent = data.batch.completedAt ? formatDateTime(data.batch.completedAt) : '기록 없음'
+    el('batch-overall').title = data.batch.message || ''
+    serviceHealth = [['관리자', data.admin.status], ['공개 API', data.publicApi.status], ['데이터베이스', data.database.status], ['배치 수집', data.batch.status]]
+    renderServiceHealth()
     return true
   } catch (error) {
     if (error instanceof AuthError) return handleAuthError(error)
@@ -218,7 +203,8 @@ async function loadOperations() {
     ;['service-admin', 'service-api', 'service-db', 'batch-overall'].forEach((id) => setState(el(id), 'UNKNOWN'))
     serviceHealth = null
     renderServiceHealth()
-    el('batch-next').textContent = nextBatchTime()
+    el('batch-last').textContent = '—'
+    el('batch-overall').title = ''
     return false
   }
 }
@@ -504,8 +490,6 @@ async function loadDashboard() {
     el('period-result').textContent = `성공 ${number(batch.successfulRuns)} · 실패 ${number(batch.failedRuns)}`
     el('period-result').classList.toggle('is-attention', batch.failedRuns > 0)
     el('failed-legend').hidden = batch.failedRuns === 0
-    if (batch.lastSuccessAt) el('batch-last').textContent = formatDateTime(batch.lastSuccessAt)
-    el('batch-duration').textContent = duration(batch.lastSuccessDurationSeconds)
     renderChart(data.dailySummaries || [])
     renderRecent(data.recentExecutions || [])
     return true

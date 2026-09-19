@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급똥 관리자 | 운영 홈</title>
   <link rel="stylesheet" href="/dashboard.css?v=4" />
-  <link rel="stylesheet" href="/home.css?v=8" />
+  <link rel="stylesheet" href="/home.css?v=9" />
   <link rel="stylesheet" href="/admin-shell.css?v=4" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
 </head>
@@ -109,6 +109,16 @@
     <p id="home-status" class="home-status" role="status">운영 데이터를 불러오는 중입니다.</p>
 
     <section id="service-overview" class="home-top-grid" aria-label="핵심 운영 상태">
+      <article class="home-card home-host-card" aria-labelledby="home-host-title">
+        <div class="home-card-heading"><h2 id="home-host-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>미니 PC</h2><a class="home-detail-link" href="/operations.html">상세 보기 <svg class="admin-icon" aria-hidden="true"><use href="#icon-external"/></svg></a></div>
+        <dl class="home-host-metrics">
+          <div><dt>CPU 사용률</dt><dd><strong id="home-host-cpu">—</strong><small id="home-host-cpu-note">오늘 평균 — · 최대 —</small></dd></div>
+          <div><dt>메모리 사용률</dt><dd><strong id="home-host-memory">—</strong><small id="home-host-memory-note">오늘 평균 — · 최대 —</small></dd></div>
+          <div><dt>디스크 사용률</dt><dd><strong id="home-host-disk">—</strong><small id="home-host-disk-note">남은 공간 —</small></dd></div>
+          <div><dt>네트워크 · 송신</dt><dd><strong id="home-host-network">—</strong><small id="home-host-network-note">수신 —</small></dd></div>
+        </dl>
+        <p id="home-host-note" class="home-card-note" role="status">미니 PC 기록을 확인하고 있습니다.</p>
+      </article>
       <article class="home-card home-status-card" aria-labelledby="service-title">
         <div class="home-card-heading"><h2 id="service-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>서비스 상태</h2><span id="service-overall" class="state state-loading">확인 중</span></div>
         <dl class="home-definition-list">
@@ -120,7 +130,7 @@
         <p id="service-note" class="home-card-note">서비스 상태를 확인하고 있습니다.</p>
       </article>
 
-      <article class="home-card" aria-labelledby="batch-title">
+      <article class="home-card home-batch-card" aria-labelledby="batch-title">
         <div class="home-card-heading"><h2 id="batch-title"><svg class="admin-icon" aria-hidden="true"><use href="#icon-refresh"/></svg>배치 상태</h2><span id="batch-overall" class="state state-loading">확인 중</span></div>
         <div class="home-emphasis"><span>마지막 수집 성공</span><strong id="batch-last">-</strong></div>
         <dl class="home-definition-list compact">
@@ -212,6 +222,6 @@
       </main>
     </div>
   </div>
-  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=9"></script>
+  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=10"></script>
 </body>
 </html>

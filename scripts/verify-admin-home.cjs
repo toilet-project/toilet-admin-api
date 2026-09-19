@@ -33,6 +33,7 @@ const qualityScript = read('src/main/resources/static/data-quality.js')
 const changeReviewHtml = read('src/main/resources/static/public-data-changes.html')
 const changeReviewCss = read('src/main/resources/static/public-data-changes.css')
 const changeReviewScript = read('src/main/resources/static/public-data-changes.js')
+const toiletHtml = read('src/main/resources/static/toilets.html')
 const adminPages = [
   'batch-syncs.html', 'cloudflare.html', 'data-quality.html', 'features.html',
   'members.html', 'notifications.html', 'operations.html', 'permissions.html',
@@ -68,10 +69,11 @@ assert.match(regionHtml, /class="region-list-head"[\s\S]*id="region-filter-trigg
 assert.match(regionHtml, /\/quality-review-shell\.css\?v=2/)
 assert.match(qualityHtml, /\/quality-review-shell\.css\?v=2/)
 assert.match(changeReviewHtml, /\/quality-review-shell\.css\?v=2/)
-assert.match(qualityReviewShellCss, /body\.quality-page,\s*body\.region-page,\s*body\.change-review-page\s*\{\s*overflow:\s*hidden/)
-assert.match(qualityReviewShellCss, /\.quality-page-header,\s*\.admin-page \.region-page-header,\s*\.admin-page \.change-review-page-header[^}]*width:\s*min\(calc\(100% - 56px\), 1850px\)/s)
-assert.match(qualityReviewShellCss, /\.quality-workspace,\s*\.admin-page \.region-workspace,\s*\.admin-page \.change-review-workspace[^}]*max-width:\s*1850px/s)
-assert.match(qualityReviewShellCss, /@media \(max-width:\s*900px\)[\s\S]*body\.region-page,\s*body\.change-review-page\s*\{\s*overflow:\s*auto/)
+assert.match(toiletHtml, /\/quality-review-shell\.css\?v=3/)
+assert.match(qualityReviewShellCss, /body\.quality-page,\s*body\.region-page,\s*body\.change-review-page,\s*body\.toilet-data-page\s*\{\s*overflow:\s*hidden/)
+assert.match(qualityReviewShellCss, /\.quality-page-header,\s*\.admin-page \.region-page-header,\s*\.admin-page \.change-review-page-header,\s*\.admin-page \.toilet-data-header[^}]*width:\s*min\(calc\(100% - 56px\), 1850px\)/s)
+assert.match(qualityReviewShellCss, /\.quality-workspace,\s*\.admin-page \.region-workspace,\s*\.admin-page \.change-review-workspace,\s*\.admin-page \.toilet-data-workspace[^}]*max-width:\s*1850px/s)
+assert.match(qualityReviewShellCss, /@media \(max-width:\s*900px\)[\s\S]*body\.region-page,\s*body\.change-review-page,\s*body\.toilet-data-page\s*\{\s*overflow:\s*auto/)
 assert.doesNotMatch(regionCss, /body\.region-page|\.dashboard-shell\.region-shell|\.region-page-header|\.region-workspace\s*\{/)
 assert.doesNotMatch(dashboardCss, /body\.quality-page|\.dashboard-shell\.quality-shell|\.quality-page-header|\.quality-workspace\s*[,\{]/)
 assert.match(regionCss, /\.region-layout[^}]*flex:\s*1 1 auto/s)

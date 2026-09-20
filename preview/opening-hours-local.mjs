@@ -50,7 +50,6 @@ export async function createPreview() {
   const source = JSON.parse(await readFile(samplePath,'utf8'))
   const rows = source.map(item => ({ ...item, ...normalize(item) }))
   const overrides = new Map()
-  const item = id => rows.find(value => value.toiletId === id)
   const view = value => overrides.get(value.toiletId) || { openingPolicy:value.openingPolicy,open24h:value.open24h,status:value.status,confidence:value.confidence,parserVersion:value.parserVersion,holidayPolicy:value.holidayPolicy,manualOverride:value.manualOverride,sourceChanged:value.sourceChanged,schedules:value.schedules }
   const patternGroups = () => {
     const groups = new Map()
@@ -90,32 +89,6 @@ export async function createPreview() {
         targets.forEach(value=>overrides.set(value.toiletId,normalized))
         return json(response,200,{patternKey:key,appliedCount:targets.length,protectedCount:facilities.length-targets.length})
       }catch{return json(response,400,{message:'확정값 형식을 확인해 주세요.'})}
-    }
-    if (request.method === 'GET' && url.pathname === '/api/admin/v1/opening-hours/reviews') {
-      const filter = url.searchParams.get('status') || 'REVIEW', keyword = clean(url.searchParams.get('keyword')).toLocaleLowerCase('ko-KR')
-      const page = Math.max(0,Number(url.searchParams.get('page')||0)), size = Math.min(50,Math.max(1,Number(url.searchParams.get('size')||15)))
-      const filtered = rows.map(value => ({...value,...view(value)})).filter(value => {
-        const status = value.sourceChanged ? 'SOURCE_CHANGED' : value.status
-        const matched = !keyword || [value.name,value.managementNumber,value.roadAddress,value.jibunAddress].some(field=>clean(field).toLocaleLowerCase('ko-KR').includes(keyword))
-        const state = filter === 'ALL' || (filter === 'REVIEW' ? ['REVIEW_REQUIRED','NOT_NORMALIZED','SOURCE_CHANGED'].includes(status) : status === filter)
-        return matched && state
-      })
-      const totalElements = filtered.length, totalPages = totalElements ? Math.ceil(totalElements/size) : 0
-      return json(response,200,{items:filtered.slice(page*size,page*size+size).map(({schedules,...value})=>value),page,size,totalElements,totalPages})
-    }
-    const detailMatch = url.pathname.match(/^\/api\/admin\/v1\/opening-hours\/reviews\/(\d+)$/)
-    if (request.method === 'GET' && detailMatch) {
-      const value = item(Number(detailMatch[1])); if (!value) return json(response,404,{message:'화장실을 찾지 못했습니다.'})
-      const normalized = view(value); return json(response,200,{item:{...value,...normalized,schedules:undefined},normalized})
-    }
-    const saveMatch = url.pathname.match(/^\/api\/admin\/v1\/opening-hours\/(\d+)$/)
-    if (request.method === 'PUT' && saveMatch) {
-      const value = item(Number(saveMatch[1])); if (!value) return json(response,404,{message:'화장실을 찾지 못했습니다.'})
-      try {
-        const input = await body(request)
-        const normalized = { openingPolicy:input.openingPolicy,open24h:Boolean(input.open24h),status:'CONFIRMED',confidence:1,parserVersion:'v1-preview',holidayPolicy:input.holidayPolicy || 'UNKNOWN',manualOverride:true,sourceChanged:false,schedules:Array.isArray(input.schedules)?input.schedules:[] }
-        overrides.set(value.toiletId,normalized); return json(response,200,normalized)
-      } catch { return json(response,400,{message:'확정값 형식을 확인해 주세요.'}) }
     }
     if (request.method === 'GET') {
       const name = url.pathname.slice(1) || 'opening-hours.html'

@@ -21,7 +21,7 @@ async function request(path, options = {}) {
   const response = await fetch(`${API}${path}`, { credentials: ISOLATED_PREVIEW ? 'omit' : 'include', ...options })
   if (!ISOLATED_PREVIEW && (response.status === 401 || response.status === 403)) showLogin(response.status)
   const data = await response.json().catch(() => null)
-  if (!response.ok) throw new Error(data?.message || '요청을 처리하지 못했습니다.')
+  if (!response.ok) throw new Error(data?.error?.message || data?.message || '요청을 처리하지 못했습니다.')
   return data
 }
 

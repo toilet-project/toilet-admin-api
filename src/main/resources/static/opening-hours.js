@@ -7,7 +7,7 @@ const STATUS_LABELS = { REVIEW_REQUIRED:'검토 필요', SOURCE_CHANGED:'원문 
 const POLICY_LABELS = { ALWAYS:'상시 운영', SCHEDULED:'요일별 운영', IRREGULAR:'불규칙', CLOSED:'미개방', UNKNOWN:'판정 불가' }
 const HOLIDAY_LABELS = { OPEN:'공휴일 운영', CLOSED:'공휴일 휴무', UNKNOWN:'확인 필요' }
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))
-let page = 0, selectedId = null, currentDetail = null, listSequence = 0, detailSequence = 0, searchTimer = null, saving = false
+let page = 0, selectedKey = null, currentDetail = null, listSequence = 0, detailSequence = 0, searchTimer = null, saving = false
 
 function showLogin(status) {
   $('loading-shell').hidden = true
@@ -25,7 +25,7 @@ async function request(path, options = {}) {
   return data
 }
 
-function statusOf(item) { return item.sourceChanged ? 'SOURCE_CHANGED' : item.status }
+function statusOf(item) { return item.status }
 function badge(item) {
   const status = statusOf(item)
   const tone = status === 'CONFIRMED' ? 'confirmed' : status === 'SOURCE_CHANGED' ? 'changed' : status === 'REVIEW_REQUIRED' || status === 'NOT_NORMALIZED' ? 'review' : ''
@@ -41,15 +41,16 @@ function renderList(data) {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'opening-hours-item'
-    button.setAttribute('aria-pressed', String(selectedId === item.toiletId))
-    button.innerHTML = `<span class="opening-hours-item-head"><strong>${escapeHtml(item.name || '이름 없는 화장실')}</strong>${badge(item)}</span><span class="opening-hours-item-source">${escapeHtml(rawText(item))}</span><span class="opening-hours-item-meta"><span>${escapeHtml(address(item))}</span><span>#${item.toiletId}</span></span>`
-    button.addEventListener('click', () => { if (!saving) void loadDetail(item.toiletId) })
+    button.dataset.patternKey = item.patternKey
+    button.setAttribute('aria-pressed', String(selectedKey === item.patternKey))
+    button.innerHTML = `<span class="opening-hours-item-head"><strong>${escapeHtml(rawText(item))}</strong>${badge(item)}</span><span class="opening-hours-item-source">대표 · ${escapeHtml(item.sampleName || '이름 없는 화장실')}</span><span class="opening-hours-item-meta"><span>전체 ${Number(item.facilityCount).toLocaleString()}개 · 적용 ${Number(item.targetCount).toLocaleString()}개</span>${item.protectedCount ? `<span>보호 ${Number(item.protectedCount).toLocaleString()}</span>` : ''}</span>`
+    button.addEventListener('click', () => { if (!saving) void loadDetail(item.patternKey) })
     list.append(button)
   }
-  if (!data.items.length) list.innerHTML = '<p class="opening-hours-list-empty">조건에 맞는 화장실이 없습니다.</p>'
+  if (!data.items.length) list.innerHTML = '<p class="opening-hours-list-empty">조건에 맞는 개방시간 유형이 없습니다.</p>'
   renderPages(data)
   const selectedLabel = $('opening-hours-filter').selectedOptions[0]?.textContent || '검토 대상'
-  $('opening-hours-status').innerHTML = `<strong>${escapeHtml(selectedLabel)} ${Number(data.totalElements).toLocaleString()}건</strong><span>불명확한 값은 자동으로 확정하지 않습니다.</span>`
+  $('opening-hours-status').innerHTML = `<strong>${escapeHtml(selectedLabel)} ${Number(data.totalElements).toLocaleString()}개 유형</strong><span>같은 원문 유형을 한 번에 검토하고 적용합니다.</span>`
 }
 
 function renderPages(data) {
@@ -75,11 +76,11 @@ async function loadList(nextPage = 0) {
   $('opening-hours-workspace').setAttribute('aria-busy','true')
   try {
     const query = new URLSearchParams({ status:$('opening-hours-filter').value, keyword:$('opening-hours-keyword').value.trim(), page:String(nextPage), size:'15' })
-    const data = await request(`/api/admin/v1/opening-hours/reviews?${query}`)
+    const data = await request(`/api/admin/v1/opening-hours/patterns?${query}`)
     if (sequence !== listSequence) return
     page = data.page
     renderList(data)
-    if (selectedId && !data.items.some(item => item.toiletId === selectedId)) selectedId = null
+    if (selectedKey && !data.items.some(item => item.patternKey === selectedKey)) selectedKey = null
   } catch (error) {
     if (sequence === listSequence) $('opening-hours-list').innerHTML = `<p class="opening-hours-error">${escapeHtml(error.message)}</p>`
   } finally { if (sequence === listSequence) $('opening-hours-workspace').setAttribute('aria-busy','false') }
@@ -92,24 +93,26 @@ function normalizedText(item) {
 }
 
 function detailMarkup(detail) {
-  const item = detail.item, normalized = detail.normalized || {}
-  const confidence = item.confidence == null ? '—' : `${Math.round(item.confidence * 100)}%`
-  return `<header class="opening-hours-detail-head"><div><span class="opening-hours-detail-kicker">TOILET #${item.toiletId}${item.managementNumber ? ` · ${escapeHtml(item.managementNumber)}` : ''}</span><h2>${escapeHtml(item.name || '이름 없는 화장실')}</h2><p>${escapeHtml(address(item))}</p></div>${badge(item)}</header>
-    ${item.sourceChanged ? '<p class="opening-hours-notice">관리자 확정 이후 공공데이터 원문이 변경되었습니다. 기존 서비스 값은 유지되고 있으므로 새 원문을 확인해 다시 확정해 주세요.</p>' : ''}
+  const item = detail.pattern, normalized = item.suggested || {}
+  const confidence = normalized.confidence == null ? '—' : `${Math.round(normalized.confidence * 100)}%`
+  const facilities = detail.facilities.map(facility => `<li><span><strong>${escapeHtml(facility.name || '이름 없는 화장실')}</strong><small>${escapeHtml(address(facility))}</small></span>${facility.manualOverride ? '<em>기존 확정 보호</em>' : '<em class="target">일괄 적용 대상</em>'}</li>`).join('')
+  return `<header class="opening-hours-detail-head"><div><span class="opening-hours-detail-kicker">OPENING HOURS TYPE</span><h2>${escapeHtml(rawText(item))}</h2><p>전체 ${Number(item.facilityCount).toLocaleString()}개 시설 · 이번 적용 ${Number(item.targetCount).toLocaleString()}개 · 기존 확정 보호 ${Number(item.protectedCount).toLocaleString()}개</p></div>${badge(item)}</header>
+    ${item.status === 'SOURCE_CHANGED' ? '<p class="opening-hours-notice">일부 시설은 관리자 확정 이후 공공데이터 원문이 변경되었습니다. 기존 개별 확정값은 보호하고 나머지 대상에만 새 유형을 적용합니다.</p>' : ''}
     <section class="opening-hours-summary">
-      <article class="opening-hours-card"><small>PUBLIC DATA SOURCE</small><h3>공공데이터 원문</h3><dl><dt>운영 구분</dt><dd>${escapeHtml(item.openTime || '없음')}</dd><dt>운영 상세</dt><dd>${escapeHtml(item.openTimeDetail || '없음')}</dd></dl></article>
-      <article class="opening-hours-card auto"><small>NORMALIZED RESULT</small><h3>자동 해석 결과</h3><dl><dt>판정</dt><dd>${escapeHtml(normalizedText(item))}</dd><dt>신뢰도</dt><dd>${confidence}</dd><dt>파서</dt><dd>${escapeHtml(item.parserVersion || '미실행')}</dd><dt>상태</dt><dd>${escapeHtml(STATUS_LABELS[statusOf(item)] || statusOf(item))}</dd></dl></article>
-      <article class="opening-hours-card service"><small>CURRENT SERVICE</small><h3>서비스 적용값</h3><dl><dt>운영 정책</dt><dd>${escapeHtml(POLICY_LABELS[normalized.openingPolicy] || POLICY_LABELS[item.openingPolicy] || '미정')}</dd><dt>24시간</dt><dd>${normalized.open24h == null ? '미정' : normalized.open24h ? '예' : '아니오'}</dd><dt>공휴일</dt><dd>${escapeHtml(HOLIDAY_LABELS[normalized.holidayPolicy] || '확인 필요')}</dd><dt>보호 상태</dt><dd>${normalized.manualOverride ? '관리자 확정값 보호 중' : '자동 판정값'}</dd></dl></article>
+      <article class="opening-hours-card"><small>PUBLIC DATA SOURCE</small><h3>공공데이터 원문 유형</h3><dl><dt>운영 구분</dt><dd>${escapeHtml(item.openTime || '없음')}</dd><dt>운영 상세</dt><dd>${escapeHtml(item.openTimeDetail || '없음')}</dd></dl></article>
+      <article class="opening-hours-card auto"><small>NORMALIZED RESULT</small><h3>자동 해석 제안</h3><dl><dt>판정</dt><dd>${escapeHtml(normalizedText(normalized))}</dd><dt>신뢰도</dt><dd>${confidence}</dd><dt>파서</dt><dd>현재 정형 규칙</dd><dt>상태</dt><dd>${escapeHtml(STATUS_LABELS[item.status] || item.status)}</dd></dl></article>
+      <article class="opening-hours-card service"><small>APPLY SCOPE</small><h3>일괄 적용 범위</h3><dl><dt>전체 시설</dt><dd>${Number(item.facilityCount).toLocaleString()}개</dd><dt>적용 대상</dt><dd>${Number(item.targetCount).toLocaleString()}개</dd><dt>보호 제외</dt><dd>${Number(item.protectedCount).toLocaleString()}개</dd><dt>적용 기준</dt><dd>원문 완전 일치</dd></dl></article>
     </section>
+    <section class="opening-hours-members"><header><div><small>AFFECTED FACILITIES</small><h3>이 유형을 사용하는 화장실</h3></div><span>최대 30개 표본</span></header><ul>${facilities}</ul></section>
     <form id="opening-hours-form" class="opening-hours-form">
-      <header class="opening-hours-form-head"><h3>서비스 개방시간 확정</h3><span>저장한 값은 자동 수집으로 덮어쓰지 않습니다.</span></header>
+      <header class="opening-hours-form-head"><h3>유형 일괄 확정</h3><span>개별 확정값은 유지하고 적용 대상만 갱신합니다.</span></header>
       <div class="opening-hours-controls">
         <label class="opening-hours-field">운영 정책<select id="opening-policy"><option value="ALWAYS">상시 운영</option><option value="SCHEDULED">요일별 운영</option><option value="IRREGULAR">불규칙</option><option value="CLOSED">미개방</option></select></label>
         <div class="opening-hours-field">24시간 운영<div class="opening-hours-radio"><label><input type="radio" name="open24h" value="true"/>예</label><label><input type="radio" name="open24h" value="false"/>아니오</label></div></div>
         <label class="opening-hours-field">공휴일 운영<select id="holiday-policy"><option value="UNKNOWN">확인 필요</option><option value="OPEN">운영</option><option value="CLOSED">휴무</option></select></label>
       </div>
       <section class="opening-hours-schedule"><div class="opening-hours-schedule-head"><span>요일</span><span>휴무</span><span>시작</span><span></span><span>종료</span></div><div id="opening-hours-days"></div></section>
-      <footer class="opening-hours-actions"><p id="opening-hours-save-status">요일별 운영인 경우 실제 운영하는 요일과 시간을 선택해 주세요.</p><button id="opening-hours-save" type="submit">확정값 저장</button></footer>
+      <footer class="opening-hours-actions"><p id="opening-hours-save-status">요일별 운영인 경우 실제 운영하는 요일과 시간을 선택해 주세요.</p><button id="opening-hours-save" type="submit">${Number(item.targetCount).toLocaleString()}개 시설에 적용</button></footer>
     </form>`
 }
 
@@ -138,24 +141,24 @@ function syncFormState() {
 }
 
 function mountForm(detail) {
-  const value = detail.normalized || detail.item
+  const value = detail.pattern.suggested || {}
   $('opening-policy').value = ['ALWAYS','SCHEDULED','IRREGULAR','CLOSED'].includes(value.openingPolicy) ? value.openingPolicy : 'SCHEDULED'
   const open24h = value.open24h === true
   document.querySelector(`[name="open24h"][value="${open24h}"]`).checked = true
   $('holiday-policy').value = ['OPEN','CLOSED','UNKNOWN'].includes(value.holidayPolicy) ? value.holidayPolicy : 'UNKNOWN'
-  renderDays(detail.normalized?.schedules || [])
+  renderDays(value.schedules || [])
   $('opening-policy').addEventListener('change', () => { if (['IRREGULAR','CLOSED'].includes($('opening-policy').value)) document.querySelector('[name="open24h"][value="false"]').checked = true; syncFormState() })
   document.querySelectorAll('[name="open24h"]').forEach(input => input.addEventListener('change', syncFormState))
   $('opening-hours-form').addEventListener('submit', event => { event.preventDefault(); void saveDetail() })
   syncFormState()
 }
 
-async function loadDetail(id) {
-  const sequence = ++detailSequence; selectedId = id
-  document.querySelectorAll('.opening-hours-item').forEach(item => item.setAttribute('aria-pressed', String(Number(item.querySelector('.opening-hours-item-meta span:last-child')?.textContent?.slice(1)) === id)))
-  $('opening-hours-detail').innerHTML = '<div class="opening-hours-empty"><strong>개방시간 정보를 불러오는 중입니다.</strong></div>'
+async function loadDetail(patternKey) {
+  const sequence = ++detailSequence; selectedKey = patternKey
+  document.querySelectorAll('.opening-hours-item').forEach(item => item.setAttribute('aria-pressed', String(item.dataset.patternKey === patternKey)))
+  $('opening-hours-detail').innerHTML = '<div class="opening-hours-empty"><strong>개방시간 유형을 불러오는 중입니다.</strong></div>'
   try {
-    const detail = await request(`/api/admin/v1/opening-hours/reviews/${id}`)
+    const detail = await request(`/api/admin/v1/opening-hours/patterns/${patternKey}`)
     if (sequence !== detailSequence) return
     currentDetail = detail
     $('opening-hours-detail').innerHTML = detailMarkup(detail)
@@ -180,9 +183,9 @@ async function saveDetail() {
   const body = { openingPolicy:policy, open24h:document.querySelector('[name="open24h"]:checked')?.value === 'true', holidayPolicy:$('holiday-policy').value, schedules }
   saving = true; $('opening-hours-save').disabled = true; $('opening-hours-save-status').textContent = '확정값을 저장하는 중입니다.'
   try {
-    await request(`/api/admin/v1/opening-hours/${currentDetail.item.toiletId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
-    $('opening-hours-save-status').textContent = '관리자 확정값으로 저장했습니다.'
-    await Promise.all([loadList(page), loadDetail(currentDetail.item.toiletId)])
+    const result = await request(`/api/admin/v1/opening-hours/patterns/${currentDetail.pattern.patternKey}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+    $('opening-hours-save-status').textContent = `${Number(result.appliedCount).toLocaleString()}개 시설에 적용했습니다. 기존 확정 ${Number(result.protectedCount).toLocaleString()}개는 유지했습니다.`
+    await Promise.all([loadList(page), loadDetail(currentDetail.pattern.patternKey)])
   } catch (error) { $('opening-hours-save-status').textContent = error.message }
   finally { saving = false; const button = $('opening-hours-save'); if (button) button.disabled = false }
 }

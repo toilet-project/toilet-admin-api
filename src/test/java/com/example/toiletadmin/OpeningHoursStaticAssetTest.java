@@ -13,11 +13,12 @@ class OpeningHoursStaticAssetTest {
         String shell = resource("/static/admin-shell.js");
 
         assertThat(html)
-                .contains("개방시간 검토")
+                .contains("개방시간 유형 검토")
                 .contains("공공데이터 원문");
         assertThat(script)
-                .contains("/api/admin/v1/opening-hours/reviews")
-                .contains("sourceChanged")
+                .contains("/api/admin/v1/opening-hours/patterns")
+                .contains("protectedCount")
+                .contains("일괄 적용 대상")
                 .contains("opening-hours-days")
                 .contains("schedulesFromForm")
                 .contains("method:'PUT'");

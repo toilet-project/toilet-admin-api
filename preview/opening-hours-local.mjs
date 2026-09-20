@@ -1,4 +1,5 @@
 import { createServer } from 'node:http'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +11,8 @@ const types = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=ut
 const headers = { 'Cache-Control':'no-store', 'X-Robots-Tag':'noindex, nofollow', 'X-Content-Type-Options':'nosniff', 'Referrer-Policy':'no-referrer', 'Content-Security-Policy':"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'" }
 
 const clean = value => String(value ?? '').trim().replace(/\s+/g, ' ')
+const raw = value => String(value ?? '').trim()
+export const patternKey = value => createHash('sha256').update(`${raw(value.openTime)}\u001f${raw(value.openTimeDetail)}`).digest('hex')
 const daySet = text => {
   if (/평일|월\s*[~-]\s*금/.test(text)) return [1,2,3,4,5]
   if (/주말|토\s*[~-]\s*일/.test(text)) return [6,7]
@@ -49,10 +52,45 @@ export async function createPreview() {
   const overrides = new Map()
   const item = id => rows.find(value => value.toiletId === id)
   const view = value => overrides.get(value.toiletId) || { openingPolicy:value.openingPolicy,open24h:value.open24h,status:value.status,confidence:value.confidence,parserVersion:value.parserVersion,holidayPolicy:value.holidayPolicy,manualOverride:value.manualOverride,sourceChanged:value.sourceChanged,schedules:value.schedules }
+  const patternGroups = () => {
+    const groups = new Map()
+    rows.forEach(value => { const key=patternKey(value); if(!groups.has(key))groups.set(key,[]); groups.get(key).push(value) })
+    return groups
+  }
+  const patternView = (key,facilities) => {
+    const sample=facilities[0], suggested=normalize(sample), protectedCount=facilities.filter(value=>overrides.has(value.toiletId)).length
+    const targetCount=facilities.length-protectedCount
+    return {patternKey:key,openTime:sample.openTime,openTimeDetail:sample.openTimeDetail,facilityCount:facilities.length,targetCount,protectedCount,sampleName:sample.name,status:targetCount===0?'CONFIRMED':suggested.status,suggested}
+  }
   return createServer(async (request,response) => {
     const url = new URL(request.url,'http://127.0.0.1')
     if (request.method === 'GET' && url.pathname === '/') { response.writeHead(302,{...headers,Location:'/opening-hours.html'}); return response.end() }
     if (request.method === 'GET' && url.pathname === '/api/v1/auth/me') return json(response,200,{id:1,displayName:'프리뷰 관리자',roles:['ADMIN']})
+    if (request.method === 'GET' && url.pathname === '/api/admin/v1/opening-hours/patterns') {
+      const filter=url.searchParams.get('status')||'REVIEW', keyword=clean(url.searchParams.get('keyword')).toLocaleLowerCase('ko-KR')
+      const page=Math.max(0,Number(url.searchParams.get('page')||0)), size=Math.min(50,Math.max(1,Number(url.searchParams.get('size')||15)))
+      const patterns=[...patternGroups()].map(([key,facilities])=>patternView(key,facilities)).filter(value=>{
+        const matched=!keyword||[value.openTime,value.openTimeDetail,value.sampleName].some(field=>clean(field).toLocaleLowerCase('ko-KR').includes(keyword))
+        const state=filter==='ALL'||(filter==='REVIEW'?['REVIEW_REQUIRED','SOURCE_CHANGED'].includes(value.status):value.status===filter)
+        return matched&&state
+      }).sort((left,right)=>right.facilityCount-left.facilityCount||left.patternKey.localeCompare(right.patternKey))
+      const totalElements=patterns.length,totalPages=totalElements?Math.ceil(totalElements/size):0
+      return json(response,200,{items:patterns.slice(page*size,page*size+size),page,size,totalElements,totalPages})
+    }
+    const patternDetailMatch=url.pathname.match(/^\/api\/admin\/v1\/opening-hours\/patterns\/([a-f0-9]{64})$/)
+    if(request.method==='GET'&&patternDetailMatch){
+      const key=patternDetailMatch[1], facilities=patternGroups().get(key); if(!facilities)return json(response,404,{message:'개방시간 유형을 찾지 못했습니다.'})
+      return json(response,200,{pattern:patternView(key,facilities),facilities:facilities.slice(0,30).map(value=>({...value,...view(value),schedules:undefined}))})
+    }
+    if(request.method==='PUT'&&patternDetailMatch){
+      const key=patternDetailMatch[1], facilities=patternGroups().get(key); if(!facilities)return json(response,404,{message:'개방시간 유형을 찾지 못했습니다.'})
+      try{
+        const input=await body(request), targets=facilities.filter(value=>!overrides.has(value.toiletId))
+        const normalized={openingPolicy:input.openingPolicy,open24h:Boolean(input.open24h),status:'CONFIRMED',confidence:1,parserVersion:'v1-preview',holidayPolicy:input.holidayPolicy||'UNKNOWN',manualOverride:true,sourceChanged:false,schedules:Array.isArray(input.schedules)?input.schedules:[]}
+        targets.forEach(value=>overrides.set(value.toiletId,normalized))
+        return json(response,200,{patternKey:key,appliedCount:targets.length,protectedCount:facilities.length-targets.length})
+      }catch{return json(response,400,{message:'확정값 형식을 확인해 주세요.'})}
+    }
     if (request.method === 'GET' && url.pathname === '/api/admin/v1/opening-hours/reviews') {
       const filter = url.searchParams.get('status') || 'REVIEW', keyword = clean(url.searchParams.get('keyword')).toLocaleLowerCase('ko-KR')
       const page = Math.max(0,Number(url.searchParams.get('page')||0)), size = Math.min(50,Math.max(1,Number(url.searchParams.get('size')||15)))

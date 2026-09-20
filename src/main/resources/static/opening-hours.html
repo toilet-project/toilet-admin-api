@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>개방시간 검토 | 급똥 관리자</title>
+  <link rel="stylesheet" href="/dashboard.css?v=15" />
+  <link rel="stylesheet" href="/admin-shell.css?v=4" />
+  <link rel="stylesheet" href="/admin-session.css?v=1" />
+  <link rel="stylesheet" href="/opening-hours.css?v=1" />
+</head>
+<body class="admin-page opening-hours-page">
+  <main id="loading-shell" class="page-loading" hidden><span class="loading-spinner"></span><p>불러오는 중...</p></main>
+  <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
+
+  <main id="opening-hours-shell" class="dashboard-shell opening-hours-shell" data-admin-page="opening-hours" data-admin-title="개방시간 검토">
+    <header class="page-header opening-hours-page-header">
+      <div><p class="eyebrow">DATA QUALITY</p><h1>개방시간 유형 검토</h1><p>같은 공공데이터 원문을 유형으로 묶어 24시간 여부와 요일별 시간을 한 번에 확정합니다.</p></div>
+      <a class="secondary-link" href="/">운영 홈으로</a>
+    </header>
+
+    <section id="opening-hours-workspace" class="opening-hours-workspace" aria-busy="true">
+      <p id="opening-hours-status" class="opening-hours-status" role="status"><strong>유형 목록</strong><span>실제 데이터를 불러오는 중입니다.</span></p>
+      <div class="opening-hours-layout">
+        <section class="opening-hours-list-pane" aria-label="개방시간 검토 목록">
+          <header class="opening-hours-list-head">
+            <div><small>REVIEW QUEUE</small><strong>검토할 개방시간 유형</strong></div>
+            <select id="opening-hours-filter" aria-label="개방시간 판정 상태">
+              <option value="REVIEW">검토 대상 전체</option>
+              <option value="SOURCE_CHANGED">원문 변경</option>
+              <option value="PARSED">자동 판정</option>
+              <option value="CONFIRMED">관리자 확정</option>
+              <option value="ALL">전체</option>
+            </select>
+          </header>
+          <label class="opening-hours-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="opening-hours-keyword" type="search" placeholder="운영 구분·상세 원문 검색" autocomplete="off" /></label>
+          <div id="opening-hours-list" class="opening-hours-list" aria-live="polite"><div class="opening-hours-skeleton"></div><div class="opening-hours-skeleton"></div><div class="opening-hours-skeleton"></div></div>
+          <nav id="opening-hours-pages" class="opening-hours-pages" aria-label="개방시간 검토 페이지"></nav>
+        </section>
+        <section id="opening-hours-detail" class="opening-hours-detail"><div class="opening-hours-empty"><span>유형</span><strong>검토할 개방시간 유형을 선택해 주세요</strong><p>같은 원문을 쓰는 화장실 수와 자동 판정을 비교하고 한 번에 적용할 수 있습니다.</p></div></section>
+      </div>
+    </section>
+  </main>
+
+  <script src="/admin-shell.js?v=8"></script><script src="/admin-session.js?v=2"></script><script src="/opening-hours.js?v=1"></script>
+</body>
+</html>

@@ -92,6 +92,19 @@
 .opening-hours-actions p { margin: 0; color: #6c8176; font-size: 10px; }
 .opening-hours-actions button { min-width: 142px; height: 40px; border: 0; border-radius: 8px; color: #fff; background: #187d4a; font-size: 12px; font-weight: 800; cursor: pointer; }
 .opening-hours-actions button:disabled { opacity: .55; cursor: wait; }
+.opening-hours-history { margin: 0 18px 18px; border: 1px solid #dce8e0; border-radius: 11px; overflow: hidden; background: #fbfdfc; }
+.opening-hours-history header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #e3ece6; background: #f7faf8; }
+.opening-hours-history header small { color: #25704c; font-size: 9px; font-weight: 800; letter-spacing: 1.1px; }
+.opening-hours-history header h3 { margin: 2px 0 0; color: #183a2b; font-size: 13px; }
+.opening-hours-history header > span { color: #71847a; font-size: 10px; }
+.opening-hours-history ul { margin: 0; padding: 0; list-style: none; }
+.opening-hours-history li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-top: 1px solid #edf2ef; }
+.opening-hours-history li:first-child { border-top: 0; }
+.opening-hours-history li > span { display: grid; gap: 3px; }
+.opening-hours-history li strong { color: #29493b; font-size: 11px; }
+.opening-hours-history li small { color: #7a8c82; font-size: 9px; }
+.opening-hours-history li em { flex: 0 0 auto; color: #26764e; font-size: 10px; font-style: normal; font-weight: 700; }
+.opening-hours-history > p { margin: 0; padding: 16px 12px; color: #71847a; font-size: 11px; text-align: center; }
 .opening-hours-list-empty,.opening-hours-error { margin: 30px 12px; color: #72857b; font-size: 12px; text-align: center; }
 .opening-hours-error { color: #a44f3c; }
 @media (max-width: 1200px) { .opening-hours-layout { grid-template-columns: 330px minmax(620px,1fr); }.opening-hours-summary { grid-template-columns: 1fr 1fr; }.opening-hours-card.service { grid-column: span 2; } }

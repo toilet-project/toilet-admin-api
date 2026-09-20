@@ -50,6 +50,7 @@ export async function createPreview() {
   const source = JSON.parse(await readFile(samplePath,'utf8'))
   const rows = source.map(item => ({ ...item, ...normalize(item) }))
   const overrides = new Map()
+  const histories = new Map()
   const view = value => overrides.get(value.toiletId) || { openingPolicy:value.openingPolicy,open24h:value.open24h,status:value.status,confidence:value.confidence,parserVersion:value.parserVersion,holidayPolicy:value.holidayPolicy,manualOverride:value.manualOverride,sourceChanged:value.sourceChanged,schedules:value.schedules }
   const patternGroups = () => {
     const groups = new Map()
@@ -79,7 +80,8 @@ export async function createPreview() {
     const patternDetailMatch=url.pathname.match(/^\/api\/admin\/v1\/opening-hours\/patterns\/([a-f0-9]{64})$/)
     if(request.method==='GET'&&patternDetailMatch){
       const key=patternDetailMatch[1], facilities=patternGroups().get(key); if(!facilities)return json(response,404,{message:'개방시간 유형을 찾지 못했습니다.'})
-      return json(response,200,{pattern:patternView(key,facilities),facilities:facilities.slice(0,30).map(value=>({...value,...view(value),schedules:undefined}))})
+      const confirmed=facilities.map(value=>overrides.get(value.toiletId)).find(Boolean)||null
+      return json(response,200,{pattern:patternView(key,facilities),confirmed,facilities:facilities.slice(0,30).map(value=>({...value,...view(value),schedules:undefined})),history:histories.get(key)||[]})
     }
     if(request.method==='PUT'&&patternDetailMatch){
       const key=patternDetailMatch[1], facilities=patternGroups().get(key); if(!facilities)return json(response,404,{message:'개방시간 유형을 찾지 못했습니다.'})
@@ -87,6 +89,9 @@ export async function createPreview() {
         const input=await body(request), targets=facilities.filter(value=>!overrides.has(value.toiletId))
         const normalized={openingPolicy:input.openingPolicy,open24h:Boolean(input.open24h),status:'CONFIRMED',confidence:1,parserVersion:'v1-preview',holidayPolicy:input.holidayPolicy||'UNKNOWN',manualOverride:true,sourceChanged:false,schedules:Array.isArray(input.schedules)?input.schedules:[]}
         targets.forEach(value=>overrides.set(value.toiletId,normalized))
+        const history=histories.get(key)||[]
+        history.unshift({id:Date.now(),actorUserId:1,createdAt:new Date().toISOString().slice(0,19),detailJson:JSON.stringify({patternKey:key,appliedCount:targets.length,protectedCount:facilities.length-targets.length,openingPolicy:normalized.openingPolicy,open24h:normalized.open24h,holidayPolicy:normalized.holidayPolicy,scheduleCount:normalized.schedules.length})})
+        histories.set(key,history.slice(0,10))
         return json(response,200,{patternKey:key,appliedCount:targets.length,protectedCount:facilities.length-targets.length})
       }catch{return json(response,400,{message:'확정값 형식을 확인해 주세요.'})}
     }

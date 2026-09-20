@@ -92,15 +92,33 @@ function normalizedText(item) {
   return POLICY_LABELS[item.openingPolicy] || '판정 필요'
 }
 
+function confirmedValue(detail) { return detail.confirmed || detail.pattern.suggested || {} }
+
+function historyMarkup(detail) {
+  const items = Array.isArray(detail.history) ? detail.history : []
+  const rows = items.map(entry => {
+    let value = {}
+    try { value = JSON.parse(entry.detailJson || '{}') } catch {}
+    const policy = value.open24h === true ? '24시간 운영' : (POLICY_LABELS[value.openingPolicy] || value.openingPolicy || '정책 미확인')
+    const holiday = HOLIDAY_LABELS[value.holidayPolicy] || value.holidayPolicy || '공휴일 확인 필요'
+    const applied = Number(value.appliedCount || 0).toLocaleString()
+    const protectedCount = Number(value.protectedCount || 0).toLocaleString()
+    const timestamp = String(entry.createdAt || '').replace('T',' ').slice(0,16) || '시간 정보 없음'
+    const actor = entry.actorUserId == null ? '시스템' : `관리자 #${Number(entry.actorUserId).toLocaleString()}`
+    return `<li><span><strong>${escapeHtml(policy)} · ${escapeHtml(holiday)}</strong><small>${escapeHtml(timestamp)} · ${escapeHtml(actor)}</small></span><em>${applied}개 적용 · ${protectedCount}개 보호</em></li>`
+  }).join('')
+  return `<section class="opening-hours-history"><header><div><small>CHANGE HISTORY</small><h3>변경 내역</h3></div><span>최근 ${items.length}건</span></header>${rows ? `<ul>${rows}</ul>` : '<p>이 유형의 관리자 변경 내역이 없습니다.</p>'}</section>`
+}
+
 function detailMarkup(detail) {
-  const item = detail.pattern, normalized = item.suggested || {}
+  const item = detail.pattern, normalized = confirmedValue(detail), confirmed = Boolean(detail.confirmed)
   const confidence = normalized.confidence == null ? '—' : `${Math.round(normalized.confidence * 100)}%`
   const facilities = detail.facilities.map(facility => `<li><span><strong>${escapeHtml(facility.name || '이름 없는 화장실')}</strong><small>${escapeHtml(address(facility))}</small></span>${facility.manualOverride ? '<em>기존 확정 보호</em>' : '<em class="target">일괄 적용 대상</em>'}</li>`).join('')
   return `<header class="opening-hours-detail-head"><div><span class="opening-hours-detail-kicker">OPENING HOURS TYPE</span><h2>${escapeHtml(rawText(item))}</h2><p>전체 ${Number(item.facilityCount).toLocaleString()}개 시설 · 이번 적용 ${Number(item.targetCount).toLocaleString()}개 · 기존 확정 보호 ${Number(item.protectedCount).toLocaleString()}개</p></div>${badge(item)}</header>
     ${item.status === 'SOURCE_CHANGED' ? '<p class="opening-hours-notice">일부 시설은 관리자 확정 이후 공공데이터 원문이 변경되었습니다. 기존 개별 확정값은 보호하고 나머지 대상에만 새 유형을 적용합니다.</p>' : ''}
     <section class="opening-hours-summary">
       <article class="opening-hours-card"><small>PUBLIC DATA SOURCE</small><h3>공공데이터 원문 유형</h3><dl><dt>운영 구분</dt><dd>${escapeHtml(item.openTime || '없음')}</dd><dt>운영 상세</dt><dd>${escapeHtml(item.openTimeDetail || '없음')}</dd></dl></article>
-      <article class="opening-hours-card auto"><small>NORMALIZED RESULT</small><h3>자동 해석 제안</h3><dl><dt>판정</dt><dd>${escapeHtml(normalizedText(normalized))}</dd><dt>신뢰도</dt><dd>${confidence}</dd><dt>파서</dt><dd>현재 정형 규칙</dd><dt>상태</dt><dd>${escapeHtml(STATUS_LABELS[item.status] || item.status)}</dd></dl></article>
+      <article class="opening-hours-card auto"><small>${confirmed ? 'CONFIRMED RESULT' : 'NORMALIZED RESULT'}</small><h3>${confirmed ? '현재 확정값' : '자동 해석 제안'}</h3><dl><dt>판정</dt><dd>${escapeHtml(normalizedText(normalized))}</dd><dt>공휴일</dt><dd>${escapeHtml(HOLIDAY_LABELS[normalized.holidayPolicy] || normalized.holidayPolicy || '확인 필요')}</dd><dt>신뢰도</dt><dd>${confidence}</dd><dt>상태</dt><dd>${escapeHtml(STATUS_LABELS[item.status] || item.status)}</dd></dl></article>
       <article class="opening-hours-card service"><small>APPLY SCOPE</small><h3>일괄 적용 범위</h3><dl><dt>전체 시설</dt><dd>${Number(item.facilityCount).toLocaleString()}개</dd><dt>적용 대상</dt><dd>${Number(item.targetCount).toLocaleString()}개</dd><dt>보호 제외</dt><dd>${Number(item.protectedCount).toLocaleString()}개</dd><dt>적용 기준</dt><dd>원문 완전 일치</dd></dl></article>
     </section>
     <section class="opening-hours-members"><header><div><small>AFFECTED FACILITIES</small><h3>이 유형을 사용하는 화장실</h3></div><span>최대 30개 표본</span></header><ul>${facilities}</ul></section>
@@ -113,7 +131,8 @@ function detailMarkup(detail) {
       </div>
       <section class="opening-hours-schedule"><div class="opening-hours-schedule-head"><span>요일</span><span>휴무</span><span>시작</span><span></span><span>종료</span></div><div id="opening-hours-days"></div></section>
       <footer class="opening-hours-actions"><p id="opening-hours-save-status">요일별 운영인 경우 실제 운영하는 요일과 시간을 선택해 주세요.</p><button id="opening-hours-save" type="submit">${Number(item.targetCount).toLocaleString()}개 시설에 적용</button></footer>
-    </form>`
+    </form>
+    ${historyMarkup(detail)}`
 }
 
 function renderDays(schedules = []) {
@@ -141,7 +160,7 @@ function syncFormState() {
 }
 
 function mountForm(detail) {
-  const value = detail.pattern.suggested || {}
+  const value = confirmedValue(detail)
   $('opening-policy').value = ['ALWAYS','SCHEDULED','IRREGULAR','CLOSED'].includes(value.openingPolicy) ? value.openingPolicy : 'SCHEDULED'
   const open24h = value.open24h === true
   document.querySelector(`[name="open24h"][value="${open24h}"]`).checked = true

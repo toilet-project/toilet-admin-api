@@ -1,0 +1,85 @@
+.opening-hours-page { overflow: hidden; }
+.opening-hours-shell { box-sizing: border-box; width: 100%; max-width: none; height: calc(100vh - 58px); padding: 20px 28px 22px; overflow: hidden; }
+.opening-hours-page-header { min-height: 74px; margin-bottom: 14px; }
+.opening-hours-page-header h1 { font-size: 30px; line-height: 1.18; }
+.opening-hours-page-header p:last-child { margin-top: 5px; color: #62776d; font-size: 13px; }
+.opening-hours-workspace { display: flex; min-height: 0; height: calc(100% - 88px); flex-direction: column; padding: 14px; border: 1px solid #dce8e0; border-radius: 13px; background: #fff; box-shadow: 0 8px 26px rgba(37,72,54,.035); }
+.opening-hours-status { display: flex; flex: 0 0 auto; align-items: baseline; gap: 10px; min-height: 35px; margin: 0; padding: 2px 3px 10px; color: #667a70; }
+.opening-hours-status strong { color: #18392b; font-size: 14px; }
+.opening-hours-status span { font-size: 12px; }
+.opening-hours-layout { display: grid; min-height: 0; flex: 1; grid-template-columns: minmax(330px, 390px) minmax(700px, 1fr); gap: 12px; }
+.opening-hours-list-pane,.opening-hours-detail { min-height: 0; border: 1px solid #cfe1d5; border-radius: 12px; background: #fbfdfc; overflow: hidden; }
+.opening-hours-list-pane { display: grid; grid-template-rows: auto auto minmax(0,1fr) auto; }
+.opening-hours-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 13px 10px; border-bottom: 1px solid #e2ece6; background: #fff; }
+.opening-hours-list-head div { display: grid; gap: 1px; }
+.opening-hours-list-head small,.opening-hours-detail-kicker,.opening-hours-card small { color: #25704c; font-size: 9px; font-weight: 800; letter-spacing: 1.15px; }
+.opening-hours-list-head strong { color: #17392a; font-size: 15px; }
+.opening-hours-list-head select { min-width: 140px; height: 37px; padding: 0 32px 0 11px; border: 1px solid #b9d4c2; border-radius: 8px; color: #284b3b; background: #fff; font-size: 12px; font-weight: 700; }
+.opening-hours-search { display: flex; align-items: center; gap: 8px; margin: 10px; padding: 0 11px; border: 1px solid #c4dacc; border-radius: 8px; background: #fff; }
+.opening-hours-search:focus-within { border-color: #278256; box-shadow: 0 0 0 3px rgba(39,130,86,.09); }
+.opening-hours-search svg { width: 17px; fill: none; stroke: #6d8277; stroke-width: 1.7; }
+.opening-hours-search input { min-width: 0; width: 100%; height: 39px; border: 0; outline: 0; color: #17372a; background: transparent; font-size: 12px; }
+.opening-hours-list { min-height: 0; padding: 0 9px 9px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #a9bdb1 transparent; }
+.opening-hours-item { display: grid; width: 100%; gap: 5px; margin-bottom: 6px; padding: 10px 11px; border: 1px solid #dde8e1; border-radius: 9px; color: inherit; background: #fff; text-align: left; cursor: pointer; }
+.opening-hours-item:hover { border-color: #a9ccb6; }
+.opening-hours-item[aria-pressed="true"] { border-color: #35875d; background: #eef7f1; box-shadow: inset 3px 0 #278252; }
+.opening-hours-item-head { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.opening-hours-item-head strong { min-width: 0; flex: 1; overflow: hidden; color: #17382a; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.opening-hours-badge { flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; background: #edf2ef; color: #536a5e; font-size: 9px; font-weight: 800; }
+.opening-hours-badge.review,.opening-hours-badge.changed { background: #fff0dd; color: #a45b13; }
+.opening-hours-badge.confirmed { background: #e7f4ea; color: #24754c; }
+.opening-hours-item-source { overflow: hidden; color: #526a5e; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.opening-hours-item-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #809087; font-size: 10px; }
+.opening-hours-skeleton { height: 69px; margin-bottom: 6px; border-radius: 9px; background: linear-gradient(90deg,#f0f4f2 20%,#fafcfb 45%,#f0f4f2 70%); background-size: 220% 100%; animation: opening-shimmer 1.2s infinite; }
+@keyframes opening-shimmer { to { background-position: -220% 0; } }
+.opening-hours-pages { display: flex; min-height: 49px; align-items: center; justify-content: center; gap: 3px; padding: 7px; border-top: 1px solid #e2ece6; background: #fff; }
+.opening-hours-pages button { display: grid; width: 31px; height: 31px; place-items: center; border: 0; border-radius: 8px; color: #597064; background: transparent; cursor: pointer; }
+.opening-hours-pages button:hover:not(:disabled) { background: #eef5f1; }
+.opening-hours-pages button[aria-current="page"] { color: #fff; background: #247d51; font-weight: 800; }
+.opening-hours-pages button:disabled:not([aria-current]) { opacity: .3; }
+.opening-hours-pages svg { width: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.opening-hours-detail { overflow-y: auto; background: #fff; }
+.opening-hours-empty { display: grid; min-height: 100%; place-content: center; justify-items: center; gap: 8px; color: #72867c; text-align: center; }
+.opening-hours-empty span { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 13px; background: #eaf4ed; color: #297a51; font-size: 11px; font-weight: 800; }
+.opening-hours-empty strong { color: #29483a; font-size: 16px; }
+.opening-hours-empty p { max-width: 430px; margin: 0; font-size: 12px; }
+.opening-hours-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 17px 18px 13px; border-bottom: 1px solid #e2ebe5; }
+.opening-hours-detail-head h2 { margin: 3px 0 0; color: #16382a; font-size: 21px; }
+.opening-hours-detail-head p { margin: 5px 0 0; color: #6b7f75; font-size: 11px; }
+.opening-hours-notice { margin: 13px 18px 0; padding: 10px 12px; border: 1px solid #f0cba1; border-radius: 9px; color: #88501b; background: #fff8ee; font-size: 11px; }
+.opening-hours-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; padding: 13px 18px; }
+.opening-hours-card { min-width: 0; padding: 12px; border: 1px solid #dce8e0; border-radius: 10px; background: #fbfdfc; }
+.opening-hours-card.auto { border-color: #c9dfd0; background: #f5faf7; }
+.opening-hours-card.service { border-color: #ead9c9; background: #fffaf5; }
+.opening-hours-card h3 { margin: 3px 0 9px; color: #173a2a; font-size: 14px; }
+.opening-hours-card dl { display: grid; grid-template-columns: 55px minmax(0,1fr); gap: 5px 8px; margin: 0; font-size: 11px; }
+.opening-hours-card dt { color: #819087; }
+.opening-hours-card dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: #395548; font-weight: 600; }
+.opening-hours-form { margin: 0 18px 18px; border: 1px solid #d6e5dc; border-radius: 11px; overflow: hidden; }
+.opening-hours-form-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; border-bottom: 1px solid #e0ebe4; background: #f7faf8; }
+.opening-hours-form-head h3 { margin: 0; color: #183a2b; font-size: 14px; }
+.opening-hours-form-head span { color: #71847a; font-size: 10px; }
+.opening-hours-controls { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; padding: 12px 13px; }
+.opening-hours-field { display: grid; gap: 5px; color: #63796e; font-size: 10px; font-weight: 700; }
+.opening-hours-field select { width: 100%; height: 38px; padding: 0 10px; border: 1px solid #c8dbcf; border-radius: 8px; color: #244638; background: #fff; font-size: 12px; }
+.opening-hours-radio { display: flex; min-height: 38px; align-items: center; gap: 13px; padding: 0 10px; border: 1px solid #c8dbcf; border-radius: 8px; background: #fff; }
+.opening-hours-radio label { display: flex; align-items: center; gap: 5px; color: #304f40; font-size: 11px; }
+.opening-hours-schedule { border-top: 1px solid #e4ece7; }
+.opening-hours-schedule-head,.opening-hours-day { display: grid; grid-template-columns: 80px 80px minmax(105px,1fr) 24px minmax(105px,1fr); align-items: center; gap: 9px; padding: 8px 13px; }
+.opening-hours-schedule-head { color: #7b8d84; background: #fbfdfc; font-size: 9px; font-weight: 800; }
+.opening-hours-day { border-top: 1px solid #edf2ef; }
+.opening-hours-day:first-of-type { border-top: 0; }
+.opening-hours-day > label { display: flex; align-items: center; gap: 7px; color: #294c3c; font-size: 11px; font-weight: 700; }
+.opening-hours-day .closed { color: #6a7e74; font-weight: 500; }
+.opening-hours-day input[type="time"] { height: 33px; padding: 0 8px; border: 1px solid #cdded3; border-radius: 7px; color: #294a3b; background: #fff; font-size: 11px; }
+.opening-hours-day input:disabled { opacity: .42; background: #f2f5f3; }
+.opening-hours-day i { color: #97a69e; font-style: normal; text-align: center; }
+.opening-hours-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 13px; border-top: 1px solid #dce8e0; background: #f8fbf9; }
+.opening-hours-actions p { margin: 0; color: #6c8176; font-size: 10px; }
+.opening-hours-actions button { min-width: 142px; height: 40px; border: 0; border-radius: 8px; color: #fff; background: #187d4a; font-size: 12px; font-weight: 800; cursor: pointer; }
+.opening-hours-actions button:disabled { opacity: .55; cursor: wait; }
+.opening-hours-list-empty,.opening-hours-error { margin: 30px 12px; color: #72857b; font-size: 12px; text-align: center; }
+.opening-hours-error { color: #a44f3c; }
+@media (max-width: 1200px) { .opening-hours-layout { grid-template-columns: 330px minmax(620px,1fr); }.opening-hours-summary { grid-template-columns: 1fr 1fr; }.opening-hours-card.service { grid-column: span 2; } }
+@media (max-width: 900px) { .opening-hours-page { overflow: auto; }.opening-hours-shell { height: auto; min-height: calc(100vh - 58px); overflow: visible; }.opening-hours-workspace { height: auto; }.opening-hours-layout { grid-template-columns: 1fr; }.opening-hours-list-pane { height: 500px; }.opening-hours-detail { min-height: 700px; }.opening-hours-controls { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .opening-hours-shell { padding: 14px 10px 20px; }.opening-hours-summary { grid-template-columns: 1fr; }.opening-hours-card.service { grid-column: auto; }.opening-hours-schedule-head { display: none; }.opening-hours-day { grid-template-columns: 1fr 1fr; }.opening-hours-day input[type="time"] { width: 100%; box-sizing: border-box; }.opening-hours-day i { display: none; }.opening-hours-actions { align-items: stretch; flex-direction: column; }.opening-hours-actions button { width: 100%; } }

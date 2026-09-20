@@ -1,0 +1,434 @@
+[
+  {
+    "toiletId": 6,
+    "name": "창신1동 주민센터",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 지봉로 8-6",
+    "jibunAddress": "서울특별시 종로구 창신동 401-3",
+    "openTime": "정시",
+    "openTimeDetail": "09:00~18:00"
+  },
+  {
+    "toiletId": 3,
+    "name": "쌈지길(지하1층)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 인사동길 44",
+    "jibunAddress": "서울특별시 종로구 관훈동 38",
+    "openTime": "정시",
+    "openTimeDetail": "10:30-20:30"
+  },
+  {
+    "toiletId": 2,
+    "name": "창덕공원",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 권농동 31",
+    "jibunAddress": "서울특별시 종로구 권농동 31",
+    "openTime": "정시",
+    "openTimeDetail": "9시간"
+  },
+  {
+    "toiletId": 8,
+    "name": "광장시장 나들이 쉼터",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 종로32길 19",
+    "jibunAddress": "서울특별시 종로구 종로5가 395-12",
+    "openTime": "정시",
+    "openTimeDetail": "08:00~21:00"
+  },
+  {
+    "toiletId": 4,
+    "name": "올림픽기념국민생활관",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 성균관로 91",
+    "jibunAddress": "서울특별시 종로구 혜화동 1-21",
+    "openTime": "정시",
+    "openTimeDetail": "월-금06:00~22:00 토-일09:00~18:00 공휴일 휴관"
+  },
+  {
+    "toiletId": 7,
+    "name": "흥사단",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 대학로 122",
+    "jibunAddress": "서울특별시 종로구 동숭동 1-28",
+    "openTime": "정시",
+    "openTimeDetail": "06:00-22:00"
+  },
+  {
+    "toiletId": 1,
+    "name": "사직단 공중화장실(사직공원)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 사직동 1-28",
+    "jibunAddress": "서울특별시 종로구 사직동 1-28",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 10,
+    "name": "유림회관(성균관)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 성균관로 31",
+    "jibunAddress": "서울특별시 종로구 명륜3가53",
+    "openTime": "정시",
+    "openTimeDetail": "07:00~22:00"
+  },
+  {
+    "toiletId": 5,
+    "name": "신영동 빗물저류조 내 공중화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 신영동 123-1",
+    "jibunAddress": "서울특별시 종로구 신영동 123-1",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 9,
+    "name": "서울자유시민대학 화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 송월길 52",
+    "jibunAddress": "서울특별시 종로구 송월동 1-1 국립기상박물관",
+    "openTime": "정시",
+    "openTimeDetail": "09~18"
+  },
+  {
+    "toiletId": 11,
+    "name": "색실문양누비공방",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 북촌로12길 17",
+    "jibunAddress": "서울특별시 종로구 가회동 11-103",
+    "openTime": "정시",
+    "openTimeDetail": "10:00-18:00+ 월요일휴관"
+  },
+  {
+    "toiletId": 20,
+    "name": "서울대학교 외래암센터내",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 대학로 101",
+    "jibunAddress": "서울특별시 종로구 연건동 28-21",
+    "openTime": "정시",
+    "openTimeDetail": "월-금(05:00-24:00), 토(05:00-17:00), 일 휴무"
+  },
+  {
+    "toiletId": 14,
+    "name": "부암동 주민센터화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 창의문로 145",
+    "jibunAddress": "서울특별시 종로구 부암동 265-21",
+    "openTime": "정시",
+    "openTimeDetail": "9시간"
+  },
+  {
+    "toiletId": 17,
+    "name": "토포하우스",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 인사동11길 6",
+    "jibunAddress": "서울특별시 종로구 관훈동 184",
+    "openTime": "정시",
+    "openTimeDetail": "10:00-19:00"
+  },
+  {
+    "toiletId": 19,
+    "name": "동묘시장공중화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 종로58길 27",
+    "jibunAddress": "서울특별시 종로구 숭인동 236-2외1",
+    "openTime": "정시",
+    "openTimeDetail": "09 ~ 18시"
+  },
+  {
+    "toiletId": 18,
+    "name": "인사동홍보관",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 인사동11길 19",
+    "jibunAddress": "서울특별시 종로구 견지동 85-18",
+    "openTime": "정시",
+    "openTimeDetail": "10:00~22:00, 일 휴무"
+  },
+  {
+    "toiletId": 16,
+    "name": "창이놀이터",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 창신동 622-12",
+    "jibunAddress": "서울특별시 종로구 창신동 622-12",
+    "openTime": "정시",
+    "openTimeDetail": "09:00-16:00/월~금"
+  },
+  {
+    "toiletId": 12,
+    "name": "무악동배드민턴장 공중화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 통일로18가길 46",
+    "jibunAddress": "서울특별시 종로구 무악동 48",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 13,
+    "name": "종로4가",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 창경궁로 지하 81",
+    "jibunAddress": "서울특별시 종로구 예지동 187-2",
+    "openTime": "정시",
+    "openTimeDetail": "06~22"
+  },
+  {
+    "toiletId": 15,
+    "name": "북촌마을안내소공중화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 북촌로5길 48",
+    "jibunAddress": "서울특별시 종로구 화동 2",
+    "openTime": "정시",
+    "openTimeDetail": "07:30~21:00"
+  },
+  {
+    "toiletId": 24,
+    "name": "인왕산 청운지구(1)(서시정 화장실)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 청운동 7-2",
+    "jibunAddress": "서울특별시 종로구 청운동 7-2",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 26,
+    "name": "이화동한복(김영희 한복대여)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 율곡로19길 71-1",
+    "jibunAddress": "서울특별시 종로구 이화동 9-303",
+    "openTime": "정시",
+    "openTimeDetail": "10:00~17:00"
+  },
+  {
+    "toiletId": 21,
+    "name": "북촌발효공방(빚담)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 가회동 11-39",
+    "jibunAddress": "서울특별시 종로구 북촌로12길 5-12",
+    "openTime": "정시",
+    "openTimeDetail": "10:00~17:00"
+  },
+  {
+    "toiletId": 23,
+    "name": "신문로빌딩",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 새문안로 38",
+    "jibunAddress": "서울특별시 종로구 신문로2가 12-5",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 25,
+    "name": "명륜와룡공영주차장",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 명륜길 26",
+    "jibunAddress": "서울특별시 종로구 명륜3가 1-21",
+    "openTime": "정시",
+    "openTimeDetail": "08:00~18:30"
+  },
+  {
+    "toiletId": 22,
+    "name": "종묘광장",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 훈정동 2",
+    "jibunAddress": "서울특별시 종로구 훈정동 2",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 27,
+    "name": "북악팔각정 공중화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 북악산로 267",
+    "jibunAddress": "서울특별시 종로구 평창동 산 6-17",
+    "openTime": "정시",
+    "openTimeDetail": "11:00~23:00"
+  },
+  {
+    "toiletId": 28,
+    "name": "와룡공원(관리실옆)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 혜화동 산2-13",
+    "jibunAddress": "서울특별시 종로구 혜화동 산2-13",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 30,
+    "name": "청운효자동주민센터",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 자하문로 92",
+    "jibunAddress": "서울특별시 종로구 궁정동 12-1",
+    "openTime": "정시",
+    "openTimeDetail": "09:00~18:00"
+  },
+  {
+    "toiletId": 29,
+    "name": "동대문 신발상가 A동  3층, 6층",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 청계천로 295",
+    "jibunAddress": "서울특별시 종로구 창신동 436-79",
+    "openTime": "정시",
+    "openTimeDetail": "10:00-05:00"
+  },
+  {
+    "toiletId": 31,
+    "name": "창신역(6)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 창신동 20-8 창신역",
+    "jibunAddress": "서울특별시 종로구 창신동 2",
+    "openTime": "정시",
+    "openTimeDetail": "05~24"
+  },
+  {
+    "toiletId": 32,
+    "name": "광장시장 동문 앞 공중화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 동호로 401",
+    "jibunAddress": "서울특별시 종로구 종로5가 398",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 35,
+    "name": "종오지하상가 화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 종로 지하 200",
+    "jibunAddress": "서울특별시 종로구 종로5가 82-1 종오지하쇼핑센터",
+    "openTime": "정시",
+    "openTimeDetail": "06:00~24:00"
+  },
+  {
+    "toiletId": 37,
+    "name": "인사동마루 신관",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 인사동길 35-4",
+    "jibunAddress": "서울특별시 종로구 관훈동 192-15",
+    "openTime": "정시",
+    "openTimeDetail": "10:30~18:30"
+  },
+  {
+    "toiletId": 39,
+    "name": "종각",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 종로 지하 73",
+    "jibunAddress": "서울특별시 종로구 종로2가 1-2",
+    "openTime": "정시",
+    "openTimeDetail": "05~24"
+  },
+  {
+    "toiletId": 34,
+    "name": "계동교회",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 계동길 81",
+    "jibunAddress": "서울특별시 종로구 계동 74-1",
+    "openTime": "정시",
+    "openTimeDetail": "06:00-22:00"
+  },
+  {
+    "toiletId": 36,
+    "name": "종묘공영주차장(주차시설운영처)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 훈정동 2",
+    "jibunAddress": "서울특별시 종로구 훈정동 1-2",
+    "openTime": "정시",
+    "openTimeDetail": "00~24"
+  },
+  {
+    "toiletId": 38,
+    "name": "광장시장 3층 별관포목부",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 창경궁로 88",
+    "jibunAddress": "서울특별시 종로구 예지동 2-1",
+    "openTime": "정시",
+    "openTimeDetail": "08:00-19:00+일요일폐쇄"
+  },
+  {
+    "toiletId": 33,
+    "name": "GS25 상명대점",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 홍지문2길 16",
+    "jibunAddress": "서울특별시 종로구 홍지동 62-5",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 42,
+    "name": "동대문신발상가 B동, 3층",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 청계천로307, 3층 동편계단",
+    "jibunAddress": "서울특별시 종로구 창신동436-73",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 46,
+    "name": "숭인1지역 공중화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 동망산1길 24",
+    "jibunAddress": "서울특별시 종로구 숭인1동 56-144",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 49,
+    "name": "운현궁 화장실",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 삼일대로 464",
+    "jibunAddress": "서울특별시 종로구 운니동 114-10 운현궁",
+    "openTime": "정시",
+    "openTimeDetail": "09 ~ 18"
+  },
+  {
+    "toiletId": 55,
+    "name": "인왕산 누상지구 공중화장실(인왕 배드민턴장)",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 누상동 산1-38",
+    "jibunAddress": "서울특별시 종로구 누상동 산1-38",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 59,
+    "name": "낙산공원 중앙광장",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 낙산길 54",
+    "jibunAddress": "서울특별시 종로구 동숭동 50-111",
+    "openTime": "정시",
+    "openTimeDetail": "00~24"
+  },
+  {
+    "toiletId": 63,
+    "name": "원서공원",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 원서동 181",
+    "jibunAddress": "서울특별시 종로구 원서동 181",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 72,
+    "name": "숭인1동 주민센터",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 지봉로 86",
+    "jibunAddress": "서울특별시 종로구 숭인동 55-2",
+    "openTime": "정시",
+    "openTimeDetail": "09:00~18:00"
+  },
+  {
+    "toiletId": 76,
+    "name": "주식회사 대양씨앤씨 경복궁주유소",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 율곡로 6",
+    "jibunAddress": "서울특별시 종로구 중학동 14",
+    "openTime": "상시",
+    "openTimeDetail": ""
+  },
+  {
+    "toiletId": 79,
+    "name": "여전도회관",
+    "managementNumber": null,
+    "roadAddress": "서울특별시 종로구 율곡로 190",
+    "jibunAddress": "서울특별시 종로구 연지동 1-1",
+    "openTime": "정시",
+    "openTimeDetail": "06:00-23:00"
+  }
+]

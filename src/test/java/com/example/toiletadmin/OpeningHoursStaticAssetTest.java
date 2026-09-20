@@ -9,6 +9,7 @@ class OpeningHoursStaticAssetTest {
     @Test
     void reviewWorkspaceExposesSourceDecisionScheduleAndNavigation() throws Exception {
         String html = resource("/static/opening-hours.html");
+        String home = resource("/static/index.html");
         String script = resource("/static/opening-hours.js");
         String shell = resource("/static/admin-shell.js");
 
@@ -26,6 +27,9 @@ class OpeningHoursStaticAssetTest {
                 .contains("'/opening-hours.html','개방시간 검토'")
                 .contains("'/opening-hours'")
                 .contains("'opening-hours.css'");
+        assertThat(home)
+                .contains("href=\"/opening-hours.html\"")
+                .contains("id=\"icon-clock\"");
     }
 
     private String resource(String path) throws Exception {

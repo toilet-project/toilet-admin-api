@@ -135,8 +135,11 @@ function syncDisplayGroupComposer() {
   if (!activeDisplayGroupId && exactGroup) activeDisplayGroupId = Number(groupIds[0])
   const activeGroup = activeDisplayGroupId ? groupMembers(activeDisplayGroupId) : []
   const activeGroupName = activeGroup[0]?.displayGroupName || ''
+  const activeGroupEnglishName = activeGroup[0]?.displayGroupTranslations?.en || ''
   const nameInput = el('display-group-name')
   if (activeDisplayGroupId && nameInput && !nameInput.value && document.activeElement !== nameInput) nameInput.value = activeGroupName
+  const englishNameInput = el('display-group-name-en')
+  if (activeDisplayGroupId && englishNameInput && !englishNameInput.value && document.activeElement !== englishNameInput) englishNameInput.value = activeGroupEnglishName
   const saveButton = el('save-display-group')
   if (saveButton) {
     saveButton.disabled = QUALITY_PREVIEW || selected.length < 2 || !nameInput?.value.trim()
@@ -162,6 +165,7 @@ function bindDisplayGroupControls(group) {
     const members = groupMembers(activeDisplayGroupId)
     selectedToiletIds = new Set(members.map((item) => item.id))
     el('display-group-name').value = members[0]?.displayGroupName || ''
+    el('display-group-name-en').value = members[0]?.displayGroupTranslations?.en || ''
     syncDisplayGroupComposer()
   }))
   el('quality-select-all').addEventListener('change', (event) => {
@@ -172,9 +176,11 @@ function bindDisplayGroupControls(group) {
     selectedToiletIds = new Set()
     activeDisplayGroupId = null
     el('display-group-name').value = ''
+    el('display-group-name-en').value = ''
     syncDisplayGroupComposer()
   })
   el('display-group-name').addEventListener('input', syncDisplayGroupComposer)
+  el('display-group-name-en').addEventListener('input', syncDisplayGroupComposer)
   el('save-display-group').addEventListener('click', () => void saveDisplayGroup(group))
   el('delete-display-group').addEventListener('click', () => void deleteDisplayGroup(group))
   syncDisplayGroupComposer()
@@ -228,7 +234,7 @@ async function selectGroup(groupKey) {
         <div class="quality-list-label"><strong>등록 화장실</strong><span>체크한 항목을 하나의 이름으로 묶을 수 있습니다.</span></div>
         <section class="quality-display-group-box" aria-label="지도 노출 그룹 지정">
           <div class="quality-selection-bar"><label><input id="quality-select-all" type="checkbox" /><span>전체 선택</span></label><strong id="quality-selection-count">선택 없음</strong><button id="clear-toilet-selection" type="button">선택 해제</button></div>
-          <div class="quality-display-group-form"><input id="display-group-name" maxlength="100" placeholder="지도에 표시할 이름 (예: XXX문화원)" /><button id="save-display-group" type="button" disabled>그룹 지정</button></div>
+          <div class="quality-display-group-form"><input id="display-group-name" maxlength="100" placeholder="한국어 그룹명 (예: XXX문화원)" /><input id="display-group-name-en" maxlength="100" lang="en" placeholder="영문 그룹명 (선택)" /><button id="save-display-group" type="button" disabled>그룹 지정</button></div>
           <div class="quality-display-group-help"><p id="display-group-hint">함께 표시할 화장실을 2개 이상 선택하세요.</p><button id="delete-display-group" type="button" hidden>그룹 해제</button></div>
         </section>
         <div class="quality-toilets">${data.toilets.map(toiletMarkup).join('')}</div>
@@ -268,6 +274,7 @@ async function refreshWorkingGroup(key, expectedSequence = groupRequestSequence)
 async function saveDisplayGroup(group) {
   const workingSequence = groupRequestSequence
   const displayName = el('display-group-name').value.trim()
+  const englishDisplayName = el('display-group-name-en').value.trim()
   const toiletIds = [...selectedToiletIds]
   if (toiletIds.length < 2 || !displayName) return
   const button = el('save-display-group')
@@ -277,7 +284,7 @@ async function saveDisplayGroup(group) {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayGroupId: activeDisplayGroupId, displayName, toiletIds })
+      body: JSON.stringify({ displayGroupId: activeDisplayGroupId, displayName, englishDisplayName, toiletIds })
     })
     const payload = await response.json().catch(() => null)
     if (!response.ok) throw new Error(payload?.error?.message || payload?.message || '지도 노출 그룹을 저장하지 못했습니다.')
@@ -402,6 +409,7 @@ function coordinateMarkerOptions(point) {
       key,
       displayGroupId: toilet.displayGroupId || null,
       displayName: toilet.displayGroupName || toilet.name || '이름 없는 화장실',
+      englishDisplayName: toilet.displayGroupTranslations?.en || '',
       toilets: [toilet]
     })
   })
@@ -543,11 +551,12 @@ async function openCoordinateMarkerCard(point) {
       <div class="coordinate-marker-group-composer">
         <button id="coordinate-marker-select-all" class="is-secondary" type="button" aria-pressed="false">전체</button>
         <strong id="coordinate-marker-selection-count" title="현재 좌표를 보정 중인 화장실을 포함한 개수입니다.">1개 선택</strong>
-        <input id="coordinate-marker-group-name" maxlength="100" placeholder="그룹 이름" aria-label="새 확정 그룹 이름" />
+        <input id="coordinate-marker-group-name" maxlength="100" placeholder="한국어 그룹명" aria-label="새 확정 그룹 한국어 이름" />
+        <input id="coordinate-marker-group-name-en" maxlength="100" lang="en" placeholder="영문 그룹명 (선택)" aria-label="새 확정 그룹 영문 이름" />
         <button id="coordinate-marker-group-create" type="button" disabled>그룹 생성</button>
       </div>
     </div>
-    ${confirmedGroups.length ? `<div class="coordinate-marker-groups"><span>관리자 확정 그룹</span>${confirmedGroups.map((option) => `<article><div><strong>${escapeHtml(option.displayName)}</strong><small>${option.toilets.length.toLocaleString()}개 화장실</small></div><button data-coordinate-display-group="${option.displayGroupId}" type="button">이 그룹에 편입</button></article>`).join('')}</div>` : ''}
+    ${confirmedGroups.length ? `<div class="coordinate-marker-groups"><span>관리자 확정 그룹</span>${confirmedGroups.map((option) => `<article><div class="coordinate-marker-group-copy"><strong>${escapeHtml(option.displayName)}</strong><small>${option.toilets.length.toLocaleString()}개 화장실</small></div><div class="coordinate-marker-group-actions"><input data-coordinate-display-group-english="${option.displayGroupId}" maxlength="100" lang="en" placeholder="영문 그룹명" value="${escapeHtml(option.englishDisplayName)}" /><button data-save-display-group-english="${option.displayGroupId}" type="button">영문명 저장</button><button data-coordinate-display-group="${option.displayGroupId}" type="button">이 그룹에 편입</button></div></article>`).join('')}</div>` : ''}
     ${ordinaryToilets.length ? `<div class="coordinate-marker-toilets">${ordinaryToilets.map(coordinateMarkerToiletMarkup).join('')}</div>` : '<p class="coordinate-marker-empty">새 그룹으로 선택할 미지정 화장실이 없습니다.</p>'}`
   el('coordinate-marker-card-close').addEventListener('click', () => {
     clearCoordinateGroupSelection()
@@ -569,7 +578,16 @@ async function openCoordinateMarkerCard(point) {
     syncCoordinateMarkerGroupComposer()
   })
   el('coordinate-marker-group-name').addEventListener('input', syncCoordinateMarkerGroupComposer)
+  el('coordinate-marker-group-name-en').addEventListener('input', syncCoordinateMarkerGroupComposer)
   el('coordinate-marker-group-create').addEventListener('click', () => void createCoordinateDisplayGroup())
+  document.querySelectorAll('[data-save-display-group-english]').forEach((button) => {
+    if (QUALITY_PREVIEW) {
+      button.disabled = true
+      button.title = '실데이터 프리뷰에서는 저장하지 않습니다.'
+    } else {
+      button.addEventListener('click', () => void saveCoordinateDisplayGroupTranslation(Number(button.dataset.saveDisplayGroupEnglish), button))
+    }
+  })
   confirmedGroups.forEach((option) => {
     document.querySelector(`[data-coordinate-display-group="${option.displayGroupId}"]`)?.addEventListener('click', () => {
       clearCoordinateMarkerGroupSelection()
@@ -814,6 +832,7 @@ async function createCoordinateDisplayGroup() {
   const nameInput = el('coordinate-marker-group-name')
   if (!state || !state.markerCardPoint || !nameInput) return
   const displayName = nameInput.value.trim()
+  const englishDisplayName = el('coordinate-marker-group-name-en')?.value.trim() || ''
   const markerToiletIds = [...state.markerCardSelectedToiletIds]
   const direction = document.querySelector('[name="coordinate-marker-direction"]:checked')?.value
   if (!displayName || !markerToiletIds.length || !direction) return
@@ -832,6 +851,7 @@ async function createCoordinateDisplayGroup() {
       body: JSON.stringify({
         direction,
         displayName,
+        englishDisplayName,
         currentLatitude: state.toilet.latitude,
         currentLongitude: state.toilet.longitude,
         markerLatitude: state.markerCardPoint.latitude,
@@ -850,6 +870,33 @@ async function createCoordinateDisplayGroup() {
   } finally {
     buttons.forEach((button) => { button.disabled = false })
     if (el('coordinate-marker-group-create')) syncCoordinateMarkerGroupComposer()
+  }
+}
+
+async function saveCoordinateDisplayGroupTranslation(displayGroupId, button) {
+  const input = document.querySelector(`[data-coordinate-display-group-english="${displayGroupId}"]`)
+  if (!input || !button) return
+  const originalText = button.textContent
+  button.disabled = true
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/display-groups/${displayGroupId}/translation`, {
+      method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ englishDisplayName: input.value.trim() })
+    })
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null)
+      throw new Error(payload?.error?.message || payload?.message || '영문 그룹명을 저장하지 못했습니다.')
+    }
+    const englishDisplayName = input.value.trim()
+    coordinateEditorState?.markerCardPoint?.toilets
+      .filter((item) => Number(item.displayGroupId) === displayGroupId)
+      .forEach((item) => { item.displayGroupTranslations = englishDisplayName ? { ...(item.displayGroupTranslations || {}), en: englishDisplayName } : {} })
+    button.textContent = '저장됨'
+  } catch (error) {
+    window.alert(error.message)
+  } finally {
+    button.disabled = false
+    setTimeout(() => { if (button.isConnected) button.textContent = originalText }, 1200)
   }
 }
 

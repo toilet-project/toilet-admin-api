@@ -228,7 +228,7 @@ async function selectGroup(groupKey) {
         <div class="quality-list-label"><strong>등록 화장실</strong><span>체크한 항목을 하나의 이름으로 묶을 수 있습니다.</span></div>
         <section class="quality-display-group-box" aria-label="지도 노출 그룹 지정">
           <div class="quality-selection-bar"><label><input id="quality-select-all" type="checkbox" /><span>전체 선택</span></label><strong id="quality-selection-count">선택 없음</strong><button id="clear-toilet-selection" type="button">선택 해제</button></div>
-          <div class="quality-display-group-form"><input id="display-group-name" maxlength="100" placeholder="지도에 표시할 이름 (예: XXX문화원)" /><button id="save-display-group" type="button" disabled>그룹 지정</button></div>
+          <div class="quality-display-group-form"><input id="display-group-name" maxlength="100" placeholder="그룹명 (예: XXX문화원)" /><span class="quality-auto-translation">영문명 자동 생성</span><button id="save-display-group" type="button" disabled>그룹 지정</button></div>
           <div class="quality-display-group-help"><p id="display-group-hint">함께 표시할 화장실을 2개 이상 선택하세요.</p><button id="delete-display-group" type="button" hidden>그룹 해제</button></div>
         </section>
         <div class="quality-toilets">${data.toilets.map(toiletMarkup).join('')}</div>
@@ -402,6 +402,7 @@ function coordinateMarkerOptions(point) {
       key,
       displayGroupId: toilet.displayGroupId || null,
       displayName: toilet.displayGroupName || toilet.name || '이름 없는 화장실',
+      englishDisplayName: toilet.displayGroupTranslations?.en || '',
       toilets: [toilet]
     })
   })
@@ -543,11 +544,12 @@ async function openCoordinateMarkerCard(point) {
       <div class="coordinate-marker-group-composer">
         <button id="coordinate-marker-select-all" class="is-secondary" type="button" aria-pressed="false">전체</button>
         <strong id="coordinate-marker-selection-count" title="현재 좌표를 보정 중인 화장실을 포함한 개수입니다.">1개 선택</strong>
-        <input id="coordinate-marker-group-name" maxlength="100" placeholder="그룹 이름" aria-label="새 확정 그룹 이름" />
+        <input id="coordinate-marker-group-name" maxlength="100" placeholder="한국어 그룹명" aria-label="새 확정 그룹 한국어 이름" />
+        <span class="coordinate-marker-auto-translation">영문명 자동 생성</span>
         <button id="coordinate-marker-group-create" type="button" disabled>그룹 생성</button>
       </div>
     </div>
-    ${confirmedGroups.length ? `<div class="coordinate-marker-groups"><span>관리자 확정 그룹</span>${confirmedGroups.map((option) => `<article><div><strong>${escapeHtml(option.displayName)}</strong><small>${option.toilets.length.toLocaleString()}개 화장실</small></div><button data-coordinate-display-group="${option.displayGroupId}" type="button">이 그룹에 편입</button></article>`).join('')}</div>` : ''}
+    ${confirmedGroups.length ? `<div class="coordinate-marker-groups"><span>관리자 확정 그룹</span>${confirmedGroups.map((option) => `<article><div class="coordinate-marker-group-copy"><strong>${escapeHtml(option.displayName)}</strong><small lang="en">${escapeHtml(option.englishDisplayName || '영문명 생성 대기')}</small><small>${option.toilets.length.toLocaleString()}개 화장실</small></div><div class="coordinate-marker-group-actions"><button data-coordinate-display-group="${option.displayGroupId}" type="button">이 그룹에 편입</button></div></article>`).join('')}</div>` : ''}
     ${ordinaryToilets.length ? `<div class="coordinate-marker-toilets">${ordinaryToilets.map(coordinateMarkerToiletMarkup).join('')}</div>` : '<p class="coordinate-marker-empty">새 그룹으로 선택할 미지정 화장실이 없습니다.</p>'}`
   el('coordinate-marker-card-close').addEventListener('click', () => {
     clearCoordinateGroupSelection()

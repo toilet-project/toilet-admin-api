@@ -68,8 +68,9 @@
 .admin-page .quality-selection-bar input, .admin-page .quality-toilet-check input { width: 15px; height: 15px; margin: 0; accent-color: var(--admin-accent); cursor: pointer; }
 .admin-page .quality-selection-bar strong { margin-left: auto; color: var(--admin-accent); font-size: 10px; font-weight: 700; }
 .admin-page .quality-selection-bar button, .admin-page .quality-display-group-help button { padding: 0; border: 0; background: transparent; color: var(--admin-muted); font: inherit; font-size: 9px; text-decoration: underline; cursor: pointer; }
-.admin-page .quality-display-group-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.admin-page .quality-display-group-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; }
 .admin-page .quality-display-group-form input { min-width: 0; min-height: 35px; padding: 0 9px; border: 1px solid #cfe0d4; border-radius: 7px; background: #fff; color: var(--admin-text); font: inherit; font-size: 10.5px; }
+.admin-page .quality-auto-translation,.admin-page .coordinate-marker-auto-translation { color: #397254; font-size: 9px; font-weight: 700; white-space: nowrap; }
 .admin-page .quality-display-group-form button { min-height: 35px; padding: 0 11px; border: 1px solid var(--admin-accent); border-radius: 7px; background: var(--admin-accent); color: #fff; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
 .admin-page .quality-display-group-form button:disabled { border-color: #d7e1da; background: #dfe7e2; color: #86948b; cursor: default; }
 .admin-page .quality-display-group-help { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; }
@@ -142,7 +143,7 @@
 .admin-page .coordinate-marker-direction label:has(input:checked) { border-color: #72aa84; background: #eaf5ed; color: #14613a; box-shadow: inset 0 0 0 1px rgba(33,128,74,.07); }
 .admin-page .coordinate-marker-direction input { width: 13px; height: 13px; flex: 0 0 auto; margin: 0; accent-color: var(--admin-accent); cursor: pointer; }
 .admin-page .coordinate-marker-direction span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.admin-page .coordinate-marker-group-composer { display: grid; padding: 7px 9px 8px; border-top: 1px solid #e4ebe6; grid-template-columns: auto auto minmax(90px, 1fr) auto; align-items: center; gap: 5px; }
+.admin-page .coordinate-marker-group-composer { display: grid; padding: 7px 9px 8px; border-top: 1px solid #e4ebe6; grid-template-columns: auto auto repeat(2, minmax(90px, 1fr)) auto; align-items: center; gap: 5px; }
 .admin-page .coordinate-marker-group-composer button { min-height: 30px; padding: 0 9px; border: 1px solid var(--admin-accent); border-radius: 7px; background: var(--admin-accent); color: #fff; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
 .admin-page .coordinate-marker-group-composer button.is-secondary { border-color: #b7d1bf; background: #fff; color: var(--admin-accent); }
 .admin-page .coordinate-marker-group-composer button.is-secondary.is-selected { border-color: var(--admin-accent); background: #e9f5ed; }
@@ -153,7 +154,8 @@
 .admin-page .coordinate-marker-groups, .admin-page .coordinate-marker-toilets { display: grid; gap: 5px; padding: 7px 9px; }
 .admin-page .coordinate-marker-groups { border-bottom: 1px solid #e0e9e3; }
 .admin-page .coordinate-marker-groups > span { color: var(--admin-accent); font-size: 8.5px; font-weight: 800; }
-.admin-page .coordinate-marker-groups article { display: flex; min-width: 0; padding: 7px 8px; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid #e0e9e3; border-radius: 7px; background: #fff; }
+.admin-page .coordinate-marker-groups article { display: grid; min-width: 0; padding: 7px 8px; grid-template-columns: minmax(90px, .7fr) minmax(0, 1.3fr); align-items: center; gap: 8px; border: 1px solid #e0e9e3; border-radius: 7px; background: #fff; }
+.admin-page .coordinate-marker-group-actions { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 5px; }
 .admin-page .coordinate-marker-toilets > article { display: grid; min-width: 0; padding: 7px 8px; border: 1px solid #e0e9e3; border-radius: 7px; background: #fff; grid-template-columns: 17px minmax(0, 1fr); align-items: center; gap: 7px; }
 .admin-page .coordinate-marker-toilets > article.is-checked { border-color: #84b393; background: #f0f8f3; }
 .admin-page .coordinate-marker-groups article > div, .admin-page .coordinate-marker-toilets > article > div { min-width: 0; }
@@ -194,6 +196,9 @@
   .admin-page .coordinate-marker-group-composer > strong { text-align: left; }
   .admin-page .coordinate-marker-group-composer input { grid-column: 1 / 3; }
   .admin-page .coordinate-marker-group-composer #coordinate-marker-group-create { grid-column: 3; }
+  .admin-page .quality-display-group-form { grid-template-columns: 1fr; }
+  .admin-page .coordinate-marker-groups article { grid-template-columns: 1fr; }
+  .admin-page .coordinate-marker-group-actions { justify-content: stretch; }
   .admin-page .coordinate-marker-direction { grid-template-columns: 1fr; }
   .admin-page .coordinate-map-stage { min-height: 360px; }
   .admin-page .coordinate-editor { min-height: 700px; }

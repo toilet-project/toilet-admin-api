@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/dashboard.css?v=5" />
   <link rel="stylesheet" href="/admin-shell.css?v=4" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
-  <link rel="stylesheet" href="/service-analytics.css?v=1" />
+  <link rel="stylesheet" href="/service-analytics.css?v=2" />
 </head>
 <body class="admin-page analytics-page">
   <main id="loading-shell" class="page-loading" hidden><span class="loading-spinner"></span><p>불러오는 중...</p></main>
@@ -30,21 +30,21 @@
     </aside>
 
     <section class="analytics-kpi-grid" aria-label="핵심 지표">
-      <article><span>활성 사용자</span><strong id="analytics-kpi-active">—</strong><em id="analytics-kpi-change">이전 기간 비교</em></article>
+      <article title="IP 대역과 브라우저 정보로 익명 추정한 값입니다. 동일 환경의 여러 사람이 한 명으로 묶일 수 있습니다."><span>추정 방문자</span><strong id="analytics-kpi-active">—</strong><em id="analytics-kpi-change">이전 기간 비교</em></article>
       <article><span>페이지뷰</span><strong id="analytics-kpi-views">—</strong><em id="analytics-kpi-views-user">사용자당 —</em></article>
       <article><span>세션</span><strong id="analytics-kpi-sessions">—</strong><em id="analytics-kpi-engagement">참여율 —</em></article>
-      <article><span>평균 참여 시간</span><strong id="analytics-kpi-time">—</strong><em>활성 사용자 기준</em></article>
+      <article><span>평균 참여 시간</span><strong id="analytics-kpi-time">—</strong><em>추정 방문자 기준</em></article>
       <article><span>주요 이벤트</span><strong id="analytics-kpi-events">—</strong><em id="analytics-kpi-new">신규 사용자 —</em></article>
     </section>
 
     <section class="analytics-main-grid">
       <article class="analytics-panel analytics-trend-panel">
-        <header><div><p class="analytics-label">AUDIENCE TREND</p><h2>사용자와 조회 추이</h2></div><div class="analytics-legend"><span><i data-tone="green"></i>활성 사용자</span><span><i data-tone="mint"></i>페이지뷰</span></div></header>
+        <header><div><p class="analytics-label">AUDIENCE TREND</p><h2>방문자와 조회 추이</h2></div><div class="analytics-legend"><span><i data-tone="green"></i>추정 방문자</span><span><i data-tone="mint"></i>페이지뷰</span></div></header>
         <div id="analytics-trend-chart" class="analytics-trend-chart" aria-live="polite"><span class="analytics-skeleton"></span></div>
       </article>
       <article class="analytics-panel analytics-realtime-panel">
         <header><div><p class="analytics-label">REALTIME</p><h2>최근 30분</h2></div><span class="analytics-live-badge"><i></i>LIVE</span></header>
-        <div class="analytics-realtime-value"><strong id="analytics-live-users">—</strong><span>활성 사용자</span></div>
+        <div class="analytics-realtime-value"><strong id="analytics-live-users">—</strong><span>추정 방문자</span></div>
         <dl><div><dt>조회</dt><dd id="analytics-live-views">—</dd></div><div><dt>이벤트</dt><dd id="analytics-live-events">—</dd></div><div><dt>주요 이벤트</dt><dd id="analytics-live-key-events">—</dd></div></dl>
         <p id="analytics-realtime-note">실시간 집계를 확인하고 있습니다.</p>
       </article>
@@ -52,7 +52,7 @@
 
     <section class="analytics-two-column">
       <article class="analytics-panel"><header><div><p class="analytics-label">CONTENT</p><h2>인기 페이지</h2></div><span>상위 7개</span></header><div class="analytics-table-wrap"><table><thead><tr><th>페이지</th><th>조회</th><th>사용자</th><th>평균 참여</th></tr></thead><tbody id="analytics-pages"><tr><td colspan="4">불러오는 중입니다.</td></tr></tbody></table></div></article>
-      <article class="analytics-panel"><header><div><p class="analytics-label">ACQUISITION</p><h2>유입 경로</h2></div><span>세션 기준</span></header><div id="analytics-channels" class="analytics-bar-list"><span class="analytics-skeleton"></span></div><h3>소스 / 매체</h3><div id="analytics-sources" class="analytics-compact-list"></div></article>
+      <article class="analytics-panel"><header><div><p class="analytics-label">ACQUISITION</p><h2>유입 경로</h2></div><span>첫 유입 세션 기준</span></header><div id="analytics-channels" class="analytics-bar-list"><span class="analytics-skeleton"></span></div><h3>소스 / 매체</h3><div id="analytics-sources" class="analytics-compact-list"></div><p class="analytics-attribution-note">한 방문자가 여러 번 방문하면 세션은 더 많을 수 있습니다. 직접 접속·확인 불가는 브라우저가 출처를 전달하지 않은 방문을 포함합니다.</p></article>
     </section>
 
     <section class="analytics-environment-grid" aria-label="방문자 환경">
@@ -62,13 +62,13 @@
     </section>
 
     <section class="analytics-two-column">
-      <article class="analytics-panel"><header><div><p class="analytics-label">LOCATION</p><h2>접속 지역</h2></div><span>활성 사용자</span></header><div class="analytics-location-grid"><div><h3>국가</h3><div id="analytics-countries" class="analytics-compact-list"></div></div><div><h3>도시</h3><div id="analytics-cities" class="analytics-compact-list"></div></div></div></article>
+      <article class="analytics-panel"><header><div><p class="analytics-label">LOCATION</p><h2>접속 지역</h2></div><span>추정 방문자</span></header><div class="analytics-location-grid"><div><h3>국가</h3><div id="analytics-countries" class="analytics-compact-list"></div></div><div><h3>도시</h3><div id="analytics-cities" class="analytics-compact-list"></div></div></div></article>
       <article class="analytics-panel"><header><div><p class="analytics-label">BEHAVIOR</p><h2>이벤트</h2></div><span>상위 8개</span></header><div class="analytics-table-wrap"><table><thead><tr><th>이벤트</th><th>발생</th><th>사용자</th><th>주요</th></tr></thead><tbody id="analytics-events"><tr><td colspan="4">불러오는 중입니다.</td></tr></tbody></table></div></article>
     </section>
 
     <section class="analytics-panel analytics-health-panel"><header><div><p class="analytics-label">COLLECTION HEALTH</p><h2>수집 상태</h2></div><span id="analytics-health-status">확인 중</span></header><dl><div><dt>마지막 집계</dt><dd id="analytics-last-attempt">—</dd></div><div><dt>마지막 이벤트</dt><dd id="analytics-last-success">—</dd></div><div><dt>다음 일별 보정</dt><dd id="analytics-next-refresh">—</dd></div><div><dt>원본 이벤트 보관</dt><dd id="analytics-retention">—</dd></div></dl><p id="analytics-health-message">자체 수집 저장소 상태를 확인하고 있습니다.</p></section>
   </main>
 
-  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/service-analytics.js?v=2"></script>
+  <script src="/admin-shell.js?v=7"></script><script src="/admin-session.js?v=2"></script><script src="/service-analytics.js?v=3"></script>
 </body>
 </html>

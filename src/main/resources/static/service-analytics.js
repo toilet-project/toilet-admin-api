@@ -83,18 +83,18 @@
       const show = data.length <= 8 || index === 0 || index === data.length - 1 || index % Math.ceil(data.length / 6) === 0
       return show ? `<text x="${x(index)}" y="${height - 7}" text-anchor="middle">${escapeHtml(String(item.date).slice(5).replace('-', '.'))}</text>` : ''
     }).join('')
-    const points = data.length <= 8 ? data.map((item, index) => `<circle cx="${x(index)}" cy="${y(item.activeUsers)}" r="3"><title>${escapeHtml(item.date)} 활성 ${number(item.activeUsers)}명 · 조회 ${number(item.views)}회</title></circle>`).join('') : ''
-    target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="활성 사용자와 페이지뷰 기간 추이">${grid}<path class="analytics-views" d="${path('views')}"/><path class="analytics-active" d="${path('activeUsers')}"/>${points}${labels}</svg>`
+    const points = data.length <= 8 ? data.map((item, index) => `<circle cx="${x(index)}" cy="${y(item.activeUsers)}" r="3"><title>${escapeHtml(item.date)} 추정 방문자 ${number(item.activeUsers)}명 · 조회 ${number(item.views)}회</title></circle>`).join('') : ''
+    target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="추정 방문자와 페이지뷰 기간 추이">${grid}<path class="analytics-views" d="${path('views')}"/><path class="analytics-active" d="${path('activeUsers')}"/>${points}${labels}</svg>`
   }
 
   function translated(value, type) {
     const maps = {
       device: { mobile: '모바일', desktop: '데스크톱', tablet: '태블릿' },
-      channel: { Direct: '직접/출처 없음', Internal: '내부 이동', 'Organic Search': '자연 검색', Referral: '외부 링크', 'Organic Social': '소셜', 'Paid Search': '유료 검색', 'Paid Social': '유료 소셜', Email: '이메일', Offline: 'QR·오프라인', Campaign: '캠페인', Unassigned: '미분류' },
-      source: { none: '출처 없음', geupddong: '급똥 내부', google: 'Google', naver: 'Naver', daum: 'Daum', bing: 'Bing', kakao: 'Kakao', instagram: 'Instagram', facebook: 'Facebook', threads: 'Threads', x: 'X' },
+      channel: { Direct: '직접 접속·확인 불가', Internal: '내부 이동', 'Organic Search': '자연 검색', Referral: '외부 링크', 'Organic Social': '소셜', 'Paid Search': '유료 검색', 'Paid Social': '유료 소셜', Email: '이메일', Offline: 'QR·오프라인', Campaign: '캠페인', Unassigned: '미분류' },
+      source: { none: '직접 접속·확인 불가', geupddong: '급똥 내부', google: 'Google', naver: 'Naver', daum: 'Daum', bing: 'Bing', kakao: 'Kakao', instagram: 'Instagram', facebook: 'Facebook', threads: 'Threads', x: 'X' },
       screen: { notifications: '알림', account_home: '내 페이지', my_reports: '내 제보', my_reviews: '내 리뷰', account_settings: '계정 관리', review_list: '리뷰 전체보기', review_write: '리뷰 작성', not_found: '찾을 수 없는 화면' },
       event: { page_view: '페이지 조회', session_start: '세션 시작', engagement: '체류 시간', screen_view: '화면 열기', scroll_depth: '스크롤 도달', toilet_search: '화장실 검색', nearby_search: '주변 검색', search_result_select: '검색 결과 선택', toilet_marker_select: '지도 마커 선택', toilet_detail_open: '화장실 상세 열기', directions_click: '길찾기 선택', report_start: '제보 시작', report_submit: '제보 제출', login_result: '로그인 결과', review_submit: '리뷰 제출' },
-      page: { '/': '지도 홈', '/toilet/:id': '화장실 상세', '/policies/terms': '서비스 이용약관', '/policies/privacy': '개인정보 처리방침', '/policies/location': '위치정보 안내', '/policies/all': '전체 정책', '/other': '알 수 없는 경로' },
+      page: { '/': '지도 홈', '/toilet/:id': '화장실 상세', '/regions': '지역 탐색', '/regions/:sido/:district/toilet/:id': '지역별 화장실 상세', '/account': '내 페이지', '/policies/terms': '서비스 이용약관', '/policies/privacy': '개인정보 처리방침', '/policies/location': '위치정보 안내', '/policies/all': '전체 정책', '/other': '알 수 없는 경로' },
     }
     if (type === 'event' && String(value || '').includes(':')) {
       const [name, detail] = String(value).split(':', 2)
@@ -105,9 +105,21 @@
     return maps[type]?.[value] || value || '(값 없음)'
   }
 
+  function fallbackRank(item, kind) {
+    const key = String(item.key || '')
+    if (kind === 'page') return key === '/other' ? 1 : 0
+    if (kind === 'channel') return key === 'Direct' ? 1 : key === 'Unassigned' ? 2 : 0
+    if (kind === 'source') return key === 'none' ? 1 : key === 'unknown' ? 2 : 0
+    return 0
+  }
+
+  function fallbackLast(rows, kind) {
+    return [...(rows || [])].sort((left, right) => fallbackRank(left, kind) - fallbackRank(right, kind))
+  }
+
   function renderTable(id, rows, kind) {
     const target = byId(id)
-    const values = (rows || []).slice(0, kind === 'event' ? 8 : 7)
+    const values = fallbackLast(rows, kind).slice(0, kind === 'event' ? 8 : 7)
     if (!values.length) {
       target.innerHTML = '<tr><td colspan="4">선택한 기간의 데이터가 없습니다.</td></tr>'
       return
@@ -119,14 +131,14 @@
 
   function renderBars(id, rows, metric, labelType) {
     const target = byId(id)
-    const values = (rows || []).slice(0, 6)
+    const values = fallbackLast(rows, labelType).slice(0, 6)
     const maximum = Math.max(...values.map((item) => Number(item[metric] || 0)), 1)
     target.innerHTML = values.length ? values.map((item) => `<div class="analytics-bar-item"><span>${escapeHtml(translated(item.label || item.key, labelType))}</span><strong>${number(item[metric])}</strong><div><i style="width:${Math.max(2, Number(item[metric] || 0) * 100 / maximum)}%"></i></div></div>`).join('') : '<p class="analytics-empty">데이터가 없습니다.</p>'
   }
 
   function renderCompact(id, rows, metric, labelType) {
     const target = byId(id)
-    const values = (rows || []).slice(0, 5)
+    const values = fallbackLast(rows, labelType).slice(0, labelType === 'source' ? 6 : 5)
     target.innerHTML = values.length ? values.map((item) => `<div><span>${escapeHtml(translated(item.label || item.key, labelType))}</span><strong>${number(item[metric])}</strong></div>`).join('') : '<p class="analytics-empty">데이터가 없습니다.</p>'
   }
 

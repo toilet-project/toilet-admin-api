@@ -140,6 +140,15 @@ jobs:
             fi
             # END OPTIONAL HOST MONITOR CONFIG
 
+            # BEGIN OPTIONAL ORIGIN BOT CONFIG
+            if [ '${{ vars.ORIGIN_BOTS_ENABLED }}' = 'true' ]; then
+              bot_exports=/var/snap/docker/common/geupddong-origin-bots/exports
+              [ -d "$bot_exports" ]
+              [ ! -L "$bot_exports" ]
+              printf '%s\n' 'ORIGIN_BOTS_DIRECTORY=/var/lib/geupddong-origin-bots' >> .env
+            fi
+            # END OPTIONAL ORIGIN BOT CONFIG
+
             cat <<EOF > docker-compose.yml
             services:
               toilet-admin:
@@ -153,6 +162,7 @@ jobs:
                 networks:
                   - toilet-network
                 # HOST_MONITOR_READ_ONLY_VOLUME
+                # ORIGIN_BOT_READ_ONLY_VOLUME
                 logging:
                   driver: json-file
                   options:
@@ -177,6 +187,22 @@ jobs:
             PY
             fi
             # END OPTIONAL HOST MONITOR MOUNT
+
+            # BEGIN OPTIONAL ORIGIN BOT MOUNT
+            if [ '${{ vars.ORIGIN_BOTS_ENABLED }}' = 'true' ]; then
+              python3 - <<'PY'
+            from pathlib import Path
+            path = Path('docker-compose.yml')
+            text = path.read_text()
+            marker = '    # ORIGIN_BOT_READ_ONLY_VOLUME'
+            assert text.count(marker) == 1
+            mount = '      - type: bind\n        source: /var/snap/docker/common/geupddong-origin-bots/exports\n        target: /var/lib/geupddong-origin-bots\n        read_only: true\n        bind:\n          create_host_path: false'
+            if '    volumes:\n' not in text:
+                mount = '    volumes:\n' + mount
+            path.write_text(text.replace(marker, mount))
+            PY
+            fi
+            # END OPTIONAL ORIGIN BOT MOUNT
 
             docker compose config --quiet
             docker compose pull toilet-admin

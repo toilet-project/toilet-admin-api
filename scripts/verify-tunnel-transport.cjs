@@ -33,6 +33,14 @@ const cloudflareEnvironmentBlock = [
  'CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}'
 ].join('\n');
 let reviewedDeployment = deploy.env.DEPLOY_SCRIPT;
+const botBlocks = JSON.parse(fs.readFileSync(path.join(root,'scripts/origin-bot-deployment-blocks.json'),'utf8'));
+for (const [name, expected] of Object.entries(botBlocks)) {
+ const actual = reviewedDeployment.match(new RegExp('# BEGIN OPTIONAL ORIGIN BOT '+name+'\\n[\\s\\S]*?# END OPTIONAL ORIGIN BOT '+name+'\\n\\n','g'));
+ assert.deepEqual(actual,[expected], 'Origin bot '+name+' block must match reviewed commands');
+ reviewedDeployment=reviewedDeployment.replace(expected,'');
+}
+assert.equal(reviewedDeployment.split('    # ORIGIN_BOT_READ_ONLY_VOLUME\n').length-1,1);
+reviewedDeployment=reviewedDeployment.replace('    # ORIGIN_BOT_READ_ONLY_VOLUME\n','');
 // Exact new blocks are pinned separately; disabling the flag must preserve the prior deployment.
 const hostBlocks = JSON.parse(fs.readFileSync(path.join(root,'scripts/host-monitor-deployment-blocks.json'),'utf8'));
 for (const [name, expected] of Object.entries(hostBlocks)) {

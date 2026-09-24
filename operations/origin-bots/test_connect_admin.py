@@ -44,6 +44,11 @@ class ConnectionTest(unittest.TestCase):
         after['services']['toilet-admin']['environment'][c.KEY] = c.TARGET
         after['services']['toilet-admin']['volumes'].append(c.MOUNT)
         c.validate_render(before, after)
+        normalized = copy.deepcopy(after)
+        normalized['services']['toilet-admin']['volumes'][-1]['bind'] = {}
+        c.validate_render(before, normalized)
+        normalized['services']['toilet-admin']['volumes'][-1]['bind']['create_host_path'] = True
+        with self.assertRaises(ValueError): c.validate_render(before, normalized)
         for bad in ('image', 'ports', 'restart'):
             wrong = copy.deepcopy(after)
             wrong['services']['toilet-admin'][bad] = 'unexpected'

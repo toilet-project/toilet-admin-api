@@ -53,7 +53,13 @@ def validate_render(before, after):
     require(KEY not in service.get('environment', {}))
     service.setdefault('environment', {})[KEY] = TARGET
     service.setdefault('volumes', []).append(MOUNT)
-    require(after == expected, 'ORIGIN_BOTS_CONNECT_UNRELATED_CHANGE')
+    # Compose versions may omit the explicit false from rendered bind options.
+    actual = copy.deepcopy(after)
+    for rendered_config in (expected, actual):
+        for volume in rendered_config['services']['toilet-admin'].get('volumes', []):
+            if volume.get('type') == 'bind':
+                volume.setdefault('bind', {}).setdefault('create_host_path', False)
+    require(actual == expected, 'ORIGIN_BOTS_CONNECT_UNRELATED_CHANGE')
 
 
 def runtime(obj):

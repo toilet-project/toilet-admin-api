@@ -38,3 +38,19 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// Test-only, loopback, synthetic H2 preview. Not packaged in the production bootJar.
+tasks.register('analyticsPreview', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.example.toiletadmin.analytics.service.AnalyticsPreviewServer'
+    jvmArgs '-Xmx192m', '-Duser.timezone=UTC'
+    args (findProperty('previewPort') ?: '8187'), (findProperty('previewTtl') ?: '3600')
+}
+
+tasks.register('analyticsPreviewClasspath') {
+    dependsOn testClasses
+    doLast {
+        file('build/analytics-preview-classpath.txt').text = sourceSets.test.runtimeClasspath.asPath
+    }
+}

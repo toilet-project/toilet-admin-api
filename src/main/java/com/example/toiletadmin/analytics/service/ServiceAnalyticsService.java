@@ -74,11 +74,16 @@ public class ServiceAnalyticsService {
     }
 
     public ServiceAnalyticsRealtimeResponse realtime() {
+        return realtime(true);
+    }
+
+    public ServiceAnalyticsRealtimeResponse realtime(boolean excludeBots) {
         Instant now = clock.instant();
         try {
             if (!repository.schemaReady()) return ServiceAnalyticsRealtimeResponse.unavailable(
                     "NOT_CONFIGURED", now, "자체 분석 저장소 배포를 기다리고 있습니다.");
-            RealtimeMetrics data = repository.realtime(now.minus(Duration.ofMinutes(30)));
+            RealtimeMetrics data = excludeBots ? repository.realtime(now.minus(Duration.ofMinutes(30)))
+                    : repository.realtime(now.minus(Duration.ofMinutes(30)),false);
             Instant lastEvent = repository.lastEventAt();
             String status = data.events() == 0 ? "NO_DATA" : "UP";
             return new ServiceAnalyticsRealtimeResponse(true, status, now, lastEvent, false,

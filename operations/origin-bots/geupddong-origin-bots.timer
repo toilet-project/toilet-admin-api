@@ -1,0 +1,11 @@
+[Unit]
+Description=Aggregate origin crawler requests every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=geupddong-origin-bots.service
+
+[Install]
+WantedBy=timers.target

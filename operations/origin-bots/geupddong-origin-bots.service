@@ -1,0 +1,25 @@
+[Unit]
+Description=Geupddong origin-only crawler aggregates
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=geupddong-origin-bots
+Group=geupddong-origin-bots
+SupplementaryGroups=adm
+# Opt-in requires checking the trusted proxy/IP configuration before installation.
+ExecStart=/usr/bin/python3 /opt/geupddong-origin-bots/collect.py --log /var/log/nginx/access.log --state /var/snap/docker/common/geupddong-origin-bots/state --export /var/snap/docker/common/geupddong-origin-bots/exports --refresh-ranges --trusted-real-ip
+UMask=0027
+Nice=15
+IOSchedulingClass=idle
+CPUQuota=10%
+MemoryMax=128M
+TimeoutStartSec=40
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ReadOnlyPaths=/var/log/nginx
+ReadWritePaths=/var/snap/docker/common/geupddong-origin-bots

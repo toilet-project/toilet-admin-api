@@ -76,12 +76,31 @@ public class ServiceAnalyticsRepository {
     }
 
     public RealtimeMetrics realtime(Instant since) {
+        return realtime(since,true);
+    }
+
+    static boolean botClassificationAvailable(JdbcTemplate jdbc) {
+        // A read-only metadata probe supports the transition before the API migration.
+        return Boolean.TRUE.equals(jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Boolean>) connection -> {
+            var meta=connection.getMetaData();
+            String table=meta.storesUpperCaseIdentifiers()?"SERVICE_ANALYTICS_EVENT":"service_analytics_event";
+            String column=meta.storesUpperCaseIdentifiers()?"TRAFFIC_CLASS":"traffic_class";
+            try(var columns=meta.getColumns(connection.getCatalog(),connection.getSchema(),table,column)) {
+                while(columns.next()) if(table.equalsIgnoreCase(columns.getString("TABLE_NAME"))
+                        && column.equalsIgnoreCase(columns.getString("COLUMN_NAME"))) return true;
+                return false;
+            }
+        }));
+    }
+
+    public RealtimeMetrics realtime(Instant since, boolean excludeBots) {
+        String botFilter=excludeBots && botClassificationAvailable(jdbc)?" AND traffic_class<>'BOT'":"";
         return jdbc.queryForObject("""
                 SELECT COUNT(DISTINCT visitor_hash), COALESCE(SUM(event_name='page_view'),0),
                        COUNT(*), COALESCE(SUM(key_event),0)
                   FROM service_analytics_event
                  WHERE occurred_at>=?
-                """, (rs, row) -> new RealtimeMetrics(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4)),
+                """+botFilter, (rs, row) -> new RealtimeMetrics(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4)),
                 Timestamp.from(since));
     }
 

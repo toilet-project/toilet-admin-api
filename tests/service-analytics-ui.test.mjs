@@ -20,10 +20,10 @@ test('analytics detail keeps a static shell and replaces only async data regions
     readFile(new URL('service-analytics.html', root), 'utf8'),
     readFile(new URL('service-analytics.js', root), 'utf8'),
   ])
-  for (const id of ['analytics-trend-chart', 'analytics-pages', 'analytics-channels', 'analytics-devices', 'analytics-events', 'analytics-health-status']) {
+  for (const id of ['analytics-view', 'analytics-kpis', 'analytics-filter-chips', 'analytics-error', 'analytics-export']) {
     assert.match(page, new RegExp(`id="${id}"`))
   }
-  assert.match(script, /\/api\/admin\/v1\/service-analytics\/trend/)
-  assert.match(script, /Promise\.all/)
+  assert.match(script, /\/api\/admin\/v1\/service-analytics\/explore/)
+  assert.match(script, /AbortController/)
   assert.doesNotMatch(script, /innerHTML\s*=\s*await\s+response\.text/)
 })

@@ -50,7 +50,8 @@ function staticServer() {
   const origin = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
   try {
-    for (const target of ['detail', 'home']) {
+    // The detail workspace is covered by analytics-explorer-browser.cjs against real aggregate SQL.
+    for (const target of ['home']) {
       const context = await browser.newContext({ viewport: { width: 1720, height: 980 } });
       const page = await context.newPage();
       const errors = [];

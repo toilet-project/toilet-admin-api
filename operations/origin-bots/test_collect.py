@@ -46,6 +46,29 @@ class CollectorTest(unittest.TestCase):
         self.assertEqual(self.verifier.check("naver","203.0.113.4",NOW-dt.timedelta(days=2)),"declared")
         self.assertEqual(self.verifier.check("naver","invalid",NOW),"declared")
 
+    def test_baidu_variants_are_declared_not_verified(self):
+        for suffix in ("", "-render", "-image", "-video", "-news"):
+            ua = "Mozilla/5.0 (compatible; Baiduspider" + suffix + "/2.0; +http://www.baidu.com/search/spider.html)"
+            name, provider = c.identify(ua)
+            self.assertEqual(name, "Baiduspider")
+            self.assertIsNone(provider)
+            # Even an address matching another verified provider proves nothing about Baidu.
+            self.assertEqual(self.verifier.check(provider,"203.0.113.4",NOW),"declared")
+        self.assertEqual(c.identify("BAIDUSPIDER/2.0"), ("Baiduspider", None))
+        for ua in ("NotBaiduspider/2.0", "BaiduspiderFake/2.0", "Baiduspider-malware/1.0"):
+            self.assertNotEqual(c.identify(ua)[0], "Baiduspider")
+
+    def test_baidu_counts_once_without_raw_identifiers(self):
+        self.log.write_bytes(line(ua="Baiduspider/2.0") + line(ua="Baiduspider-render/2.0"))
+        self.run_log(); self.run_log()
+        result = c.export(self.db,NOW,{})
+        self.assertEqual(sum(row["count"] for row in result["rows"]), 2)
+        self.assertEqual({row["bot"] for row in result["rows"]}, {"Baiduspider"})
+        self.assertEqual({row["verification"] for row in result["rows"]}, {"declared"})
+        stored = json.dumps(result) + "\n".join(self.db.iterdump())
+        for secret in ("203.0.113.4", "Baiduspider/2.0", "PRIVATE", "/123"):
+            self.assertNotIn(secret, stored)
+
     def test_counts_once_and_never_exports_identifiers(self):
         self.log.write_bytes(line()+line(ua="Mozilla/5.0 Chrome/1.0")+line())
         self.run_log(); self.run_log()

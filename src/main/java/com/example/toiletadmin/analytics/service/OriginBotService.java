@@ -19,7 +19,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** Reads an allowlisted, read-only export. Never reads access logs or queries Cloudflare. */
 @Service
 public class OriginBotService {
-    private static final Set<String> BOTS = Set.of("Googlebot", "Naver Yeti", "Bingbot", "Naver Ads-Naver",
+    private static final Set<String> BOTS = Set.of("Googlebot", "Naver Yeti", "Bingbot", "Baiduspider", "Naver Ads-Naver",
             "Naver Blueno", "Claude-SearchBot", "ClaudeBot", "Claude-User", "GPTBot", "OAI-SearchBot",
             "ChatGPT-User", "Meta-ExternalAgent", "Facebook Preview", "Other bot");
     private static final Set<String> PATHS = Set.of("home", "toilet_detail", "regions", "sitemap", "robots",
@@ -68,6 +68,8 @@ public class OriginBotService {
                         || first.isAfter(last) || first.isBefore(hour) || !last.isBefore(hour.plusSeconds(3600))
                         || !day.equals(hour.atZone(AnalyticsExploreQuery.SEOUL).toLocalDate())
                         || last.isAfter(generated.plusSeconds(60))) throw new IllegalArgumentException();
+                // No Baidu identity verifier is installed; a UA name is not official identity proof.
+                if ("Baiduspider".equals(bot)) verification = "declared";
                 if (day.isBefore(query.from()) || day.isAfter(query.to())) continue;
                 rows.add(new Row(day.toString(), hour.toString(), bot, verification, path, status, count, first.toString(), last.toString()));
             }

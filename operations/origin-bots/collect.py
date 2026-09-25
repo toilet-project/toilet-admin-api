@@ -27,6 +27,9 @@ BOTS = [
     (r"googlebot(?:-image|-video|-news)?", "Googlebot", "google"),
     (r"yeti", "Naver Yeti", "naver"),
     (r"bingbot", "Bingbot", "bing"),
+    # UA declaration only. Baidu identity requires separate forward-confirmed DNS;
+    # never perform DNS lookups for each log line or reuse another provider's ranges.
+    (r"baiduspider(?:-(?:render|image|video|news))?", "Baiduspider", None),
     (r"ads-naver", "Naver Ads-Naver", None),
     (r"blueno", "Naver Blueno", None),
     (r"claude-searchbot", "Claude-SearchBot", None),

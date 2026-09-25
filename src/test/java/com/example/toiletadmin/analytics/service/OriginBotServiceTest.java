@@ -49,4 +49,16 @@ class OriginBotServiceTest {
         var later = new OriginBotService(directory.toString(),Clock.fixed(Instant.parse("2026-09-24T04:00:00Z"),ZoneOffset.UTC));
         assertThat(later.report("today",null,null).status()).isEqualTo("STALE");
     }
+    @Test void baiduNameIsAcceptedButNeverPresentedAsOfficiallyVerified() throws Exception {
+        for (String state : new String[]{"declared", "verified", "unmatched"}) {
+            var report = service(fixture.replace("Naver Yeti", "Baiduspider")
+                    .replace("\"verified\"", "\"" + state + "\"")).report("today", null, null);
+            assertThat(report.status()).isEqualTo("OK");
+            assertThat(report.rows()).hasSize(1);
+            assertThat(report.rows().getFirst().bot()).isEqualTo("Baiduspider");
+            assertThat(report.rows().getFirst().verification()).isEqualTo("declared");
+            assertThat(report.rows().getFirst().count()).isEqualTo(23);
+            assertThat(report.toString()).doesNotContain("SHOULD_NOT_LEAK");
+        }
+    }
 }

@@ -95,7 +95,9 @@ test('wrong origin, state, ciphertext and expired exchange fail closed', async (
   calls.length = 0
   assert.equal((await handle(callback(ticket, state, 'https://evil.invalid'), env)).status, 403)
   assert.equal((await handle(callback(ticket, 'd'.repeat(64)), env)).status, 403)
-  assert.equal((await handle(callback('x' + ticket.slice(1), state), env)).status, 403)
+  const tamperedTicket = (ticket[0] === 'x' ? 'y' : 'x') + ticket.slice(1)
+  assert.notEqual(tamperedTicket, ticket)
+  assert.equal((await handle(callback(tamperedTicket, state), env)).status, 403)
   assert.equal((await handle(callback(ticket, ''), env)).status, 403)
   clock.time = 71000
   assert.equal((await handle(callback(ticket, state), env)).status, 403)

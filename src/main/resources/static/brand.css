@@ -1,4 +1,4 @@
-/* Approved Hangul Point identity, shared by the home and all admin screens. */
+/* Compact text headers and the approved Hangul Point login identity. */
 .admin-brand {
   display: flex;
   flex: 0 0 auto;
@@ -9,14 +9,15 @@
   color: #153b2b;
   text-decoration: none;
 }
-.admin-brand-logo {
+.admin-brand strong {
   display: block;
-  width: 118px;
-  height: auto;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.8px;
+  line-height: 1.15;
 }
 .admin-brand small {
   display: block;
-  margin-left: 48px;
   color: var(--admin-muted, #6c7c74);
   font-size: 10px;
   font-weight: 500;
@@ -36,6 +37,6 @@
 }
 @media (max-width: 900px) {
   .admin-brand { padding: 0; }
-  .admin-brand-logo { width: 90px; }
+  .admin-brand strong { font-size: 15px; }
   .admin-brand small { display: none; }
 }

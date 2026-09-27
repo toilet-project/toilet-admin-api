@@ -4,7 +4,6 @@
 
   const page = main.dataset.adminPage || 'home'
   const title = main.dataset.adminTitle || main.querySelector('h1')?.textContent || '관리자'
-  const brandLogoUrl = new URL('brand/hangul-point-v1/lockup-ko.svg', document.currentScript.src).href
   const icon = (name, extra = '') => `<svg class="admin-icon ${extra}" aria-hidden="true"><use href="#admin-icon-${name}"/></svg>`
   const nav = (key, href, name, iconName, meta = '') => `<a class="admin-nav-link${page === key ? ' is-current' : ''}" href="${href}"${page === key ? ' aria-current="page"' : ''}>${icon(iconName)}${name}${meta ? `<span class="admin-nav-meta">${meta}</span>` : ''}</a>`
   const frame = document.createElement('div')
@@ -31,7 +30,7 @@
       <symbol id="admin-icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
     </svg>
     <aside class="admin-sidebar" aria-label="관리자 메뉴">
-      <a class="admin-brand" href="/" aria-label="급똥 관리자 운영 홈"><img class="admin-brand-logo" src="${brandLogoUrl}" alt="" width="646" height="232" /><small>WORKSPACE</small></a>
+      <a class="admin-brand" href="/" aria-label="급똥 관리자 운영 홈"><strong>급똥</strong><small>WORKSPACE</small></a>
       <nav class="admin-nav" aria-label="업무별 탐색">
         <div class="admin-nav-group">${nav('home','/','운영 홈','dashboard')}</div>
         <div class="admin-nav-group"><p>데이터 관리</p>${nav('reports','/reports.html','제보 검토','inbox')}${nav('toilets','/toilets.html','화장실 데이터','map')}${nav('public-data-changes','/public-data-changes.html','공공데이터 변경 검토','compare')}${nav('opening-hours','/opening-hours.html','개방시간 검토','clock')}${nav('quality','/data-quality.html','중복 좌표 품질 관리','scan')}${nav('regions','/regions.html','행정구역 검토','map')}</div>

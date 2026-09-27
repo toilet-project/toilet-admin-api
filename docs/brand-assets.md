@@ -1,6 +1,6 @@
 # Admin Hangul Point identity
 
-The administrator UI uses the approved `geupddong-hangul-point` v1.0.0 Korean lockup. The home shell and shared shell keep the `WORKSPACE` context; login cards keep `GEUPDDONG ADMIN`. `src/main/resources/static/brand.css` owns their responsive sizing.
+Administrator login cards use the approved `geupddong-hangul-point` v1.0.0 Korean lockup and keep `GEUPDDONG ADMIN`. The home and shared sidebar headers use compact `급똥` text with `WORKSPACE` to reserve room for navigation. `src/main/resources/static/brand.css` owns their responsive sizing.
 
 Assets under `static/brand/hangul-point-v1/` are self-contained exports from the approved `geupddong-brand-master-v1` package:
 
@@ -12,7 +12,7 @@ Assets under `static/brand/hangul-point-v1/` are self-contained exports from the
 
 `apple-touch-icon.png` is an opaque 180×180 resize of the master's 1024×1024 app icon. `/favicon.ico` packages the master's unchanged 16, 32 and 48px PNG favicon exports in an ICO container. Use the micro favicon layout for browser icons and the app-icon layout for the touch icon.
 
-All 16 HTML entry points declare the shared brand stylesheet, SVG/PNG favicon and touch icon. The versioned asset directory and updated shell/style query versions let existing browser caches move to the new artwork. The shared shell resolves its image relative to its own script URL so prefixed previews use the same asset.
+All 16 HTML entry points declare the shared brand stylesheet, SVG/PNG favicon and touch icon. The versioned asset directory and updated shell/style query versions let existing browser caches move to the new artwork. Header brand links use text; login artwork remains a shared image asset.
 
 Preview servers/gateways allow only these named brand files; image responses preserve their binary bytes and existing authentication rules. Functional restroom markers, navigation pictograms, and Google/Kakao login actions are separate from this identity and are unchanged.
 

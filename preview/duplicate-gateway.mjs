@@ -1,6 +1,7 @@
 const PREFIX='/admin-duplicates'
 const ORIGIN='https://preview.geupddong.com'
 const assets=new Set(['duplicate-names.html','duplicate-names.css','duplicate-names.js','dashboard.css','admin-shell.css','admin-shell.js','admin-session.css','quality-review-shell.css','public-data-changes.html','public-data-changes.css','public-data-changes.js','preview-navigation.js'])
+for(const file of ['brand.css','favicon.ico','brand/hangul-point-v1/lockup-ko.svg','brand/hangul-point-v1/favicon.svg','brand/hangul-point-v1/favicon-32.png','brand/hangul-point-v1/apple-touch-icon.png'])assets.add(file)
 const headers={'Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','Content-Security-Policy':"default-src 'self'; script-src 'self' https://dapi.kakao.com/v2/maps/sdk.js https://t1.daumcdn.net/mapjsapi/; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://mts.daumcdn.net https://t1.daumcdn.net; connect-src 'self'; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}
 const reply=(status,message)=>new Response(JSON.stringify({message}),{status,headers:{...headers,'Content-Type':'application/json; charset=utf-8'}})
 export function permitted(method,path) {
@@ -39,6 +40,7 @@ export default {async fetch(request,env){
     let response=new Response(result.body,{status:result.status,headers:{...headers,'Content-Type':type}})
     if(type.includes('text/html')){
       response=new HTMLRewriter().on('script[src]',{element(e){const src=e.getAttribute('src');if(src?.startsWith('/admin-session.js'))e.remove();else if(src?.startsWith('/'))e.setAttribute('src',PREFIX+src)}})
+        .on('img[src]',{element(e){const src=e.getAttribute('src');if(src?.startsWith('/brand/'))e.setAttribute('src',PREFIX+src)}})
         .on('link[href]',{element(e){const href=e.getAttribute('href');if(href?.startsWith('/'))e.setAttribute('href',PREFIX+href)}})
         .on('a[href]',{element(e){const href=e.getAttribute('href');if(['/duplicate-names.html','/public-data-changes.html','/data-quality.html'].includes(href))e.setAttribute('href',PREFIX+href);else if(href==='/'){e.setAttribute('href',PREFIX+'/duplicate-names.html');e.setInnerContent('중복 이름 관리로')}}})
         .on('body',{element(e){e.append('<script src="'+PREFIX+'/preview-navigation.js"></script>',{html:true})}}).transform(response)

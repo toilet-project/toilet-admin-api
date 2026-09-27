@@ -14,7 +14,7 @@ function setup() {
   const state = { time: 10000, status: 200, roles: ['ADMIN'] }
   const handle = createHandler(async (target, options) => {
     calls.push([target, options])
-    return target.includes('/api/v1/auth/me') ? Response.json({ ...fakeIdentity, roles: state.roles }, { status: state.status }) : Response.json({ current: { views: 4 } })
+    return target.includes('/api/v1/auth/me') ? Response.json({ ...fakeIdentity, roles: state.roles }, { status: state.status }) : state.assetBody ? new Response(state.assetBody, { headers: { 'Content-Type': state.assetType } }) : Response.json({ current: { views: 4 } })
   }, () => state.time)
   return { handle, calls, state }
 }
@@ -71,6 +71,23 @@ test('host-only encrypted session connects via state-bound POST and backend neve
   assert.equal(calls[1][1].headers['X-Preview-Gateway'], env.PREVIEW_GATEWAY_TOKEN)
   assert.match(response.headers.get('cache-control'), /no-store/)
   assert.deepEqual(await response.json(), { current: { views: 4 } })
+})
+
+test('brand images remain authenticated and preserve binary bytes', async () => {
+  const { handle, calls, state } = setup()
+  const imageUrl = site + '/brand/hangul-point-v1/favicon-32.png'
+  assert.equal((await handle(new Request(imageUrl), env)).status, 401)
+  assert.equal(calls.length, 0)
+  const session = await connect(handle)
+  state.assetBody = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 255, 128])
+  state.assetType = 'image/png'
+  calls.length = 0
+  const response = await handle(new Request(imageUrl, { headers: { Cookie: sessionCookie(session) } }), env)
+  assert.equal(response.status, 200)
+  assert.equal(response.headers.get('Content-Type'), 'image/png')
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), state.assetBody)
+  assert.equal(calls[1][0], env.PREVIEW_ORIGIN + '/brand/hangul-point-v1/favicon-32.png')
+  assert.equal((await handle(new Request(site + '/brand/private.png', { headers: { Cookie: sessionCookie(session) } }), env)).status, 404)
 })
 test('wrong origin, state, ciphertext and expired exchange fail closed', async () => {
   const { handle, calls, state: clock } = setup()

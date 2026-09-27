@@ -4,6 +4,11 @@ import gateway,{permitted} from '../preview/duplicate-gateway.mjs'
 const origin='https://preview.geupddong.com/admin-duplicates'
 const env=()=>({PREVIEW_EXPIRES_AT:String(Date.now()+60000),PREVIEW_ORIGIN:'https://fixture-only.trycloudflare.com',PREVIEW_GATEWAY_TOKEN:'a'.repeat(64),PREVIEW_ADMIN_TOKEN:'eyJfixture.payload.signature'})
 test('gateway permits only isolated functionality and never operational account or setup writes',()=>{
+  for(const path of ['/brand.css','/favicon.ico','/brand/hangul-point-v1/lockup-ko.svg','/brand/hangul-point-v1/favicon.svg','/brand/hangul-point-v1/favicon-32.png','/brand/hangul-point-v1/apple-touch-icon.png']) {
+    assert.equal(permitted('GET',path),true)
+    assert.equal(permitted('POST',path),false)
+  }
+  assert.equal(permitted('GET','/brand/private.png'),false)
   assert.equal(permitted('POST','/api/admin/v1/duplicate-names/hide'),true)
   assert.equal(permitted('POST','/api/admin/v1/duplicate-names/work-visibility'),true)
   assert.equal(permitted('POST','/api/admin/v1/duplicate-names/12/restore'),true)

@@ -5,6 +5,7 @@ const SESSION = '__Secure-AnalyticsPreview'
 const STATE = '__Secure-AnalyticsPreviewState'
 const encoder = new TextEncoder()
 const assets = new Set(['service-analytics.html', 'service-analytics.js', 'origin-bots.js', 'service-analytics.css', 'dashboard.css', 'admin-shell.js', 'admin-shell.css', 'admin-session.css'])
+for (const file of ['brand.css', 'favicon.ico', 'brand/hangul-point-v1/lockup-ko.svg', 'brand/hangul-point-v1/favicon.svg', 'brand/hangul-point-v1/favicon-32.png', 'brand/hangul-point-v1/apple-touch-icon.png']) assets.add(file)
 const endpoints = new Set(['/preview-auth', '/api/admin/v1/service-analytics/explore', '/api/admin/v1/service-analytics/realtime', '/api/admin/v1/service-analytics/origin-bots'])
 const headers = { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.geupddong.com; frame-ancestors 'none'; form-action 'self'; base-uri 'none'" }
 const reply = (status, message) => new Response(JSON.stringify({ message }), { status, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' } })
@@ -125,6 +126,7 @@ export function createHandler(fetcher = fetch, now = () => Date.now()) {
       const upstream = await fetcher(env.PREVIEW_ORIGIN + target + url.search, { method: 'GET', headers: { 'X-Preview-Gateway': env.PREVIEW_GATEWAY_TOKEN, Accept: 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(15000) })
       if (upstream.status >= 300 && upstream.status < 400) { await upstream.body?.cancel(); return reply(502, '예상하지 않은 프리뷰 응답입니다.') }
       const type = upstream.headers.get('Content-Type') || 'application/json'
+      if (type.startsWith('image/')) return new Response(upstream.body, { status: upstream.status, headers: { ...headers, 'Content-Type': type } })
       let body = await upstream.text()
       if (type.includes('text/html')) body = body.replaceAll('href="/', `href="${PREFIX}/`).replaceAll('src="/', `src="${PREFIX}/`)
       if (target === '/service-analytics.js' || target === '/origin-bots.js') body = body.replaceAll('`/api/admin/v1/service-analytics/', '`' + PREFIX + '/api/admin/v1/service-analytics/').replaceAll("'/api/admin/v1/service-analytics/", "'" + PREFIX + '/api/admin/v1/service-analytics/').replaceAll("'/preview-auth'", "'" + PREFIX + "/preview-auth'")

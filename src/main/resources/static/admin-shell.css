@@ -16,11 +16,6 @@ body.admin-page button, body.admin-page input, body.admin-page select, body.admi
 .admin-page .admin-icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 .admin-page .admin-icon { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .admin-page .admin-sidebar { position: sticky; top: 0; z-index: 5; display: flex; height: 100vh; flex-direction: column; gap: 32px; padding: 27px 18px 20px; overflow-y: auto; border-right: 1px solid var(--admin-line); background: var(--admin-surface); }
-.admin-page .admin-brand { display: flex; align-items: center; gap: 11px; padding: 0 9px; color: var(--admin-text); text-decoration: none; }
-.admin-page .admin-brand-mark { display: grid; width: 37px; height: 40px; place-items: center; border-radius: 12px 12px 12px 4px; background: var(--admin-accent); color: #fff; }
-.admin-page .admin-brand-mark .admin-icon { width: 19px; height: 19px; }
-.admin-page .admin-brand strong { display: block; font-size: 21px; font-weight: 600; letter-spacing: -.8px; line-height: 1.15; }
-.admin-page .admin-brand small { display: block; margin-top: 4px; color: var(--admin-muted); font-size: 10.5px; font-weight: 500; letter-spacing: 1.15px; }
 .admin-page .admin-nav { display: grid; gap: 24px; }
 .admin-page .admin-nav-group { display: grid; gap: 3px; }
 .admin-page .admin-nav-group p { margin: 0; padding: 0 12px 7px; color: var(--admin-muted); font-size: 11px; letter-spacing: 1px; }
@@ -141,10 +136,6 @@ body.admin-page button, body.admin-page input, body.admin-page select, body.admi
 @media (max-width: 900px) {
   .admin-page .admin-frame { display: block; }
   .admin-page .admin-sidebar { position: relative; height: auto; flex-direction: row; align-items: center; gap: 12px; padding: 11px 14px; overflow: hidden; border-right: 0; border-bottom: 1px solid var(--admin-line); }
-  .admin-page .admin-brand { flex: 0 0 auto; padding: 0; }
-  .admin-page .admin-brand-mark { width: 30px; height: 32px; }
-  .admin-page .admin-brand strong { font-size: 15px; }
-  .admin-page .admin-brand small { display: none; }
   .admin-page .admin-nav { display: flex; min-width: 0; flex: 1; gap: 3px; overflow-x: auto; scrollbar-width: none; }
   .admin-page .admin-nav-group { display: contents; }
   .admin-page .admin-nav-group p, .admin-page .admin-sidebar-footer, .admin-page .admin-nav-meta, .admin-page .admin-icon-end { display: none; }

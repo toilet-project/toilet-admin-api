@@ -17,7 +17,9 @@ import tools.jackson.databind.json.JsonMapper;
 /** Test classpath only: aggregate SQL over a disposable H2 snapshot. Never loads production configuration. */
 public final class AnalyticsPreviewServer {
     private static final Set<String> ASSETS=Set.of("service-analytics.html","service-analytics.js","service-analytics.css","origin-bots.js",
-            "dashboard.css","admin-shell.css","admin-shell.js","admin-session.css");
+            "dashboard.css","admin-shell.css","admin-shell.js","admin-session.css","brand.css","favicon.ico",
+            "brand/hangul-point-v1/lockup-ko.svg","brand/hangul-point-v1/favicon.svg",
+            "brand/hangul-point-v1/favicon-32.png","brand/hangul-point-v1/apple-touch-icon.png");
     public static void main(String[] args) throws Exception {
         int port=args.length>0?Integer.parseInt(args[0]):8187;
         int ttl=args.length>1?Math.min(7200,Integer.parseInt(args[1])):3600;
@@ -79,6 +81,10 @@ public final class AnalyticsPreviewServer {
                 else {
                     String file=path.equals("/")?"service-analytics.html":path.substring(1);
                     if(!ASSETS.contains(file))throw new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND);
+                    if(file.endsWith(".png") || file.endsWith(".ico")) {
+                        body=Files.readAllBytes(assets.resolve(file));
+                        type=file.endsWith(".png")?"image/png":"image/x-icon";
+                    } else {
                     String content=Files.readString(assets.resolve(file));
                     String previewLabel=realSnapshot?"실제 이용 기록 · "+clock.instant().atZone(AnalyticsExploreQuery.SEOUL).format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))+" KST 기준 복사본 · 읽기 전용 · 실시간 갱신 아님":"검증 프리뷰 · 합성 데이터 · 실제 Java/SQL 집계 · 운영 데이터와 연결되지 않습니다.";
                     if(file.equals("service-analytics.html"))content=content.replace("<script src=\"/admin-session.js?v=2\"></script>","")
@@ -90,7 +96,8 @@ public final class AnalyticsPreviewServer {
                     // Keep the existing shell's design without opening unrelated admin pages in the test.
                     if(file.equals("admin-shell.js"))content += "\ndocument.querySelectorAll('a').forEach(a=>{a.removeAttribute('href');a.setAttribute('aria-disabled','true')});";
                     body=content.getBytes(StandardCharsets.UTF_8);
-                    type=file.endsWith(".css")?"text/css; charset=utf-8":file.endsWith(".js")?"application/javascript; charset=utf-8":"text/html; charset=utf-8";
+                    type=file.endsWith(".css")?"text/css; charset=utf-8":file.endsWith(".js")?"application/javascript; charset=utf-8":file.endsWith(".svg")?"image/svg+xml":"text/html; charset=utf-8";
+                    }
                 }
             }catch(ResponseStatusException error){status=error.getStatusCode().value();body=json.writeValueAsBytes(Map.of("status",status,"message",Objects.toString(error.getReason(),"Request rejected")));}
             catch(Exception error){status=500;body=json.writeValueAsBytes(Map.of("status",500,"message","Preview query failed"));}

@@ -28,6 +28,7 @@
       <symbol id="admin-icon-cloud" viewBox="0 0 24 24"><path d="M17.5 19H7a5 5 0 1 1 1-9.9A7 7 0 0 1 21 12.5 4.5 4.5 0 0 1 17.5 19Z"/></symbol>
       <symbol id="admin-icon-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/><circle cx="7" cy="15" r="1"/><circle cx="11" cy="11" r="1"/><circle cx="14" cy="13" r="1"/><circle cx="19" cy="7" r="1"/></symbol>
       <symbol id="admin-icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+      <symbol id="admin-icon-refresh" viewBox="0 0 24 24"><path d="M20 7h-5V2M4 17h5v5"/><path d="M5.1 9A8 8 0 0 1 18.4 5.6L20 7M4 17l1.6 1.4A8 8 0 0 0 18.9 15"/></symbol>
     </svg>
     <aside class="admin-sidebar" aria-label="관리자 메뉴">
       <a class="admin-brand" href="/" aria-label="급똥 관리자 운영 홈"><strong>급똥</strong><small>WORKSPACE</small></a>
@@ -42,7 +43,7 @@
     <div class="admin-workspace">
       <header class="admin-topbar">
         <div class="admin-breadcrumb"><span>워크스페이스</span><i>/</i><strong>${title}</strong></div>
-        <div class="admin-topbar-actions"><div class="admin-search-wrap"><label class="admin-search">${icon('search')}<input type="search" placeholder="메뉴·기능 검색" aria-label="관리자 메뉴 검색" autocomplete="off" /></label><div class="admin-search-results" hidden></div></div><a class="admin-notification" href="/notifications.html" aria-label="알림 센터">${icon('bell')}<i></i></a></div>
+        <div class="admin-topbar-actions"><div class="admin-search-wrap"><label class="admin-search">${icon('search')}<input type="search" placeholder="메뉴·기능 검색" aria-label="관리자 메뉴 검색" autocomplete="off" /></label><div class="admin-search-results" hidden></div></div><a class="admin-notification" href="/notifications.html" aria-label="알림 센터">${icon('bell')}<i></i></a><button id="refresh" class="admin-refresh" type="button">${icon('refresh')}새로고침</button></div>
       </header>
     </div>`
 
@@ -116,7 +117,7 @@
       ['admin-icon-users', 'icon-users'], ['admin-icon-shield', 'icon-shield'],
       ['admin-icon-history', 'icon-history'], ['admin-icon-grid', 'icon-layout-grid'],
       ['admin-icon-bell', 'icon-bell'], ['admin-icon-cloud', 'icon-cloud'], ['admin-icon-chart', 'icon-chart'],
-      ['admin-icon-search', 'icon-search']
+      ['admin-icon-search', 'icon-search'], ['admin-icon-refresh', 'icon-refresh']
     ]
     for (const [adminId, homeId] of aliases) {
       const source = document.getElementById(adminId) || document.getElementById(homeId)
@@ -198,6 +199,19 @@
     const breadcrumb = frame.querySelector('.admin-breadcrumb strong')
     if (breadcrumb) breadcrumb.textContent = title
   }
+
+  frame.querySelector('.admin-refresh')?.addEventListener('click', () => {
+    if (main.dataset.adminPage === 'home' && typeof window.AdminHomeRefresh === 'function') {
+      void window.AdminHomeRefresh()
+      return
+    }
+    const pageRefresh = main.querySelector('button[id$="-refresh"], button[data-hm="refresh"]')
+    if (pageRefresh) {
+      if (!pageRefresh.disabled) pageRefresh.click()
+      return
+    }
+    window.location.reload()
+  })
 
   const go = async (value, options = {}) => {
     const destination = routeUrl(value)

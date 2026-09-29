@@ -532,8 +532,9 @@ async function refreshAll() {
   button.disabled = false
 }
 
+window.AdminHomeRefresh = refreshAll
+
 function bindEvents() {
-  el('refresh').addEventListener('click', () => void refreshAll())
   document.querySelectorAll('[data-period]').forEach((button) => button.addEventListener('click', () => {
     state.period = Number(button.dataset.period)
     document.querySelectorAll('[data-period]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)))

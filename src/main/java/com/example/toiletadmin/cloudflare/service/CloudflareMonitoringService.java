@@ -23,6 +23,9 @@ public class CloudflareMonitoringService {
     private final String domain, bucket;
     private final Clock clock;
     private CloudflareMonitoringResponse cached;
+    private static final List<String> SECTION_KEYS = List.of("r2", "writes", "workers", "d1", "storage", "traffic", "objects", "refresh");
+    private final Map<String, Object> sectionLocks = new ConcurrentHashMap<>();
+    private final Map<String, CloudflareMonitoringResponse> sectionCache = new ConcurrentHashMap<>();
     private RefreshHealth latestRefresh;
     @Autowired
     public CloudflareMonitoringService(CloudflareAnalyticsClient client,
@@ -40,32 +43,45 @@ public class CloudflareMonitoringService {
     public synchronized CloudflareMonitoringResponse getMonitoring() {
         Instant now=clock.instant();
         if(cached!=null && now.isBefore(cached.checkedAt().plusSeconds(cacheSeconds))) return cached;
-        // End on a completed hour to avoid comparing an incomplete hour with a full one.
-        Instant end=now.minusSeconds(900).truncatedTo(ChronoUnit.HOURS), start=end.minusSeconds(86400);
-        Map<String,Supplier<?>> queries=new LinkedHashMap<>();
-        queries.put("r2",()->r2(client.queryMonitor(MonitorDataset.R2_HOURS,start.minusSeconds(86400),end),start,end));
-        queries.put("writes",()->writes(client.queryCacheWrites(bucket,start,end),bucket));
-        queries.put("workers",()->workers(client.queryMonitor(MonitorDataset.WORKERS_HEALTH,start,end)));
-        queries.put("d1",()->databases(client.queryMonitor(MonitorDataset.D1_HEALTH,start,end)));
-        queries.put("storage",()->storage(client.queryDataset(Dataset.D1_STORAGE,start.minusSeconds(86400),end),start));
-        queries.put("traffic",()->traffic(client.queryTraffic(domain,start,end),domain));
-        queries.put("objects",()->objects(client.queryDataset(Dataset.DO_REQUESTS,start,end),client.queryDataset(Dataset.DO_TIME,start,end)));
-        queries.put("refresh",()->refreshRuns(client.queryRefreshRuns()));
         Map<String,Section<?>> sections=new LinkedHashMap<>();
-        if(enabled && client.isConfigured()) {
-            try(var executor=Executors.newVirtualThreadPerTaskExecutor()) {
-                Map<String,CompletableFuture<Section<?>>> pending=new LinkedHashMap<>();
-                queries.forEach((key,query)->pending.put(key,CompletableFuture.supplyAsync(()->read(query),executor)));
-                pending.forEach((key,future)->{
-                    var section=future.join();
-                    sections.put(key,key.equals("refresh")?refreshSection(section):section);
-                });
-            }
-        } else queries.keySet().forEach(key->sections.put(key,unavailable()));
+        try(var executor=Executors.newVirtualThreadPerTaskExecutor()) {
+            Map<String,CompletableFuture<CloudflareMonitoringResponse>> pending=new LinkedHashMap<>();
+            SECTION_KEYS.forEach(key->pending.put(key,CompletableFuture.supplyAsync(()->loadSection(key,now),executor)));
+            pending.forEach((key,future)->sections.put(key,future.join().sections().get(key)));
+        }
+        Instant end=now.minusSeconds(900).truncatedTo(ChronoUnit.HOURS), start=end.minusSeconds(86400);
         long ok=sections.values().stream().filter(s->s.status().equals("OK")).count();
         cached=new CloudflareMonitoringResponse(ok==0?"UNAVAILABLE":ok==sections.size()?"OK":"PARTIAL",now,start,end,
                 Collections.unmodifiableMap(sections));
         return cached;
+    }
+    /** Each source has its own cache and lock: a slow provider never holds up other panels. */
+    public CloudflareMonitoringResponse getSection(String key) {
+        if (!SECTION_KEYS.contains(key)) throw new IllegalArgumentException("Unknown monitoring section");
+        return loadSection(key, clock.instant());
+    }
+    private CloudflareMonitoringResponse loadSection(String key, Instant now) {
+        synchronized (sectionLocks.computeIfAbsent(key, ignored -> new Object())) {
+            var previous = sectionCache.get(key);
+            Instant end=now.minusSeconds(900).truncatedTo(ChronoUnit.HOURS), start=end.minusSeconds(86400);
+            if (previous != null && previous.end().equals(end) && now.isBefore(previous.checkedAt().plusSeconds(cacheSeconds))) return previous;
+            Supplier<?> query = switch (key) {
+                case "r2" -> () -> r2(client.queryMonitor(MonitorDataset.R2_HOURS,start.minusSeconds(86400),end),start,end);
+                case "writes" -> () -> writes(client.queryCacheWrites(bucket,start,end),bucket);
+                case "workers" -> () -> workers(client.queryMonitor(MonitorDataset.WORKERS_HEALTH,start,end));
+                case "d1" -> () -> databases(client.queryMonitor(MonitorDataset.D1_HEALTH,start,end));
+                case "storage" -> () -> storage(client.queryDataset(Dataset.D1_STORAGE,start.minusSeconds(86400),end),start);
+                case "traffic" -> () -> traffic(client.queryTraffic(domain,start,end),domain);
+                case "objects" -> () -> objects(client.queryDataset(Dataset.DO_REQUESTS,start,end),client.queryDataset(Dataset.DO_TIME,start,end));
+                case "refresh" -> () -> refreshRuns(client.queryRefreshRuns());
+                default -> throw new IllegalArgumentException("Unknown monitoring section");
+            };
+            Section<?> section = enabled && client.isConfigured() ? read(query) : unavailable();
+            if (key.equals("refresh")) section = refreshSection(section);
+            var result = new CloudflareMonitoringResponse(section.status(),now,start,end,Map.of(key,section));
+            sectionCache.put(key,result);
+            return result;
+        }
     }
     private Section<?> refreshSection(Section<?> section) {
         if (!section.status().equals("OK") || !(section.data() instanceof RefreshHealth incoming)) return section;

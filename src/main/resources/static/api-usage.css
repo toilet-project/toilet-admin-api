@@ -88,3 +88,5 @@
 @media(max-width:1200px) { .au-cards { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:720px) { .au-title-row { gap: 10px; }.au-tabs button { min-width: 0; padding: 7px 9px; font-size: 11px; }.au-cards { grid-template-columns: 1fr; }.au-section-head { align-items: flex-start; }.au-section-head p { text-align: right; max-width: 50%; }.au-guide > div { grid-template-columns: 1fr; gap: 15px; }.au-detail { width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }.au-detail-head { padding: 20px; }#au-detail-body { padding: 20px; }.au-detail-stats strong { font-size: 20px; }.au-calc-input { grid-template-columns: 1fr; gap: 8px; }.au-detail-head h2 { font-size: 18px; } }
 @media(prefers-reduced-motion:reduce) { .api-usage * { scroll-behavior: auto !important; } }
+
+.au-placeholder-lines{display:grid;gap:18px;padding:10px 0}.au-placeholder-lines i{height:14px;border-radius:6px;background:#edf2ee}.au-placeholder-lines i:last-child{width:65%}.au-placeholder .au-volume-pair strong{color:#83978a}

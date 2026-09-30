@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.*;
 import com.example.toiletadmin.cloudflare.service.CloudflareAnalyticsClient.Dataset;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.*;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.JsonNode;
@@ -111,6 +112,35 @@ class CloudflareMonitoringServiceTest {
         verifyNoInteractions(client);
         assertThatThrownBy(()->CloudflareMonitoringService.workers(json.readTree("[{\"sum\":{}}]"))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(()->CloudflareMonitoringService.num(json.readTree("-1"))).isInstanceOf(IllegalArgumentException.class);
+    }
+    @Test void slowSectionDoesNotBlockOthersAndConcurrentReadersReuseTheSameCache() throws Exception {
+        var client=mock(CloudflareAnalyticsClient.class);
+        when(client.isConfigured()).thenReturn(true);
+        var entered=new CountDownLatch(1);
+        var release=new CountDownLatch(1);
+        when(client.queryTraffic(anyString(),any(),any())).thenAnswer(invocation->{
+            entered.countDown();
+            if (!release.await(5,TimeUnit.SECONDS)) throw new IllegalStateException("Test provider timeout");
+            return json.readTree("[]");
+        });
+        when(client.queryMonitor(any(),any(),any())).thenReturn(json.readTree("[]"));
+        var svc=new CloudflareMonitoringService(client,true,300,"example.test","bucket",Clock.fixed(end.plusSeconds(1800),ZoneOffset.UTC));
+        try(var executor=Executors.newVirtualThreadPerTaskExecutor()) {
+            var slow=executor.submit(()->svc.getSection("traffic"));
+            assertThat(entered.await(2,TimeUnit.SECONDS)).isTrue();
+            try {
+                var first=executor.submit(()->svc.getSection("r2"));
+                var second=executor.submit(()->svc.getSection("r2"));
+                var result=first.get(2,TimeUnit.SECONDS);
+                assertThat(result.sections()).containsOnlyKeys("r2");
+                assertThat(result.status()).isEqualTo("OK");
+                assertThat(second.get(2,TimeUnit.SECONDS)).isSameAs(result);
+                assertThat(slow.isDone()).isFalse();
+                verify(client,times(1)).queryMonitor(any(),any(),any());
+                assertThatThrownBy(()->svc.getSection("invalid")).isInstanceOf(IllegalArgumentException.class);
+            } finally {release.countDown();}
+            assertThat(slow.get(2,TimeUnit.SECONDS).status()).isEqualTo("OK");
+        }
     }
     @Test void olderWorkflowListsNeverReplaceNewerConfirmedRuns() throws Exception {
         var client=mock(CloudflareAnalyticsClient.class);

@@ -67,6 +67,15 @@ CDN 조회는 기존 토큰으로 `geupddong.com` Zone을 해당 Account 안에�
 
 ## 검증과 로컬 검토
 
+### 화면 표시와 부분 조회
+
+- Cloudflare 화면은 인증 조회와 데이터 응답을 기다리지 않고 제목·탭·카드·점검 기준을 먼저 표시한다. 보호된 API 요청은 기존 관리자 인증 성공 후에만 시작한다.
+- 비용·운영 상태·원본 봇·호스트와 8개 모니터링 항목, 총 12개 요청을 독립적으로 반영한다. `/api/admin/v1/cloudflare/monitoring/{section}`의 허용된 section은 `r2`, `writes`, `workers`, `d1`, `storage`, `traffic`, `objects`, `refresh`다. 기존 전체 조회 API도 유지한다.
+- 항목별 서버 메모리 캐시와 잠금으로 같은 항목의 동시 요청을 합치고 최대 5분 재사용한다. 완료 시간 구간이 바뀌면 이전 구간 캐시를 재사용하지 않는다. R2 저장·주기 작업·추가 외부 알림은 생성하지 않는다.
+- 처음 조회 중인 값, 실패한 값, 실제 0을 구분한다. 재조회 중에는 마지막 값을 유지하며 항목별 조회·집계 시각을 표시한다. 실패하면 이전 값임을 명시하고 해당 항목만 재시도한다. 화면을 떠나면 요청과 자동 갱신을 취소한다.
+- 바뀐 영역만 교체하여 선택한 탭·입력 중인 예산·비용 필터·차트 선택·펼친 표가 유지된다. API 사용량 페이지도 서비스 이름·설명·기본 카드를 먼저 표시하며, 동적 사용량은 기존 집계 응답을 받으면 채운다.
+- 로컬 검토 URL에 `?review=staged`로 응답 지연, `?review=retry&fail=workers`로 첫 조회 실패 후 회복, `?review=stale&fail=workers`로 재조회 실패를 재현할 수 있다. 이 동작은 localhost 검토 서버에만 있다.
+
 `./gradlew test --tests 'com.example.toiletadmin.cloudflare.*'`는 포함량 경계, R2 올림, CPU 단위, 예측 최소 기간, 부분 실패, 누락 숫자, 오래된 값, 주기 전환, GraphQL 범위 제한을 검증한다. `node scripts/verify-admin-home.cjs`는 기존 운영 홈 계약을 검증한다.
 
 모니터링 테스트는 완료 시간 경계, 표본 차이에 의한 음수 방지, CPU p95 단위, D1 분모, CDN/봇 분류, 과거 저장량 비교, 실패 격리, 공개 작업 결과를 검증한다. `node scripts/verify-cloudflare-monitor.cjs`로 예산·소진 예상·급증·갱신 지연 경계도 검증한다.

@@ -22,12 +22,17 @@ assert.ok(source.includes('image: ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin
 assert.ok(steps.find(s => s.uses?.startsWith('docker/build-push-action@')).with.tags.includes('${{ github.sha }}'));
 assert.ok(!/docker (image|system|volume) prune|--remove-orphans|set -x/.test(source));
 const secrets = {
+  'vars.API_USAGE_GOOGLE_TRANSLATION_PROJECT_ID': 'fixture-translation-project',
   'secrets.SPRING_DB_URL': 'jdbc:mysql://fixture.invalid:3306/fixture?serverTimezone=Asia/Seoul',
   'secrets.SPRING_DB_USERNAME': 'fixture', 'secrets.SPRING_DB_PASSWORD': 'synthetic-only',
   'secrets.ADMIN_PORT': '8089', 'secrets.KAKAO_REST_API_KEY': 'fixture-rest',
   'secrets.KAKAO_JAVASCRIPT_KEY': 'fixture-js', 'secrets.DOCKERHUB_USERNAME': 'fixture',
   'secrets.CLOUDFLARE_ACCOUNT_ID': '11111111111111111111111111111111',
   'secrets.CLOUDFLARE_ANALYTICS_API_TOKEN': 'synthetic-cloudflare-token',
+  'secrets.API_USAGE_NAVER_CREDENTIALS_BASE64': Buffer.from('{"accessKey":"fixture","secretKey":"fixture"}').toString('base64'),
+  'secrets.API_USAGE_MANUAL_SNAPSHOTS_BASE64': Buffer.from('{"current":{},"history":{}}').toString('base64'),
+  'vars.API_USAGE_GOOGLE_PROJECT_ID': 'fixture-google-project',
+  'secrets.API_USAGE_GOOGLE_CREDENTIALS_BASE64': Buffer.from('{"type":"service_account","fixture":true}').toString('base64'),
   'github.sha': '1111111111111111111111111111111111111111',
   'vars.HOST_METRICS_ENABLED': 'HOST_FLAG',
   'vars.ORIGIN_BOTS_ENABLED': 'BOT_FLAG'
@@ -119,6 +124,10 @@ for (const mode of ['success', 'first', 'locked', 'imagefail', 'configfail', 'pu
     assert.equal(generatedEnv.includes('ORIGIN_BOTS_DIRECTORY='), botEnabled);
   }
   if (mode === 'success') {
+    const usageEnv = fs.readFileSync(path.join(dir,'.env'),'utf8');
+    assert.ok(usageEnv.includes('API_USAGE_GOOGLE_PROJECT_ID=fixture-google-project'));
+    assert.ok(usageEnv.includes('API_USAGE_NAVER_CREDENTIALS_BASE64='+secrets['secrets.API_USAGE_NAVER_CREDENTIALS_BASE64']));
+    assert.ok(usageEnv.includes('API_USAGE_GOOGLE_CREDENTIALS_BASE64='+secrets['secrets.API_USAGE_GOOGLE_CREDENTIALS_BASE64']));
     assert.equal(YAML.parse(fs.readFileSync(path.join(dir,'docker-compose.yml'),'utf8')).services['toilet-admin'].volumes, undefined);
     assert.doesNotMatch(fs.readFileSync(path.join(dir,'.env'),'utf8'), /HOST_METRICS_DIRECTORY=/);
   }

@@ -54,3 +54,15 @@ test('writes, unknown routes and redirect/path injection remain blocked after au
  for(const path of ['/backend/api/v1/auth/logout','/backend/api/admin/v1/secrets','/server/api/admin/v1/toilets/%5c..%5csecret','/secrets.json'])assert.equal((await handle(req(path,session),env)).status,404)
  assert.equal(calls.length,0)
 })
+
+test('fixed-size preview requires admin and permits only same-origin content framing',async()=>{
+ const {env,handle,req,connect}=setup()
+ assert.equal((await handle(req('/responsive-screen.html'),env)).status,302)
+ assert.equal((await handle(req('/responsive-screen.js'),env)).status,401)
+ const session=await connect()
+ const screen=await handle(req('/responsive-screen.html',session),env)
+ assert.equal(screen.status,200);assert.match(screen.headers.get('content-security-policy'),/frame-ancestors 'none'/)
+ const child=await handle(req('/toilets.html',session),env)
+ assert.equal(child.status,200);assert.match(child.headers.get('content-security-policy'),/frame-ancestors 'self'/)
+ assert.match((await handle(req('/backend/api/admin/v1/toilets',session),env)).headers.get('content-security-policy'),/frame-ancestors 'none'/)
+})

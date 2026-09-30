@@ -24,6 +24,9 @@ function walk(dir, relative='') {
 }
 walk(staticDir)
 fs.copyFileSync(path.join(root,'preview/responsive-bridge.js'),path.join(assetsDir,'responsive-bridge.js'));names.push('responsive-bridge.js')
+for (const name of ['responsive-screen.html','responsive-screen.js']) {
+  fs.copyFileSync(path.join(root,'preview',name),path.join(assetsDir,name));names.push(name)
+}
 fs.writeFileSync(path.join(output,'manifest.mjs'),`export default ${JSON.stringify(names)};\n`)
 fs.copyFileSync(path.join(root,'preview/responsive-gateway.mjs'),path.join(output,'worker.mjs'))
 console.log(`Prepared ${names.length} static assets; no user data or credentials included.`)

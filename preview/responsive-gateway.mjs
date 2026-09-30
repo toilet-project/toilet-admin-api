@@ -142,7 +142,12 @@ export function createHandler(fetcher = fetch, now = () => Date.now()) {
         if(destination.origin!==SITE || !destination.pathname.startsWith(PREFIX+'/'))return reply(502,'지원하지 않는 파일 경로입니다.')
         return new Response(null,{status:upstream.status,headers:{...headers,Location:destination.href}})
       }
-      return new Response(upstream.body,{status:upstream.status,headers:{...headers,'Content-Type':upstream.headers.get('Content-Type') || 'application/octet-stream'}})
+      // Only authenticated preview HTML can be embedded by the same-origin
+      // size selector. Authentication responses and the selector stay unframeable.
+      const contentPolicy=target.endsWith('.html') && target!=='/responsive-screen.html'
+        ? headers['Content-Security-Policy'].replace("frame-ancestors 'none'", "frame-ancestors 'self'")
+        : headers['Content-Security-Policy']
+      return new Response(upstream.body,{status:upstream.status,headers:{...headers,'Content-Security-Policy':contentPolicy,'Content-Type':upstream.headers.get('Content-Type') || 'application/octet-stream'}})
     } catch { return reply(503, '프리뷰 인증 또는 연결이 지연됩니다. 잠시 후 다시 시도해 주세요.') }
   }
 }

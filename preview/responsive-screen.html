@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>화면 크기 고정 · 관리자 프리뷰</title>
+  <style>
+    * { box-sizing:border-box }
+    body { margin:0; color:#243f32; background:#e9efec; font:13px/1.5 'Malgun Gothic',sans-serif }
+    header { display:flex; flex-wrap:wrap; align-items:center; gap:16px; min-height:60px; padding:10px 20px; border-bottom:1px solid #d4e1d9; background:#fff }
+    header strong { font-size:14px }
+    nav { display:flex; gap:5px }
+    button,a { padding:7px 12px; border:1px solid #d3e1d9; border-radius:7px; color:#426452; background:#fff; font:inherit; cursor:pointer; text-decoration:none; white-space:nowrap }
+    button[aria-pressed=true] { color:#fff; border-color:#26734e; background:#26734e }
+    button:focus-visible,a:focus-visible { outline:2px solid #26734e; outline-offset:2px }
+    #screen-size { color:#617b6d; font-variant-numeric:tabular-nums }
+    #live-size { margin-left:auto }
+    main { display:flex; padding:20px; min-width:0; overflow:auto; height:calc(100dvh - 60px); align-items:flex-start }
+    .screen { flex:0 0 auto; margin:0 auto; overflow:hidden; border:1px solid #c5d8cd; border-radius:10px; background:#fff; box-shadow:0 8px 30px #244c3214 }
+    iframe { display:block; width:1280px; height:800px; border:0; background:#f5f7f6 }
+    @media(max-width:800px) { header { gap:8px; padding:8px } main { padding:8px } #live-size { margin-left:0 } }
+  </style>
+  <script src="/admin-responsive/responsive-screen.js" defer></script>
+</head>
+<body>
+  <header>
+    <strong>관리자 프리뷰</strong>
+    <nav aria-label="확인할 화면 크기">
+      <button type="button" data-size="13" aria-pressed="true">13인치</button>
+      <button type="button" data-size="15" aria-pressed="false">15인치</button>
+      <button type="button" data-size="desktop" aria-pressed="false">데스크탑</button>
+    </nav>
+    <span id="screen-size" role="status">1280 × 800 · 페이지 이동 후에도 유지</span>
+    <a id="live-size" href="/admin-responsive/">실제 브라우저 크기로 보기</a>
+  </header>
+  <main aria-label="고정 크기 프리뷰">
+    <div class="screen"><iframe id="admin-preview" title="13인치 관리자 프리뷰" src="about:blank"></iframe></div>
+  </main>
+</body>
+</html>

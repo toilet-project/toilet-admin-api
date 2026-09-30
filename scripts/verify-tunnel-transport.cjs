@@ -19,8 +19,11 @@ assert.deepEqual(oldJob,newJob);
 const i=oldSteps.findIndex(s=>s.uses?.startsWith('appleboy/ssh-action@'));
 assert.equal(i,oldSteps.length-1);
 assert.deepEqual(oldSteps.slice(0,i),newSteps.slice(0,i),'Build steps must not change');
-assert.equal(newSteps.length,oldSteps.length+2);
-const [prepare,deploy,cleanup]=newSteps.slice(i);
+assert.equal(newSteps.length,oldSteps.length+3);
+const [validateSnapshots,prepare,deploy,cleanup]=newSteps.slice(i);
+assert.equal(validateSnapshots.name,'Validate protected API usage snapshots');
+assert.equal(validateSnapshots.env.SNAPSHOTS,'${{ secrets.API_USAGE_MANUAL_SNAPSHOTS_BASE64 }}');
+assert.match(validateSnapshots.run,/b64decode\(value, validate=True\)/);
 const cloudflareEnvironmentBlock = [
  'CLOUDFLARE_ANALYTICS_ENABLED=true',
  'CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}',
@@ -33,6 +36,16 @@ const cloudflareEnvironmentBlock = [
  'CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}'
 ].join('\n');
 let reviewedDeployment = deploy.env.DEPLOY_SCRIPT;
+const originalTrap = oldSteps[i].with.script.match(/^trap .* EXIT$/m)?.[0];
+assert.ok(originalTrap);
+assert.equal(reviewedDeployment.split('preflight_active=true').length-1,1);
+assert.equal(reviewedDeployment.split('preflight_active=false').length-1,1);
+assert.match(reviewedDeployment,/docker run "\$@" "\$candidate_image"/);
+assert.match(reviewedDeployment,/candidate-startup\.log/);
+const preflightBlock = reviewedDeployment.match(/# Start the exact image with production settings beside the current service\.[\s\S]*?preflight_active=false\n/);
+assert.ok(preflightBlock);
+reviewedDeployment=reviewedDeployment.replace(preflightBlock[0],'');
+reviewedDeployment=reviewedDeployment.replace(/^trap .* EXIT$/m,originalTrap);
 const apiUsageEnvironmentBlock = [
  'API_USAGE_GOOGLE_TRANSLATION_PROJECT_ID=${{ vars.API_USAGE_GOOGLE_TRANSLATION_PROJECT_ID }}',
  'API_USAGE_GOOGLE_PROJECT_ID=${{ vars.API_USAGE_GOOGLE_PROJECT_ID }}',

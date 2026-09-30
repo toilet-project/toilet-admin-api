@@ -1,6 +1,6 @@
 # 관리자 배포 안전성 보완
 
-상태: 로컬 feature 검증용. main 병합은 운영 배포를 실행하므로 별도 승인 후 진행한다. Tunnel 연결 변경과 분리한 변경이다.
+상태: 기존 SHA 고정·설정 백업 배포는 운영 중. API 사용량 배포에서는 새 이미지를 현 서비스와 분리해 먼저 기동 검사한다.
 
 ## 변경
 
@@ -10,6 +10,7 @@
 - set -eu/umask077, 변경 전 설정·현재 image ID·rollback tag 보관. 기존 파일 삭제·자동 만료 삭제 없음.
 - 이미지 prune와 remove-orphans 제거. 이 workflow에서 다른 컨테이너/이미지를 정리하지 않는다.
 - Compose config/pull/up 실패 시 중단. 실제 local actuator health가 UP이어야 성공 처리한다.
+- API 사용량 Secret 형식을 배포 전 검증하고, 같은 이미지·설정으로 임시 컨테이너를 먼저 기동해 UP을 확인한다. 임시 컨테이너가 실패하면 기존 서비스는 교체하지 않고 기존 Compose/env 파일을 복원한다. 자세한 시작 로그는 서버의 보호된 rollback 폴더에만 남긴다.
 - 자동 rollback/재시도 없음. SSH timeout 후 원격 배포가 계속될 수 있으므로 서버부터 확인한다.
 
 ## 검증
@@ -18,7 +19,7 @@
 
 필요한 실행 환경: Node, yaml 모듈, Bash, Python 3. `DEPLOY_YAML_MODULE`, `DEPLOY_BASH`, `DEPLOY_PYTHON` 환경변수로 설치 경로를 지정한 뒤 `node scripts/verify-deployment-safety.cjs`를 실행한다. 시험용 임시 파일은 합성 데이터만 포함하고 보관한다.
 
-정상·최초 배포·lock 충돌·image 확인 실패·Compose config/pull/up 실패·health HTTP 실패/DOWN/잘못된 JSON 총10가지 시나리오. 기존 설정 백업, 실패 이후 up 미실행, 최대30회 health, 배포 up 최대1회를 검사한다. 실제 flock 경합이나 Docker 배포 성공을 대신하지 않는다.
+정상·최초 배포·lock 충돌·image 확인 실패·Compose config/pull/up 실패·임시 컨테이너 시작/health 실패·실제 서비스 health HTTP 실패/DOWN/잘못된 JSON과 선택적 마운트를 포함한 17가지 시나리오. 기존 설정 백업, 임시 컨테이너 실패 시 교체 차단, 배포 up 최대1회를 검사한다. 실제 flock 경합이나 Docker 배포 성공을 대신하지 않는다.
 
 PR의 `Deployment safety checks`도 같은 합성 시나리오를 Linux에서 실행한다. 저장소 Secret·운영 SSH·Docker Hub 로그인 없이 contents 읽기 권한만 사용하며 실제 배포를 실행하지 않는다. YAML 파서만 임시 디렉터리에 설치한다.
 

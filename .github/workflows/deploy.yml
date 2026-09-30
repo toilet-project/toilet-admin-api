@@ -50,6 +50,28 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:${{ github.sha }}
 
+      - name: Validate protected API usage snapshots
+        shell: bash
+        env:
+          SNAPSHOTS: ${{ secrets.API_USAGE_MANUAL_SNAPSHOTS_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import base64, json, os
+          value = os.environ.get('SNAPSHOTS', '')
+          if not value or len(value) > 131072:
+              raise SystemExit('Protected API usage snapshots are missing or oversized')
+          try:
+              decoded = base64.b64decode(value, validate=True)
+              payload = json.loads(decoded)
+              assert len(decoded) <= 65536
+              assert isinstance(payload.get('current'), dict)
+              assert isinstance(payload.get('history'), dict)
+              assert all(isinstance(item, dict) and 'month' in item for item in payload['current'].values())
+          except Exception:
+              raise SystemExit('Protected API usage snapshots have an invalid format')
+          print('Protected API usage snapshots validated without revealing values')
+          PY
+
       # Deployment commands are unchanged; only the reviewed SSH transport changes.
       - name: Prepare pinned Tunnel SSH transport
         shell: bash
@@ -75,7 +97,7 @@ jobs:
           DEPLOY_SCRIPT: |
             set -eu
             umask 077
-            trap 'rc=$?; if [ "$rc" -ne 0 ]; then printf "%s\n" "Admin deployment failed. Preserve rollback files; inspect before retrying." >&2; fi; exit "$rc"' EXIT
+            trap 'rc=$?; if [ -n "${candidate_name:-}" ]; then docker rm -f "$candidate_name" >/dev/null 2>&1 || true; fi; if [ "$rc" -ne 0 ] && [ "${preflight_active:-false}" = true ]; then for file in .env docker-compose.yml; do if [ -f "$rollback_dir/$file" ]; then cp -- "$rollback_dir/$file" "$file"; else rm -f -- "$file"; fi; done; fi; if [ "$rc" -ne 0 ]; then printf "%s\n" "Admin deployment failed. Preserve rollback files; inspect before retrying." >&2; fi; exit "$rc"' EXIT
             command -v flock >/dev/null
             command -v curl >/dev/null
             command -v python3 >/dev/null
@@ -211,6 +233,43 @@ jobs:
 
             docker compose config --quiet
             docker compose pull toilet-admin
+            # Start the exact image with production settings beside the current service.
+            # A failed candidate leaves the serving container untouched.
+            preflight_active=true
+            candidate_name="toilet-admin-preflight-$$"
+            candidate_image="${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin:${{ github.sha }}"
+            set -- -d --name "$candidate_name" --env-file .env -e ADMIN_PORT=18089 \
+              --network toilet-network -p 127.0.0.1::18089
+            if [ '${{ vars.HOST_METRICS_ENABLED }}' = 'true' ]; then
+              set -- "$@" --mount type=bind,source=/var/snap/docker/common/geupddong-host-monitor/exports,target=/var/lib/geupddong-host-metrics,readonly
+            fi
+            if [ '${{ vars.ORIGIN_BOTS_ENABLED }}' = 'true' ]; then
+              set -- "$@" --mount type=bind,source=/var/snap/docker/common/geupddong-origin-bots/exports,target=/var/lib/geupddong-origin-bots,readonly
+            fi
+            docker run "$@" "$candidate_image" >/dev/null
+            candidate_port=$(docker port "$candidate_name" 18089/tcp | sed -E 's/^.*:([0-9]+)$/\1/')
+            case "$candidate_port" in *[!0-9]*|'') printf '%s\n' 'Candidate port unavailable' >&2; exit 1;; esac
+            attempt=0
+            candidate_healthy=false
+            while [ "$attempt" -lt 60 ]; do
+              if health_body=$(curl --fail --silent --max-time 3 "http://127.0.0.1:$candidate_port/actuator/health") &&
+                 printf '%s' "$health_body" | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null; then
+                candidate_healthy=true
+                break
+              fi
+              attempt=$((attempt + 1))
+              sleep 2
+            done
+            if [ "$candidate_healthy" != true ]; then
+              docker logs --tail 120 "$candidate_name" > "$rollback_dir/candidate-startup.log" 2>&1 || true
+              chmod 600 "$rollback_dir/candidate-startup.log"
+              printf '%s\n' 'Candidate failed health; startup log saved privately in rollback directory.' >&2
+              grep -oE '[A-Za-z0-9_.]+(Exception|Error)' "$rollback_dir/candidate-startup.log" | sort -u | head -20 >&2 || true
+              exit 1
+            fi
+            docker rm -f "$candidate_name" >/dev/null
+            candidate_name=
+            preflight_active=false
             docker compose up -d --wait --wait-timeout 120 toilet-admin
             # Without a container healthcheck, compose --wait only guarantees running.
             # Require the actual application's local health endpoint to report UP.

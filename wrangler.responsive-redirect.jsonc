@@ -1,0 +1,10 @@
+{
+  "name":"geupddong-admin-responsive-preview",
+  "account_id":"1611d88218de929b3ed6e2cd7c863be5",
+  "main":"preview/responsive-gateway.mjs",
+  "compatibility_date":"2026-09-30",
+  "workers_dev":false,
+  "preview_urls":false,
+  "routes":[{"pattern":"preview.geupddong.com/admin-responsive*","zone_name":"geupddong.com"}],
+  "observability":{"enabled":false}
+}

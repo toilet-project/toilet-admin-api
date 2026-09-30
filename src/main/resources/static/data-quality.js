@@ -727,6 +727,7 @@ async function openCoordinateEditor(toilet) {
     const mapElement = el('quality-coordinate-map')
     mapElement.replaceChildren()
     const map = new kakao.maps.Map(mapElement, { center: initial, level: 3 })
+    globalThis.AdminResponsive?.watchMap(map, mapElement)
     const originMarker = new kakao.maps.Marker({ map, position: initial, image: coordinatePositionMarkerImage(kakao.maps, '#157d48'), title: '기존 위치' })
     originMarker.setZIndex(10)
     const marker = new kakao.maps.Marker({ position: initial, image: coordinatePositionMarkerImage(kakao.maps, '#ee872c'), draggable: true, title: '보정할 좌표' })

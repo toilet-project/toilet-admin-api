@@ -5,7 +5,7 @@
   const page = main.dataset.adminPage || 'home'
   const title = main.dataset.adminTitle || main.querySelector('h1')?.textContent || '관리자'
   const icon = (name, extra = '') => `<svg class="admin-icon ${extra}" aria-hidden="true"><use href="#admin-icon-${name}"/></svg>`
-  const nav = (key, href, name, iconName, meta = '') => `<a class="admin-nav-link${page === key ? ' is-current' : ''}" href="${href}"${page === key ? ' aria-current="page"' : ''}>${icon(iconName)}${name}${meta ? `<span class="admin-nav-meta">${meta}</span>` : ''}</a>`
+  const nav = (key, href, name, iconName, meta = '') => `<a class="admin-nav-link${page === key ? ' is-current' : ''}" href="${href}" aria-label="${name}" title="${name}"${page === key ? ' aria-current="page"' : ''}>${icon(iconName)}<span class="admin-nav-label">${name}</span>${meta ? `<span class="admin-nav-meta">${meta}</span>` : ''}</a>`
   const frame = document.createElement('div')
   frame.id = 'dashboard-shell'
   frame.className = 'admin-frame'
@@ -159,7 +159,9 @@
         if (pageStyleNames.has(assetName(url.pathname))) link.dataset.adminRouteStyle = 'true'
         link.onload = resolve
         link.onerror = () => reject(new Error(`${url.pathname} 스타일을 불러오지 못했습니다.`))
-        document.head.append(link)
+        // Keep the responsive overrides last throughout navigation, including
+        // while the next page's scripts are still loading.
+        document.head.insertBefore(link, document.querySelector('link[href*="admin-responsive.css"]'))
       })
     })
     await Promise.all(loading)
@@ -170,7 +172,7 @@
 
   const pageScripts = (nextDocument, destination) => [...nextDocument.querySelectorAll('script[src]')]
     .map(script => new URL(script.getAttribute('src'), destination))
-    .filter(url => !['admin-shell.js', 'admin-session.js'].includes(assetName(url.pathname)))
+    .filter(url => !['admin-shell.js', 'admin-session.js', 'admin-responsive.js', 'responsive-bridge.js', 'admin-preview-runtime.js'].includes(assetName(url.pathname)))
 
   const executePageScripts = async (nextDocument, destination, sequence) => {
     for (const original of pageScripts(nextDocument, destination)) {

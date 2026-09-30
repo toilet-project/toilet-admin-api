@@ -647,6 +647,7 @@ async function drawMap(detail) {
     const fallback = new K.LatLng(37.5665, 126.9780)
     const initial = validCoordinates(original) ? new K.LatLng(Number(original.latitude), Number(original.longitude)) : fallback
     const map = new K.Map(target, { center:initial, level:validCoordinates(original) ? 3 : 12 })
+    globalThis.AdminResponsive?.watchMap(map, target)
     const nearbyMarkers = []
     let nearbyTimer = null
     const scheduleNearby = () => {

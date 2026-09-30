@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <script src="/admin-responsive.js?v=3"></script>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>급똥 관리자 | 중복 이름 품질 관리</title>
 <link rel="stylesheet" href="/dashboard.css?v=15"><link rel="stylesheet" href="/admin-shell.css?v=6">
 <link rel="stylesheet" href="/quality-review-shell.css?v=2"><link rel="stylesheet" href="/duplicate-names.css?v=3">
-  <link rel="icon" type="image/svg+xml" href="/brand/hangul-point-v1/favicon.svg" /><link rel="icon" type="image/png" sizes="32x32" href="/brand/hangul-point-v1/favicon-32.png" /><link rel="apple-touch-icon" sizes="180x180" href="/brand/hangul-point-v1/apple-touch-icon.png" /><link rel="stylesheet" href="/brand.css?v=2" />
+  <link rel="icon" type="image/svg+xml" href="/brand/hangul-point-v1/favicon.svg" /><link rel="icon" type="image/png" sizes="32x32" href="/brand/hangul-point-v1/favicon-32.png" /><link rel="apple-touch-icon" sizes="180x180" href="/brand/hangul-point-v1/apple-touch-icon.png" /><link rel="stylesheet" href="/brand.css?v=3" />
+  <link rel="stylesheet" href="/admin-responsive.css?v=3" />
 </head>
 <body class="admin-page quality-page duplicate-name-page">
 <main class="dashboard-shell quality-shell duplicate-name-shell" data-admin-page="duplicate-names" data-admin-title="중복 이름 품질 관리">
@@ -40,5 +42,5 @@
 </section>
 <dialog id="dn-confirm"><form method="dialog"><h2>선택한 항목만 숨길까요?</h2><p id="dn-confirm-message"></p><p>사용자 지도·검색·사이트맵과 관리자 기본 목록에서 제외됩니다. 원본·리뷰·제보·처리 이력은 삭제하지 않습니다.</p><div class="dn-dialog-actions"><button value="cancel">취소</button><button value="confirm" class="dn-primary">숨김 확정</button></div></form></dialog>
 <dialog id="dn-cleanup-dialog"><form method="dialog"><h2>동일 이름·좌표 자동 정리</h2><p id="dn-cleanup-summary">정리 대상을 확인하고 있습니다.</p><p>현재 표시 중인 화장실만 비교합니다. 이미 숨긴 항목은 제외하고, 기존 대표 연결과 처리 이력은 유지합니다.</p><div class="dn-dialog-actions"><button value="cancel">취소</button><button id="dn-cleanup-confirm" value="confirm" class="dn-primary">정리 시작</button></div></form></dialog>
-</main><script src="/admin-shell.js?v=12"></script><script src="/duplicate-names.js?v=4"></script>
+</main><script src="/admin-shell.js?v=13"></script><script src="/duplicate-names.js?v=4"></script>
 </body></html>

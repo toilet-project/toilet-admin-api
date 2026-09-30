@@ -365,6 +365,7 @@ async function mountMap(item, sequence) {
     const K = window.kakao.maps
     const initial = valid(item.location) ? new K.LatLng(item.location.latitude, item.location.longitude) : new K.LatLng(36.35, 127.38)
     const map = new K.Map($('region-map'), { center:initial, level:valid(item.location) ? 3 : 12 })
+    globalThis.AdminResponsive?.watchMap(map, $('region-map'))
     const geocoder = new K.services.Geocoder()
     const places = new K.services.Places()
     const pin = (color) => new K.MarkerImage(`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="38"><path d="M12 11V36" stroke="${color}" stroke-width="3"/><circle cx="12" cy="10" r="8" fill="${color}" stroke="white" stroke-width="2"/></svg>`)}`, new K.Size(24,38), { offset:new K.Point(12,36) })

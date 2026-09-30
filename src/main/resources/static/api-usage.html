@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/dashboard.css?v=5" /><link rel="stylesheet" href="/admin-shell.css?v=6" />
   <link rel="stylesheet" href="/admin-session.css?v=1" /><link rel="stylesheet" href="/brand.css?v=2" />
   <link rel="stylesheet" href="/api-usage.css?v=8" />
+  <link rel="stylesheet" href="/admin-responsive.css?v=1" />
 </head>
 <body class="admin-page">
 <main id="loading-shell" class="page-loading" hidden><span class="loading-spinner"></span><p>불러오는 중...</p></main>
@@ -23,5 +24,5 @@
   <section id="au-monthly-panel" class="au-growth" role="tabpanel" aria-labelledby="au-tab-history" hidden><div class="au-section-head"><div><p class="eyebrow">MONTHLY USAGE</p><h2 id="au-growth-title">월별 사용량과 증감</h2></div><span>최근 6개월</span></div><div class="au-growth-filters"><label>서비스<select id="au-history-service"></select></label><label>API 항목<select id="au-history-metric"></select></label></div><p id="au-history-status" class="au-detail-meta" role="status">월별 기록을 확인합니다.</p><div id="au-history-content" aria-busy="true"></div><p class="au-growth-note">API 호출량은 서비스 이용 변화를 보는 보조 지표입니다. 테스트·배치 작업·캐시 정책도 영향을 줍니다. 이용자 수와 함께 해석해 주세요.</p></section>
   <dialog id="au-detail" class="au-detail" aria-labelledby="au-detail-title"><div class="au-detail-head"><div><p class="eyebrow">API DETAIL</p><h2 id="au-detail-title"></h2></div><button id="au-close" type="button" aria-label="상세보기 닫기">✕</button></div><div id="au-detail-body"></div></dialog>
 </main>
-<script src="/admin-shell.js?v=12"></script><script src="/admin-session.js?v=2"></script><script src="/api-usage-math.js?v=1"></script><script src="/api-usage.js?v=7"></script>
+<script src="/admin-shell.js?v=12"></script><script src="/admin-responsive.js?v=1"></script><script src="/admin-session.js?v=2"></script><script src="/api-usage-math.js?v=1"></script><script src="/api-usage.js?v=7"></script>
 </body></html>

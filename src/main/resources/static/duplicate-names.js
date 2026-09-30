@@ -44,7 +44,7 @@
     try {
       const maps=await loadMaps();if(generation!==mapGeneration||id!==detailId||!target.isConnected)return
       target.replaceChildren()
-      const position=new maps.LatLng(lat,lng);const map=new maps.Map(target,{center:position,level:3});new maps.Marker({map,position})
+      const position=new maps.LatLng(lat,lng);const map=new maps.Map(target,{center:position,level:3});globalThis.AdminResponsive?.watchMap(map,target);new maps.Marker({map,position})
     }catch(e){if(generation===mapGeneration&&id===detailId&&target.isConnected)target.innerHTML=`<p>${esc(e.message)} 아래 좌표와 시설 정보는 계속 확인할 수 있습니다.</p>`}
   }
   const message=text=>$('dn-status').textContent=text

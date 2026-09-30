@@ -350,6 +350,7 @@ async function mountMap(detail, sequence) {
     target.replaceChildren()
     const center = current || proposed
     const map = new K.Map(target, { center:new K.LatLng(center.latitude, center.longitude), level:4 })
+    globalThis.AdminResponsive?.watchMap(map, target)
     const bounds = new K.LatLngBounds()
     const add = (location, label, tone) => {
       if (!location) return

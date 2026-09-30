@@ -170,7 +170,7 @@
 
   const pageScripts = (nextDocument, destination) => [...nextDocument.querySelectorAll('script[src]')]
     .map(script => new URL(script.getAttribute('src'), destination))
-    .filter(url => !['admin-shell.js', 'admin-session.js'].includes(assetName(url.pathname)))
+    .filter(url => !['admin-shell.js', 'admin-session.js', 'admin-responsive.js'].includes(assetName(url.pathname)))
 
   const executePageScripts = async (nextDocument, destination, sequence) => {
     for (const original of pageScripts(nextDocument, destination)) {

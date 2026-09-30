@@ -1,0 +1,227 @@
+/* Desktop rules stay in the existing page styles. This layer is activated only
+   when the browser is narrow or short, and uses live panels rather than copies. */
+.admin-menu-toggle,.admin-menu-backdrop,.admin-view-tabs { display:none; }
+.admin-disclosure { display:contents; }
+.admin-disclosure > summary { display:none; }
+.admin-disclosure:not([open]) > :not(summary) { display:revert; }
+.admin-action-dock:empty { display:none; }
+:root[data-admin-compact] { --admin-topbar-height:52px; }
+:root[data-admin-compact] .admin-frame { display:grid; grid-template-columns:64px minmax(0,1fr); }
+:root[data-admin-compact][data-admin-nav-open] .admin-frame { grid-template-columns:220px minmax(0,1fr); }
+:root[data-admin-compact] .admin-sidebar { position:sticky; display:flex; flex-direction:column; align-items:stretch; gap:16px; padding:14px 9px; height:100dvh; overflow-y:auto; scrollbar-width:thin; }
+:root[data-admin-compact] .admin-brand { margin:0; padding:0 4px; }
+:root[data-admin-compact] .admin-brand small { font-size:8px; }
+:root[data-admin-compact] .admin-nav { display:grid; flex:none; gap:12px; overflow:visible; }
+:root[data-admin-compact] .admin-nav-group { display:grid; gap:3px; }
+:root[data-admin-compact] .admin-nav-group > p { padding:0 8px 3px; font-size:10px; }
+:root[data-admin-compact] .admin-nav-link { min-height:36px; padding:8px 12px; gap:9px; font-size:12px; }
+:root[data-admin-compact][data-admin-nav-open] .admin-nav-group > p { display:block; }
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-nav-label,
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-nav-meta,
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-icon-end,
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-nav-group > p,
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-sidebar-footer,
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-brand small { display:none; }
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-nav-link { justify-content:center; padding:8px; }
+:root[data-admin-compact] .admin-topbar { min-height:52px; gap:12px; padding:8px 16px; }
+:root[data-admin-compact] .admin-breadcrumb { margin-right:auto; }
+:root[data-admin-compact] .admin-menu-toggle { display:grid; flex:0 0 34px; width:34px; height:34px; place-items:center; border:1px solid #dce6df; border-radius:7px; background:white; color:#345d48; padding:6px; }
+.admin-menu-toggle svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.6; }
+:root[data-admin-compact] .admin-topbar-actions { gap:6px; }
+:root[data-admin-compact] .admin-search { width:180px; }
+:root[data-admin-compact] .admin-workspace { min-width:0; }
+:root[data-admin-compact] .dashboard-shell { padding:16px 18px 28px; }
+:root[data-admin-compact] .page-header { min-height:0; margin-bottom:12px; gap:12px; }
+:root[data-admin-compact] .page-header h1 { font-size:24px; margin:3px 0; }
+:root[data-admin-compact] .page-header .eyebrow { font-size:9px; }
+:root[data-admin-compact] .page-header p:not(.eyebrow) { font-size:12px; }
+:root[data-admin-compact] .panel { padding:12px; margin-top:10px; }
+:root[data-admin-compact] :is(.review-toolbar,.quality-toolbar,.history-toolbar,.security-toolbar,.region-toolbar) { padding:8px; gap:7px; flex-wrap:wrap; }
+:root[data-admin-compact] :is(.review-toolbar,.quality-toolbar,.security-toolbar) > input[type=search] { min-width:180px; flex:1; }
+:root[data-admin-compact] .admin-view-tabs { display:flex; flex:0 0 auto; align-items:center; width:max-content; max-width:100%; gap:4px; padding:3px; margin:0 0 8px; border:1px solid #d8e6dd; border-radius:9px; background:#edf5f0; }
+.admin-view-tabs button { min-height:32px; padding:5px 14px; border:0; border-radius:6px; background:transparent; color:#587265; font-family:inherit; font-size:12px; font-weight:600; line-height:1.4; cursor:pointer; white-space:nowrap; }
+.admin-view-tabs button[aria-selected=true] { background:#fff; color:#1d7048; box-shadow:0 1px 4px #234c341a; }
+.admin-view-tabs button:focus-visible,.admin-menu-toggle:focus-visible { outline:2px solid #26734e; outline-offset:2px; }
+:root[data-admin-compact] .admin-panel-inactive { display:none !important; }
+:root[data-admin-compact] .admin-disclosure { display:block; margin:8px 0; border:1px solid #dce8e0; border-radius:8px; background:#fff; }
+:root[data-admin-compact] .admin-disclosure > summary { display:list-item; padding:9px 12px; color:#37674c; font-size:12px; cursor:pointer; }
+:root[data-admin-compact] .admin-disclosure:not([open]) > :not(summary) { display:none; }
+:root[data-admin-compact] .admin-action-dock { position:sticky; bottom:0; z-index:5; margin-top:auto; padding:9px 14px; border-top:1px solid #d6e5db; background:#fbfefc; box-shadow:0 -3px 10px #244c3210; }
+:root[data-admin-compact] .admin-action-dock .opening-hours-actions { padding:0; border:0; }
+:root[data-admin-compact] .admin-action-dock > button { width:auto; min-width:160px; display:block; margin-left:auto; }
+
+/* Keep review queues, maps and editors in the available browser height. */
+@media (min-width:761px) {
+  :root[data-admin-compact] body:is(.quality-page,.region-page,.change-review-page,.toilet-data-page,.opening-hours-page) { overflow:hidden; }
+  :root[data-admin-compact] body:is(.quality-page,.region-page,.change-review-page,.toilet-data-page,.opening-hours-page) .admin-frame { display:grid; height:100dvh; min-height:0; overflow:hidden; }
+  :root[data-admin-compact] body:is(.quality-page,.region-page,.change-review-page,.toilet-data-page,.opening-hours-page) .admin-workspace { display:flex; flex-direction:column; height:100dvh; min-height:0; }
+  :root[data-admin-compact] :is(.quality-shell,.region-shell,.change-review-shell,.toilet-data-shell,.opening-hours-shell) { display:flex; flex:1; flex-direction:column; height:auto; min-height:0; max-width:none; padding:12px 14px 12px; overflow:hidden; }
+  :root[data-admin-compact] :is(.quality-page-header,.region-page-header,.change-review-page-header,.toilet-data-header,.opening-hours-page-header) { width:100%; flex:0 0 auto; margin:0 0 10px; }
+  :root[data-admin-compact] :is(.quality-workspace,.region-workspace,.change-review-workspace,.toilet-data-workspace,.opening-hours-workspace) { display:flex; flex:1; flex-direction:column; width:100%; height:auto; min-height:0; margin:0; padding:10px; overflow:hidden; }
+  :root[data-admin-compact] .admin-topbar { flex:0 0 auto; }
+  :root[data-admin-compact] .toilet-search-area { grid-template-columns:minmax(220px,1fr) auto; gap:10px; padding:8px; flex:0 0 auto; }
+  :root[data-admin-compact] .toilet-region-filters label { min-width:120px; }
+  :root[data-admin-compact] :is(.toilet-search-control,.toilet-region-filters select,.toilet-region-filters button) { min-height:36px; }
+  :root[data-admin-compact] #toilet-status { min-height:28px; height:28px; }
+  :root[data-admin-compact] .toilet-data-layout { grid-template-columns:minmax(250px,300px) minmax(0,1fr); grid-template-rows:38px minmax(0,1fr); gap:0 10px; }
+  :root[data-admin-compact] .toilet-data-layout > .admin-view-tabs { grid-column:2; grid-row:1; margin:0 0 5px; }
+  :root[data-admin-compact] .toilet-list-pane { grid-column:1; grid-row:1 / 3; }
+  :root[data-admin-compact] :is(.toilet-map-card,.toilet-editor-card) { grid-column:2; grid-row:2; }
+  :root[data-admin-compact] .toilet-map { min-height:0; }
+  :root[data-admin-compact] .toilet-card-head { min-height:48px; padding:7px 12px; flex:0 0 auto; }
+  :root[data-admin-compact] .toilet-editor-scroll { flex:1; }
+  :root[data-admin-compact] .toilet-save-bar { min-height:54px; padding:7px 12px; }
+  :root[data-admin-compact] .toilet-list-pane > header { min-height:46px; padding:7px 10px; }
+  :root[data-admin-compact] .quality-workbench { display:grid; flex:1; height:auto; min-height:0; grid-template-columns:minmax(320px,390px) minmax(0,1fr); }
+  :root[data-admin-compact] .quality-stack { display:flex; flex-direction:column; min-width:0; min-height:0; height:auto; gap:0; }
+  :root[data-admin-compact] .quality-stack > section { flex:1; min-height:0; max-height:none; overflow:auto; }
+  :root[data-admin-compact] .quality-stack .quality-list-column { display:flex; flex-direction:column; }
+  :root[data-admin-compact] .quality-stack .quality-list-scroll { flex:1; min-height:0; }
+  :root[data-admin-compact] .quality-workbench > .quality-pane { min-height:0; }
+  :root[data-admin-compact] .coordinate-editor { min-height:0; overflow:auto; }
+  :root[data-admin-compact] .coordinate-map-stage { min-height:180px; flex:1 1 200px; }
+  :root[data-admin-compact] .coordinate-form { padding:8px 10px; gap:6px; }
+  :root[data-admin-compact] .quality-pane-head { padding:9px 11px; flex:0 0 auto; }
+  :root[data-admin-compact] .quality-toolbar { flex:0 0 auto; margin:0; }
+  :root[data-admin-compact] :is(#quality-status-text,.dn-status) { margin:6px 0; }
+  :root[data-admin-compact] .dn-scroll { min-height:0; max-height:none; }
+  :root[data-admin-compact] .dn-overview-map { flex-basis:260px; min-height:220px; }
+  :root[data-admin-compact] .dn-selection { padding:8px; }
+  :root[data-admin-compact] .dn-hide-form { grid-template-columns:minmax(0,1fr) auto; }
+  :root[data-admin-compact] .opening-hours-layout { grid-template-columns:minmax(260px,300px) minmax(0,1fr); }
+  :root[data-admin-compact] .opening-hours-list-pane { height:auto; }
+  :root[data-admin-compact] .opening-hours-detail { display:flex; flex-direction:column; min-width:0; min-height:0; }
+  :root[data-admin-compact] .opening-hours-detail > * { flex-shrink:0; }
+  :root[data-admin-compact] .opening-hours-summary { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:10px 12px; }
+  :root[data-admin-compact] .opening-hours-card.service { grid-column:auto; }
+  :root[data-admin-compact] .opening-hours-card { padding:8px; }
+  :root[data-admin-compact] .opening-hours-detail .admin-disclosure { margin:0 12px 10px; }
+  :root[data-admin-compact] :is(.opening-hours-members,.opening-hours-history) { margin:0; border:0; }
+  :root[data-admin-compact] .opening-hours-form { margin:0 12px 10px; }
+  :root[data-admin-compact] .opening-hours-detail-head { padding:10px 12px; }
+  :root[data-admin-compact] .opening-hours-status { min-height:27px; padding-bottom:6px; }
+  :root[data-admin-compact] .opening-hours-list-head { flex-wrap:wrap; gap:6px; }
+  :root[data-admin-compact] .region-layout { grid-template-columns:minmax(260px,300px) minmax(0,1fr); }
+  :root[data-admin-compact] .region-list-head { flex-direction:column; align-items:stretch; gap:6px; }
+  :root[data-admin-compact] .region-list-tools { justify-content:space-between; }
+  :root[data-admin-compact] .region-evidence-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+  :root[data-admin-compact] .region-evidence-card { min-height:0; padding:10px; }
+  :root[data-admin-compact] .region-evidence-card.final { grid-column:auto; }
+  :root[data-admin-compact] .region-decision-layout { grid-template-columns:minmax(240px,.9fr) minmax(0,1.1fr); gap:10px; }
+  :root[data-admin-compact] .region-map { height:clamp(250px,38dvh,350px); min-height:250px; }
+  :root[data-admin-compact] #region-status { height:28px; min-height:28px; flex-basis:28px; }
+  :root[data-admin-compact] .region-detail { overflow-y:auto; }
+  :root[data-admin-compact] .change-review-summary { min-height:42px; flex-basis:42px; gap:12px; padding:4px 10px; }
+  :root[data-admin-compact] .change-summary-intro { min-width:140px; }
+  :root[data-admin-compact] .change-summary-intro span { display:none; }
+  :root[data-admin-compact] .change-review-summary dl { min-width:0; flex:1; }
+  :root[data-admin-compact] .change-review-summary dl > div { padding:0 10px; }
+  :root[data-admin-compact] .change-review-layout { grid-template-columns:minmax(280px,320px) minmax(0,1fr); }
+  :root[data-admin-compact] .change-queue-filters { grid-template-columns:1fr 1fr; }
+  :root[data-admin-compact] .change-search { grid-column:1 / -1; }
+  :root[data-admin-compact] .change-work-grid { grid-template-columns:minmax(0,1fr); }
+  :root[data-admin-compact] .change-detail-head { padding:12px; }
+  :root[data-admin-compact] .review-layout { grid-template-columns:minmax(260px,300px) minmax(0,1fr); align-items:start; }
+  :root[data-admin-compact] .review-list-column { max-height:calc(100dvh - 245px); }
+  :root[data-admin-compact] .report-detail { max-height:calc(100dvh - 245px); overflow-y:auto; padding:14px; }
+  :root[data-admin-compact] .review-actions { position:sticky; bottom:-14px; padding:10px 0; background:#fbfefc; z-index:3; }
+}
+
+/* Monitoring and management: keep useful information near the top. */
+:root[data-admin-compact] .home-card { padding:15px 17px; }
+:root[data-admin-compact] .home-top-grid,:root[data-admin-compact] .home-review-grid { gap:12px; }
+:root[data-admin-compact] .home-host-gauge { width:52px; height:52px; }
+:root[data-admin-compact] .home-host-network { margin-top:8px; padding:7px 9px; }
+:root[data-admin-compact] .home-card-heading { margin-bottom:9px; }
+:root[data-admin-compact] .home-review-section { margin-top:14px; }
+:root[data-admin-compact] .home-bottom-grid { grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr); }
+:root[data-admin-compact] .analytics-controls { padding:10px 12px; }
+:root[data-admin-compact] .analytics-controls .admin-disclosure { margin-bottom:0; }
+:root[data-admin-compact] .analytics-filter-line { padding:8px 10px; margin:0; }
+:root[data-admin-compact] .analytics-tabs { margin-top:10px; }
+:root[data-admin-compact] .analytics-kpi-grid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
+:root[data-admin-compact] .analytics-kpi-grid article { padding:12px; }
+:root[data-admin-compact] .analytics-main-grid { grid-template-columns:minmax(0,2fr) minmax(260px,1fr); }
+:root[data-admin-compact] .analytics-panel { padding:14px; }
+:root[data-admin-compact] .cm-context { margin:8px 0; }
+:root[data-admin-compact] .cm-tabs { margin-bottom:12px; padding:4px; }
+:root[data-admin-compact] .cm-tabs button { min-height:36px; padding:9px 12px; }
+:root[data-admin-compact] .cm-summary > .cm-stat { min-height:158px; padding:15px; }
+:root[data-admin-compact] .cm-summary.cm-three > .cm-stat { min-height:150px; }
+:root[data-admin-compact] .cm-stat strong { font-size:27px; }
+:root[data-admin-compact] .cm-panel { padding:16px; }
+:root[data-admin-compact] .au-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+:root[data-admin-compact] .au-card { height:420px; }
+:root[data-admin-compact] .au-detail { width:min(920px,calc(100vw - 40px)); max-height:calc(100dvh - 36px); }
+:root[data-admin-compact] .table-wrap { max-width:100%; overflow:auto; scrollbar-width:thin; }
+:root[data-admin-compact] .table-wrap th { position:sticky; top:0; z-index:1; white-space:nowrap; }
+:root[data-admin-compact] :is(.members-shell,.security-shell) .table-wrap { max-height:calc(100dvh - 300px); }
+:root[data-admin-compact] :is(.members-shell,.security-shell) .panel-title { margin-bottom:8px; }
+:root[data-admin-compact] :is(.members-shell,.security-shell) td { overflow-wrap:anywhere; }
+:root[data-admin-compact] .security-panel { margin-top:0; }
+:root[data-admin-compact] .feature-directory-summary { padding:10px 14px; margin-bottom:12px; }
+:root[data-admin-compact] .feature-group { padding:14px; }
+:root[data-admin-compact] .feature-item { min-height:58px; padding:8px 10px; }
+:root[data-admin-compact] .host-monitor { margin:14px 0; }
+:root[data-admin-compact] .host-monitor .hm-heading { margin-bottom:10px; }
+:root[data-admin-compact] .host-monitor .hm-status { padding:9px 12px; margin-bottom:12px; }
+:root[data-admin-compact] .host-monitor .hm-card,:root[data-admin-compact] .host-monitor .hm-panel { padding:14px; border-radius:12px; }
+:root[data-admin-compact] .host-monitor .hm-number { font-size:26px; margin:8px 0; }
+:root[data-admin-compact] .host-monitor .hm-card > p:last-of-type { margin-bottom:10px; }
+:root[data-admin-compact] .host-monitor .hm-card-summary { padding-top:9px; }
+:root[data-admin-compact] .host-monitor .hm-bar { margin:9px 0; }
+:root[data-admin-compact] .map-comparison-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+:root[data-admin-compact] .review-location-map,:root[data-admin-compact] .proposed-map-panel .review-location-map { height:260px; }
+
+@media (min-width:761px) and (max-width:1100px) {
+  :root[data-admin-compact] .admin-topbar .admin-search { width:150px; }
+  :root[data-admin-compact] .admin-breadcrumb > span,:root[data-admin-compact] .admin-breadcrumb > i { display:none; }
+  :root[data-admin-compact] .region-decision-layout { grid-template-columns:1fr; }
+  :root[data-admin-compact] .region-evidence-grid { grid-template-columns:1fr 1fr; }
+  :root[data-admin-compact] .region-evidence-card.final { grid-column:1 / -1; }
+  :root[data-admin-compact] .quality-workbench { grid-template-columns:320px minmax(0,1fr); }
+  :root[data-admin-compact] .coordinate-form { grid-template-columns:1fr 1fr; }
+  :root[data-admin-compact] .coordinate-form > label:nth-child(2),:root[data-admin-compact] .coordinate-note-field { grid-column:auto; }
+  :root[data-admin-compact] .coordinate-save-button { grid-column:2; }
+  :root[data-admin-compact] .opening-hours-summary { grid-template-columns:1fr; }
+  :root[data-admin-compact] .opening-hours-controls { grid-template-columns:1fr; }
+  :root[data-admin-compact] .opening-hours-day,:root[data-admin-compact] .opening-hours-schedule-head { grid-template-columns:60px 60px minmax(85px,1fr) 14px minmax(85px,1fr); gap:5px; }
+  :root[data-admin-compact] .opening-hours-day input[type=time] { width:100%; min-width:0; padding:0 4px; }
+  :root[data-admin-compact] .region-list-pane { height:auto; }
+  :root[data-admin-compact] .region-detail { height:auto; min-height:0; overflow-y:auto; }
+  :root[data-admin-compact] .analytics-main-grid { grid-template-columns:1fr; }
+  :root[data-admin-compact] .analytics-kpi-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media (max-width:760px) {
+  :root[data-admin-compact] .admin-frame { display:block; }
+  :root[data-admin-compact] .admin-sidebar { display:none; }
+  :root[data-admin-compact][data-admin-nav-open] .admin-sidebar { position:fixed; inset:52px auto 0 0; z-index:70; display:flex; width:240px; height:calc(100dvh - 52px); flex-direction:column; align-items:stretch; overflow-y:auto; }
+  :root[data-admin-compact][data-admin-nav-open] .admin-nav { display:grid; flex:none; overflow:visible; }
+  :root[data-admin-compact][data-admin-nav-open] .admin-nav-group { display:grid; }
+  :root[data-admin-compact][data-admin-nav-open] .admin-menu-backdrop { position:fixed; inset:52px 0 0; z-index:60; display:block; width:100%; height:calc(100dvh - 52px); border:0; border-radius:0; background:#173b2a55; }
+  :root[data-admin-compact] .admin-topbar { padding:8px 10px; gap:6px; }
+  :root[data-admin-compact] .admin-topbar-actions { flex:1; min-width:0; }
+  :root[data-admin-compact] .admin-breadcrumb { display:none; }
+  :root[data-admin-compact] .admin-search { width:100%; }
+  :root[data-admin-compact] .dashboard-shell { padding:12px 10px 24px; }
+  :root[data-admin-compact] .page-header { flex-wrap:wrap; }
+  :root[data-admin-compact] .page-header h1 { font-size:22px; }
+  :root[data-admin-compact] .toilet-data-layout { grid-template-columns:minmax(0,1fr); grid-template-rows:300px auto minmax(440px,auto); }
+  :root[data-admin-compact] .toilet-list-pane { grid-row:1; }
+  :root[data-admin-compact] .toilet-data-layout > .admin-view-tabs { grid-row:2; margin-top:8px; }
+  :root[data-admin-compact] :is(.toilet-map-card,.toilet-editor-card) { grid-row:3; }
+  :root[data-admin-compact] .quality-stack { display:flex; height:450px; flex-direction:column; }
+  :root[data-admin-compact] .quality-stack > section { flex:1; min-height:0; overflow:auto; }
+  :root[data-admin-compact] .quality-workbench { grid-template-columns:minmax(0,1fr); }
+  :root[data-admin-compact] .opening-hours-shell { height:auto; overflow:visible; }
+  :root[data-admin-compact] .opening-hours-layout { grid-template-columns:minmax(0,1fr); }
+  :root[data-admin-compact] .opening-hours-detail { min-width:0; }
+  :root[data-admin-compact] .au-cards { grid-template-columns:1fr; }
+  :root[data-admin-compact] .map-comparison-grid { grid-template-columns:minmax(0,1fr); }
+  :root[data-admin-compact] .analytics-kpi-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  :root[data-admin-compact] :is(.home-bottom-grid,.analytics-main-grid) { grid-template-columns:minmax(0,1fr); }
+  :root[data-admin-compact] .cm-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  :root[data-admin-compact] .cm-summary > .cm-stat { min-height:150px; padding:12px; }
+  :root[data-admin-compact] .cm-stat strong { font-size:24px; }
+  :root[data-admin-compact] .table-wrap table { min-width:620px; }
+}

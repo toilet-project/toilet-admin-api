@@ -23,6 +23,7 @@ public class CloudflareMonitoringService {
     private final String domain, bucket;
     private final Clock clock;
     private CloudflareMonitoringResponse cached;
+    private RefreshHealth latestRefresh;
     @Autowired
     public CloudflareMonitoringService(CloudflareAnalyticsClient client,
             @Value("${cloudflare.analytics.enabled:false}") boolean enabled,
@@ -57,8 +58,7 @@ public class CloudflareMonitoringService {
                 queries.forEach((key,query)->pending.put(key,CompletableFuture.supplyAsync(()->read(query),executor)));
                 pending.forEach((key,future)->{
                     var section=future.join();
-                    sections.put(key,key.equals("refresh")&&section.status().equals("OK")
-                            ?new Section<>("OK","GitHub 공개 실행 기록 · 최근 5개",section.data()):section);
+                    sections.put(key,key.equals("refresh")?refreshSection(section):section);
                 });
             }
         } else queries.keySet().forEach(key->sections.put(key,unavailable()));
@@ -66,6 +66,19 @@ public class CloudflareMonitoringService {
         cached=new CloudflareMonitoringResponse(ok==0?"UNAVAILABLE":ok==sections.size()?"OK":"PARTIAL",now,start,end,
                 Collections.unmodifiableMap(sections));
         return cached;
+    }
+    private Section<?> refreshSection(Section<?> section) {
+        if (!section.status().equals("OK") || !(section.data() instanceof RefreshHealth incoming)) return section;
+        if (latestRefresh != null && !latestRefresh.runs().isEmpty()) {
+            RefreshRun previous = latestRefresh.runs().getFirst();
+            RefreshRun current = incoming.runs().isEmpty() ? null : incoming.runs().getFirst();
+            if (current == null || current.startedAt().isBefore(previous.startedAt())
+                    || (current.url().equals(previous.url()) && current.updatedAt().isBefore(previous.updatedAt()))) {
+                return new Section<>("UNAVAILABLE", "GitHub 실행 목록이 최근 확인한 기록보다 오래되어 최신 상태를 확인할 수 없습니다.", null);
+            }
+        }
+        latestRefresh = incoming;
+        return new Section<>("OK", "GitHub 공개 실행 기록 · 최근 5개", incoming);
     }
     private static Section<?> read(Supplier<?> query) {
         try { return new Section<>("OK","Cloudflare Analytics 추정치 · 완료된 최근 24시간",query.get()); }

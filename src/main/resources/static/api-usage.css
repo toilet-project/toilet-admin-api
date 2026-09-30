@@ -25,6 +25,9 @@
 .au-brand.kakao { background: #fcf5ca; color: #544921; }
 .au-brand.naver { background: #e8f6ee; color: #16934c; }
 .au-card h3 { font-size: 14px; font-weight: 650; margin: 0 0 7px; line-height: 1.4; }
+.au-card-actions { display: flex; align-items: flex-start; flex: 0 0 auto; gap: 8px; white-space: nowrap; }
+.au-dashboard-link { display: inline-block; color: #527362; font-size: 10px; text-decoration: none; padding: 2px 0 6px; white-space: nowrap; }
+.au-dashboard-link:hover { color: #157747; text-decoration: underline; }
 .au-detail-link { flex-shrink: 0; border: 0; background: transparent; color: #527362; padding: 2px 0 6px 6px; font-size: 10px !important; white-space: nowrap; }
 .au-detail-link:hover { color: #157747; text-decoration: underline; }
 .au-state { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 500; color: #60796a; }
@@ -62,6 +65,16 @@
 .au-billing { border: 1px solid #dce9df; background: #fbfdfb; padding: 20px; border-radius: 10px; }
 .au-billing-rows { margin: 16px 0 24px; font-size: 12px; }.au-billing-rows > div { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-bottom: 1px solid #e7eee8; }.au-billing-rows dt { color: #657f6e; }.au-billing-rows dd { margin: 0; text-align: right; font-weight: 600; white-space: nowrap; }
 .au-guide { border-top: 1px solid #dfe7e1; margin-top: 30px; padding-top: 20px; }
+.au-reference { margin-top: 22px; border: 1px solid #dfe8e2; border-radius: 10px; background: #fff; padding: 14px 18px; }
+.au-reference summary { cursor: pointer; color: #426e51; font-size: 12px; font-weight: 600; }
+.au-reference summary span { color: #7b8e80; margin-left: 5px; }
+#au-reference-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin-top: 16px; }
+.au-reference-entry { min-width: 0; padding: 16px; border: 1px solid #e7eee8; border-radius: 8px; background: #f9fbfa; }
+.au-reference-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.au-reference-head .au-dashboard-link { flex: 0 0 auto; }
+.au-reference-entry h3 { margin: 0 0 7px; font-size: 13px; }.au-reference-entry p { margin: 0 0 12px; color: #758679; font-size: 10px; line-height: 1.6; }
+.au-reference-entry dl { margin: 0 0 14px; }.au-reference-entry dl div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #e8eee9; font-size: 11px; }.au-reference-entry dt { color: #708476; }.au-reference-entry dd { margin: 0; text-align: right; font-weight: 600; }
+.au-reference-entry a { color: #30744d; font-size: 10px; text-decoration: none; }.au-reference-entry a:hover { text-decoration: underline; }
 .au-guide h2 { font-size: 13px; margin: 0 0 10px; font-weight: 600; }
 .au-guide > div { display: grid; grid-template-columns: repeat(3,1fr); gap: 26px; }
 .au-guide p { color: #77887b; font-size: 11px; line-height: 1.8; margin: 0; }.au-guide strong { display: block; color: #586f5e; font-size: 11px; font-weight: 600; margin-bottom: 3px; }
@@ -86,5 +99,5 @@
 .au-calculator output { display: block; margin-top: 18px; border-top: 1px solid #dce7df; padding-top: 15px; font-size: 13px; line-height: 1.8; }.au-calculator output strong { color: #227748; font-size: 22px; display: block; }.au-calculator output small { color: #6c8273; font-size: 11px; }
 @media(min-width:1750px) { .au-cards { gap: 20px; } }
 @media(max-width:1200px) { .au-cards { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media(max-width:720px) { .au-title-row { gap: 10px; }.au-tabs button { min-width: 0; padding: 7px 9px; font-size: 11px; }.au-cards { grid-template-columns: 1fr; }.au-section-head { align-items: flex-start; }.au-section-head p { text-align: right; max-width: 50%; }.au-guide > div { grid-template-columns: 1fr; gap: 15px; }.au-detail { width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }.au-detail-head { padding: 20px; }#au-detail-body { padding: 20px; }.au-detail-stats strong { font-size: 20px; }.au-calc-input { grid-template-columns: 1fr; gap: 8px; }.au-detail-head h2 { font-size: 18px; } }
+@media(max-width:720px) { .au-title-row { gap: 10px; }.au-tabs button { min-width: 0; padding: 7px 9px; font-size: 11px; }.au-cards,#au-reference-list { grid-template-columns: 1fr; }.au-section-head { align-items: flex-start; }.au-section-head p { text-align: right; max-width: 50%; }.au-guide > div { grid-template-columns: 1fr; gap: 15px; }.au-detail { width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }.au-detail-head { padding: 20px; }#au-detail-body { padding: 20px; }.au-detail-stats strong { font-size: 20px; }.au-calc-input { grid-template-columns: 1fr; gap: 8px; }.au-detail-head h2 { font-size: 18px; } }
 @media(prefers-reduced-motion:reduce) { .api-usage * { scroll-behavior: auto !important; } }

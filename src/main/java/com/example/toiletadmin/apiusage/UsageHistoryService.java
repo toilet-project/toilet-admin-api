@@ -46,10 +46,12 @@ public class UsageHistoryService {
         try {
             var saved=store.find(service.id(),month.toString());
             if(saved!=null) ApiUsageService.validate(saved,month.toString(),start,end,service);
+            if(saved!=null && saved.source().contains("콘솔 확인값")) saved=null;
             data=saved;
             // Recheck newly ended months during the provider's reporting delay window.
             if(data==null || data.asOf().isBefore(end) || now.isBefore(end.plus(Duration.ofDays(3)))) {
                 Snapshot fresh=snapshots.readMonth(service.id(),month.toString());
+                if(fresh!=null && fresh.source().contains("콘솔 확인값")) fresh=null;
                 if(fresh==null) fresh=google.readMonth(service,start,end,now);
                 if(fresh==null) fresh=naver.readMonth(service,start,end);
                 if(fresh!=null) {
@@ -81,6 +83,7 @@ public class UsageHistoryService {
             try {
                 Snapshot current=snapshots.read(service.id());
                 if(current!=null && YearMonth.parse(current.month()).isBefore(month)) current=null;
+                if(current!=null && current.source().contains("콘솔 확인값")) current=null;
                 if(current==null) current=google.read(service,start,now);
                 if(current==null) current=naver.read(service,start,now);
                 if(current!=null) { ApiUsageService.validate(current,month.toString(),start,now,service); store.save(service.id(),current); }

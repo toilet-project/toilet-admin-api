@@ -39,10 +39,15 @@ public class ApiUsageService {
         String status = service.active() ? "unconfigured" : "inactive";
         String message = service.active() ? "사용량 연결이 필요합니다. 요금표와 예상 요금 계산은 이용할 수 있습니다." : "현재 사용하지 않는 서비스입니다.";
         Snapshot data = null;
+        Snapshot reference = null;
         if (service.active()) {
             try {
-                data = snapshots.read(service.id());
-                if(data != null && YearMonth.parse(data.month()).isBefore(month)) data = null;
+                Snapshot supplied = snapshots.read(service.id());
+                if (supplied != null && YearMonth.parse(supplied.month()).isBefore(month)) supplied = null;
+                if (supplied != null && supplied.source().contains("콘솔 확인값")) {
+                    validate(supplied, month.toString(), start, now, service);
+                    reference = supplied;
+                } else data = supplied;
                 if (data == null) data = google.read(service, start, now);
                 if (data == null) data = naver.read(service, start, now);
                 if (data != null) {
@@ -51,6 +56,9 @@ public class ApiUsageService {
                     status = data.source().contains("콘솔 확인값") ? "manual" : "connected";
                     message = status.equals("manual") ? "공급자 콘솔에서 확인한 실제 수치입니다. 자동 갱신되지 않으며 마지막 확인 시각을 확인해 주세요."
                             : "최근 집계 기준입니다. 실제 청구 금액과 차이가 있을 수 있습니다.";
+                } else if (reference != null) {
+                    status = "reference-only";
+                    message = "자동 집계가 연결되지 않았습니다. 콘솔 확인값은 참고자료에서 확인할 수 있습니다.";
                 }
             } catch (GoogleUsageClient.NoUsageData | NaverUsageClient.NoUsageData ignored) {
                 status = "no-data";
@@ -86,7 +94,7 @@ public class ApiUsageService {
         }
         return new ServiceUsage(service, status, message, data == null ? null : data.source(),
                 data == null ? null : data.scope(), data == null ? null : data.asOf(), start, end, values,
-                data == null ? null : UsageBilling.calculate(data.billing(), start, end, now, ZoneId.of(service.timeZone())));
+                data == null ? null : UsageBilling.calculate(data.billing(), start, end, now, ZoneId.of(service.timeZone())), reference);
     }
     static void validate(Snapshot data, String month, Instant start, Instant now, UsageModels.Service service) {
         if (!month.equals(data.month()) || data.asOf() == null || data.asOf().isBefore(start)

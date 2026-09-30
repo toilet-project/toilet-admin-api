@@ -53,6 +53,27 @@ class ApiUsageTest {
         assertThat(service(report,"google-places").metrics()).allSatisfy(m -> { assertThat(m.used()).isNull(); assertThat(m.estimatedCost()).isNull(); });
         assertThat(report.services()).noneMatch(s -> s.definition().id().contains("public"));
     }
+    @Test void consoleSnapshotsRemainReferencesWhileTranslationUsesAutomaticMonitoring() throws Exception {
+        var kakaoReference = new Snapshot("2026-09",now,"카카오 콘솔 확인값","앱 전체",
+                Map.of("kakao-keyword",new Counter(900,null)));
+        var translationReference = new Snapshot("2026-09",now,"Google 결제 콘솔 확인값","청구 계정",
+                Map.of("translation-characters",new Counter(900000,null),"translation-llm-input",new Counter(200000,null)));
+        var automatic = new Snapshot("2026-09",now.minusSeconds(3600),"Google Cloud Monitoring","NMT 입력 문자",
+                Map.of("translation-characters",new Counter(910000,null)));
+        when(reader.read("kakao")).thenReturn(kakaoReference);
+        when(reader.read("google-translation")).thenReturn(translationReference);
+        when(google.read(argThat(s -> s.id().equals("google-translation")),any(),eq(now))).thenReturn(automatic);
+        var report=subject(Clock.fixed(now,ZoneOffset.UTC)).report();
+        var kakao=service(report,"kakao");
+        assertThat(kakao.status()).isEqualTo("reference-only");
+        assertThat(kakao.metrics()).allSatisfy(m -> assertThat(m.used()).isNull());
+        assertThat(kakao.reference()).isEqualTo(kakaoReference);
+        var translation=service(report,"google-translation");
+        assertThat(translation.status()).isEqualTo("partial");
+        assertThat(translation.metrics().getFirst().used()).isEqualTo(910000);
+        assertThat(translation.metrics().get(1).used()).isNull();
+        assertThat(translation.reference()).isEqualTo(translationReference);
+    }
     @Test void kakaoMonthlyTotalsDoNotPretendDailyFreeAllowancesAreMonthly() throws Exception {
         when(reader.read("kakao")).thenReturn(sample("2026-09",now,Map.of("kakao-keyword",new Counter(900000,null))));
         var result = service(subject(Clock.fixed(now,ZoneOffset.UTC)).report(),"kakao");

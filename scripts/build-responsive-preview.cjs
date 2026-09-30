@@ -8,7 +8,7 @@ function walk(dir, relative='') {
   for (const file of fs.readdirSync(dir,{withFileTypes:true})) {
     const name=path.posix.join(relative,file.name)
     if (file.isDirectory()) { walk(path.join(dir,file.name),name); continue }
-    if (!/\.(html|js|css|svg|png|ico|woff2?)$/.test(name)) continue
+    if (!/\.(html|js|css|svg|png|ico|woff2?|ttf)$/.test(name)) continue
     names.push(name)
     let body=fs.readFileSync(path.join(dir,file.name))
     if (/\.(html|js|css)$/.test(name)) {
@@ -17,6 +17,7 @@ function walk(dir, relative='') {
       // before the bridge prefixes them; changing just its selectors breaks navigation.
       if (name.endsWith('.html')) body=body.replaceAll('href="/',`href="${prefix}/`).replaceAll('src="/',`src="${prefix}/`).replace('<head>','<head><script src="'+prefix+'/responsive-bridge.js"></script>')
       if (name.endsWith('.js')) body=body.replace(/(['"])\/(?!\/|admin-responsive\/)([^'"\n]+\.js(?:\?[^'"\n]*)?)\1/g,(_,quote,value)=>quote+prefix+'/'+value+quote)
+      if (name.endsWith('.css')) body=body.replaceAll("url('/brand/", "url('"+prefix+"/brand/")
       if (name === 'admin-shell.js') body=body.replace('pathname.replace(/^\\/preview(?=\\/|$)/', 'pathname.replace(/^\\/(?:preview|admin-responsive)(?=\\/|$)/')
     }
     const dest=path.join(assetsDir,name);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,body)

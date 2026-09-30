@@ -8,9 +8,16 @@
   let preference = null
   try { preference = localStorage.getItem('admin.sidebar.compact') } catch {}
   const root = document.documentElement
-  const setCompact = () => {
+  const setLayout = () => {
     root.toggleAttribute('data-admin-compact', compact.matches)
     root.toggleAttribute('data-admin-nav-open', compact.matches && preference === 'open')
+  }
+  // Run in the head, before the sidebar can paint at its desktop width.
+  setLayout()
+  const setCompact = () => {
+    setLayout()
+    const tooltip = document.querySelector('.admin-nav-tooltip')
+    if (tooltip) tooltip.hidden = true
     const toggle = document.querySelector('.admin-menu-toggle')
     toggle?.setAttribute('aria-expanded', String(!compact.matches || preference === 'open'))
     document.querySelectorAll('[data-responsive-tabs]').forEach(el => el._responsiveTabs?.sync())
@@ -116,9 +123,6 @@
     groups = toiletTabs = null
     const main = document.querySelector('main[data-admin-page]')
     if (!main) return
-    // Keep the common overrides after styles dynamically loaded by admin navigation.
-    const sheet = document.querySelector('link[href*="admin-responsive.css"]')
-    if (sheet && sheet !== document.head.lastElementChild) document.head.append(sheet)
     const stack = main.querySelector('.quality-stack')
     if (stack) groups = tabs(stack, [...stack.children].filter(p => p.matches('section')), ['그룹 목록', '선택 그룹 시설'], 'quality')
     const layout = main.querySelector('.toilet-data-layout')
@@ -149,11 +153,38 @@
     sidebar.id ||= 'admin-sidebar'
     // Label wrappers let the compact rail retain accessible names and a visible hover label.
     sidebar.querySelectorAll('.admin-nav-link').forEach(link => {
-      const label = link.textContent.trim(); link.setAttribute('aria-label', label); link.title = label
+      const label = (link.querySelector('.admin-nav-label')?.textContent || link.textContent).trim()
+      link.setAttribute('aria-label', label); link.removeAttribute('title')
+      if (link.querySelector('.admin-nav-label')) return
       const span = document.createElement('span'); span.className = 'admin-nav-label'
       for (const node of [...link.childNodes]) if (node.nodeType === Node.TEXT_NODE) span.append(node)
       link.querySelector('svg')?.after(span)
     })
+    // Outside the scrolling rail so labels are never clipped by its edge.
+    const tooltip = document.createElement('div')
+    tooltip.className = 'admin-nav-tooltip'; tooltip.id = 'admin-nav-tooltip'
+    tooltip.setAttribute('role', 'tooltip'); tooltip.hidden = true
+    document.body.append(tooltip)
+    let describedLink
+    const hideTooltip = () => { tooltip.hidden = true; describedLink?.removeAttribute('aria-describedby'); describedLink = null }
+    const showTooltip = event => {
+      const link = event.target.closest('.admin-nav-link')
+      if (!link || !compact.matches || root.hasAttribute('data-admin-nav-open') || small.matches) return
+      hideTooltip()
+      tooltip.textContent = link.getAttribute('aria-label'); tooltip.hidden = false
+      const rect = link.getBoundingClientRect()
+      tooltip.style.left = `${rect.right + 14}px`
+      tooltip.style.top = `${Math.max(8, Math.min(rect.top + (rect.height - tooltip.offsetHeight) / 2, innerHeight - tooltip.offsetHeight - 8))}px`
+      describedLink = link; link.setAttribute('aria-describedby', tooltip.id)
+    }
+    sidebar.addEventListener('pointerover', showTooltip)
+    sidebar.addEventListener('focusin', showTooltip)
+    sidebar.addEventListener('pointerleave', hideTooltip)
+    sidebar.addEventListener('focusout', hideTooltip)
+    sidebar.addEventListener('click', hideTooltip)
+    sidebar.addEventListener('scroll', hideTooltip)
+    document.addEventListener('admin:before-route-change', hideTooltip)
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') hideTooltip() })
     const button = document.createElement('button')
     button.type = 'button'; button.className = 'admin-menu-toggle'; button.setAttribute('aria-label', '관리자 메뉴 펼치기 또는 접기'); button.setAttribute('aria-controls', sidebar.id)
     button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM10 5v14M6 9h2m-2 3h2m-2 3h2"/></svg>'

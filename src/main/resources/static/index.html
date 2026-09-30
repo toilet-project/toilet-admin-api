@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <script src="/admin-responsive.js?v=2"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>급똥 관리자 | 운영 홈</title>
@@ -8,14 +9,14 @@
   <link rel="stylesheet" href="/home.css?v=12" />
   <link rel="stylesheet" href="/admin-shell.css?v=6" />
   <link rel="stylesheet" href="/admin-session.css?v=1" />
-  <link rel="icon" type="image/svg+xml" href="/brand/hangul-point-v1/favicon.svg" /><link rel="icon" type="image/png" sizes="32x32" href="/brand/hangul-point-v1/favicon-32.png" /><link rel="apple-touch-icon" sizes="180x180" href="/brand/hangul-point-v1/apple-touch-icon.png" /><link rel="stylesheet" href="/brand.css?v=2" />
-  <link rel="stylesheet" href="/admin-responsive.css?v=1" />
+  <link rel="icon" type="image/svg+xml" href="/brand/hangul-point-v1/favicon.svg" /><link rel="icon" type="image/png" sizes="32x32" href="/brand/hangul-point-v1/favicon-32.png" /><link rel="apple-touch-icon" sizes="180x180" href="/brand/hangul-point-v1/apple-touch-icon.png" /><link rel="stylesheet" href="/brand.css?v=3" />
+  <link rel="stylesheet" href="/admin-responsive.css?v=2" />
 </head>
 <body class="dashboard-home">
   <main id="loading-shell" class="page-loading" aria-live="polite" hidden><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
   <main id="auth-shell" class="auth-shell" hidden>
     <section class="login-card">
-      <img class="admin-login-brand" src="/brand/hangul-point-v1/lockup-ko.svg" alt="급똥" width="646" height="232" /><p class="eyebrow">GEUPDDONG ADMIN</p>
+      <span class="admin-login-brand" role="img" aria-label="급똥">급똥</span><p class="eyebrow">GEUPDDONG ADMIN</p>
       <h1 id="auth-title">관리자 로그인</h1>
       <p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p>
       <div id="auth-actions" class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div>
@@ -51,32 +52,32 @@
 
       <nav class="admin-nav">
         <div class="admin-nav-group">
-          <a class="admin-nav-link is-current" href="/" aria-current="page"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-dashboard"/></svg>운영 홈</a>
+          <a class="admin-nav-link is-current" href="/" aria-current="page"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-dashboard"/></svg><span class="admin-nav-label">운영 홈</span></a>
         </div>
         <div class="admin-nav-group">
           <p>데이터 관리</p>
-          <a class="admin-nav-link" href="/reports.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-inbox"/></svg>제보 검토</a>
-          <a class="admin-nav-link" href="/toilets.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg>화장실 데이터</a>
-          <a class="admin-nav-link" href="/public-data-changes.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-compare"/></svg>공공데이터 변경 검토</a>
-          <a class="admin-nav-link" href="/opening-hours.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-clock"/></svg>개방시간 검토</a>
-          <a class="admin-nav-link" href="/data-quality.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-scan-line"/></svg>중복 좌표 품질 관리</a>
-          <a class="admin-nav-link" href="/duplicate-names.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-scan-line"/></svg>중복 이름 품질 관리</a>
-          <a class="admin-nav-link" href="/regions.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg>행정구역 검토</a>
+          <a class="admin-nav-link" href="/reports.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-inbox"/></svg><span class="admin-nav-label">제보 검토</span></a>
+          <a class="admin-nav-link" href="/toilets.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg><span class="admin-nav-label">화장실 데이터</span></a>
+          <a class="admin-nav-link" href="/public-data-changes.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-compare"/></svg><span class="admin-nav-label">공공데이터 변경 검토</span></a>
+          <a class="admin-nav-link" href="/opening-hours.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-clock"/></svg><span class="admin-nav-label">개방시간 검토</span></a>
+          <a class="admin-nav-link" href="/data-quality.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-scan-line"/></svg><span class="admin-nav-label">중복 좌표 품질 관리</span></a>
+          <a class="admin-nav-link" href="/duplicate-names.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-scan-line"/></svg><span class="admin-nav-label">중복 이름 품질 관리</span></a>
+          <a class="admin-nav-link" href="/regions.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-map-pinned"/></svg><span class="admin-nav-label">행정구역 검토</span></a>
         </div>
         <div class="admin-nav-group">
           <p>서비스 운영</p>
-          <a class="admin-nav-link" href="/operations.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg>수집·서비스 상태</a>
-          <a class="admin-nav-link" href="/service-analytics.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg>서비스 이용 분석</a>
-          <a class="admin-nav-link" href="/members.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-users"/></svg>회원 관리</a>
-          <a class="admin-nav-link" href="/permissions.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-shield"/></svg>권한 관리</a>
-          <a class="admin-nav-link" href="/batch-syncs.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-history"/></svg>배치 실행 이력</a>
+          <a class="admin-nav-link" href="/operations.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-activity"/></svg><span class="admin-nav-label">수집·서비스 상태</span></a>
+          <a class="admin-nav-link" href="/service-analytics.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg><span class="admin-nav-label">서비스 이용 분석</span></a>
+          <a class="admin-nav-link" href="/members.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-users"/></svg><span class="admin-nav-label">회원 관리</span></a>
+          <a class="admin-nav-link" href="/permissions.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-shield"/></svg><span class="admin-nav-label">권한 관리</span></a>
+          <a class="admin-nav-link" href="/batch-syncs.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-history"/></svg><span class="admin-nav-label">배치 실행 이력</span></a>
         </div>
         <div class="admin-nav-group">
           <p>워크스페이스</p>
-          <a class="admin-nav-link" href="/features.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg>전체 기능</a>
-          <a id="cloudflare-sidebar-link" class="admin-nav-link" href="/cloudflare.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-cloud"/></svg>Cloudflare</a>
-          <a class="admin-nav-link" href="/api-usage.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg>API 사용량</a>
-          <a class="admin-nav-link" href="/notifications.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-bell"/></svg>알림 센터<span class="admin-nav-meta">기초</span></a>
+          <a class="admin-nav-link" href="/features.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-layout-grid"/></svg><span class="admin-nav-label">전체 기능</span></a>
+          <a id="cloudflare-sidebar-link" class="admin-nav-link" href="/cloudflare.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-cloud"/></svg><span class="admin-nav-label">Cloudflare</span></a>
+          <a class="admin-nav-link" href="/api-usage.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-chart"/></svg><span class="admin-nav-label">API 사용량</span></a>
+          <a class="admin-nav-link" href="/notifications.html"><svg class="admin-icon" aria-hidden="true"><use href="#icon-bell"/></svg><span class="admin-nav-label">알림 센터</span><span class="admin-nav-meta">기초</span></a>
         </div>
       </nav>
 
@@ -100,7 +101,7 @@
       </header>
 
       <main class="dashboard-shell home-shell" data-admin-page="home" data-admin-title="운영 홈">
-    <header class="page-header home-header">
+    <header class="page-header admin-header-tools home-header">
       <div>
         <p class="eyebrow">WORKSPACE OVERVIEW</p>
         <h1>운영 홈</h1>
@@ -221,6 +222,6 @@
       </main>
     </div>
   </div>
-  <script src="/admin-shell.js?v=12"></script><script src="/admin-responsive.js?v=1"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=13"></script>
+  <script src="/admin-shell.js?v=13"></script><script src="/admin-session.js?v=2"></script><script src="/admin-home-model.js?v=1"></script><script src="/dashboard.js?v=13"></script>
 </body>
 </html>

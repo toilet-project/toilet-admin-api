@@ -1,4 +1,11 @@
-/* Compact text headers and the approved Hangul Point login identity. */
+/* Use the same Jua wordmark and green as the public service. */
+@font-face {
+  font-family: 'Geupddong Jua';
+  src: url('/brand/jua/geupddong.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
 .admin-brand {
   display: flex;
   flex: 0 0 auto;
@@ -9,11 +16,13 @@
   color: #153b2b;
   text-decoration: none;
 }
-.admin-brand strong {
+:root .admin-frame .admin-brand strong {
   display: block;
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: -.8px;
+  color: #17683a;
+  font-family: 'Geupddong Jua', sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -.04em;
   line-height: 1.15;
 }
 .admin-brand small {
@@ -34,9 +43,13 @@
   width: 156px;
   height: auto;
   margin: 0 auto 12px;
+  color: #17683a;
+  font: 400 44px/1.2 'Geupddong Jua', sans-serif;
+  letter-spacing: -.04em;
+  text-align: center;
 }
 @media (max-width: 900px) {
   .admin-brand { padding: 0; }
-  .admin-brand strong { font-size: 15px; }
+  :root .admin-frame .admin-brand strong { font-size: 21px; }
   .admin-brand small { display: none; }
 }

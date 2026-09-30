@@ -2,12 +2,16 @@ import assetNames from './manifest.mjs'
 export const PREFIX = '/admin-responsive'
 const SITE = 'https://preview.geupddong.com'
 export const AUTH_URL = 'https://api.geupddong.com/__responsive-preview-auth'
+export const ADMIN_AUTH_URL = 'https://admin.geupddong.com/__responsive-preview-auth'
 const SESSION = '__Secure-ResponsivePreview'
 const STATE = '__Secure-ResponsivePreviewState'
+const DATA_SESSION = '__Secure-ResponsivePreviewData'
+const DATA_STATE = '__Secure-ResponsivePreviewDataState'
 const encoder = new TextEncoder()
 const assets = new Set(assetNames)
 const validEndpoint = value => {
   if (value === '/backend/api/v1/auth/me') return true
+  if (/^\/backend\/api\/v1\/toilets(?:\/\d+)?$/.test(value)) return true
   try {
     const decoded = decodeURIComponent(value)
     if (decoded.split('/').some(part => part === '..' || part === '.') || /[\\?#]/.test(decoded)) return false
@@ -55,6 +59,22 @@ function login() {
 function challenge() {
   return new Response(null, { status: 302, headers: { ...headers, Location: AUTH_URL + '?state=' + hex(random(32)), } })
 }
+function exchangePage(ticket, callback, title) {
+  return new Response(`<!doctype html><html lang="ko"><meta charset="utf-8"><title>${title}</title><body><p>${title}</p><form method="post" action="${SITE}${PREFIX}/${callback}"><input type="hidden" name="ticket" value="${ticket}"><button type="submit">프리뷰 열기</button></form></body></html>`, {headers:{...headers,'Referrer-Policy':'origin','Content-Type':'text/html; charset=utf-8','Content-Security-Policy':`default-src 'none'; form-action ${SITE}; base-uri 'none'; frame-ancestors 'none'`}})
+}
+async function postedTicket(request) {
+  if (!request.headers.get('Content-Type')?.startsWith('application/x-www-form-urlencoded') || Number(request.headers.get('Content-Length')) > 5000) return null
+  const reader = request.body?.getReader()
+  if (!reader) return null
+  let body = ''
+  for (;;) {
+    const {value,done} = await reader.read()
+    if (done) break
+    body += new TextDecoder().decode(value)
+    if (body.length > 5000) { await reader.cancel(); return null }
+  }
+  return new URLSearchParams(body).get('ticket')
+}
 async function identity(fetcher, token) {
   const response = await fetcher('https://api.geupddong.com/api/v1/auth/me', { method: 'GET', headers: { Cookie: 'geupddong_access=' + token, Accept: 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(8000) })
   if (!response.ok) { await response.body?.cancel(); return { status: response.status === 403 ? 403 : 401 } }
@@ -67,10 +87,26 @@ export function createHandler(fetcher = fetch, now = () => Date.now()) {
   return async (request, env) => {
     const url = new URL(request.url)
     const authPath = url.origin + url.pathname === AUTH_URL
-    if (!authPath && (url.origin !== SITE || !(url.pathname === PREFIX || url.pathname.startsWith(PREFIX + '/')))) return reply(404, '프리뷰 경로가 아닙니다.')
+    const adminAuthPath = url.origin + url.pathname === ADMIN_AUTH_URL
+    if (!authPath && !adminAuthPath && (url.origin !== SITE || !(url.pathname === PREFIX || url.pathname.startsWith(PREFIX + '/')))) return reply(404, '프리뷰 경로가 아닙니다.')
     const expiry = Number(env.PREVIEW_EXPIRES_AT)
     if (!Number.isFinite(expiry) || expiry <= now() || expiry - now() > 86400000) return reply(410, '임시 프리뷰가 종료되었습니다.')
     if (url.search.length > 1500) return reply(400, '조회 조건이 너무 깁니다.')
+    if (url.origin === SITE && url.pathname === PREFIX + '/__admin-session' && request.method === 'POST') {
+      if (request.headers.get('Origin') !== new URL(ADMIN_AUTH_URL).origin) return reply(403, '관리자 연결 출처를 확인할 수 없습니다.')
+      const ticket = await open(await postedTicket(request), env, 'data-exchange', now())
+      const session = await open(cookie(request, SESSION), env, 'session', now())
+      if (!ticket || !session || !same(ticket.state,cookie(request,DATA_STATE))) return reply(403, '관리자 연결이 만료되었습니다. 프리뷰에서 다시 연결해 주세요.')
+      const result = await identity(fetcher,session.token)
+      if (result.status !== 200) return reply(result.status,'관리자 권한을 다시 확인해 주세요.')
+      const exp = Math.min(session.exp, ticket.sessionExp)
+      if (!Number.isFinite(exp) || exp <= now()) return reply(403,'관리자 연결이 만료되었습니다.')
+      const value = await seal({aud:SITE+PREFIX,purpose:'data-session',exp,token:ticket.token},env)
+      const responseHeaders = new Headers({...headers,Location:SITE+PREFIX+'/'})
+      responseHeaders.append('Set-Cookie',cookieValue(DATA_SESSION,value,Math.floor((exp-now())/1000)))
+      responseHeaders.append('Set-Cookie',cookieValue(DATA_STATE,'',0))
+      return new Response(null,{status:303,headers:responseHeaders})
+    }
     if (url.origin === SITE && url.pathname === PREFIX + '/__session' && request.method === 'POST') {
       // This callback changes only the preview's own cookie, never operational data.
       if (request.headers.get('Origin') !== new URL(AUTH_URL).origin || !request.headers.get('Content-Type')?.startsWith('application/x-www-form-urlencoded')) return reply(403, '인증 요청 출처를 확인할 수 없습니다.')
@@ -93,6 +129,19 @@ export function createHandler(fetcher = fetch, now = () => Date.now()) {
       return new Response(null, { status: 303, headers: responseHeaders })
     }
     if (request.method !== 'GET') return reply(405, '읽기 전용 프리뷰입니다.')
+    if (adminAuthPath) {
+      const state = url.searchParams.get('state'), token = cookie(request,'CF_Authorization')
+      if (!/^[a-f0-9]{64}$/.test(state || '') || !validToken(token)) return reply(401,'기존 관리자 페이지에 로그인한 뒤 프리뷰에서 다시 연결해 주세요.')
+      // Reuse the browser's existing Access login. No service token or Access
+      // policy change: the upstream still validates this cookie on every read.
+      const upstream = await fetcher('https://admin.geupddong.com/api/admin/v1/operations/status',{method:'GET',headers:{Cookie:'CF_Authorization='+token,Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(10000)})
+      const accepted = upstream.ok && upstream.headers.get('Content-Type')?.includes('application/json')
+      await upstream.body?.cancel()
+      if (!accepted) return reply(401,'관리자 서버 로그인을 다시 확인해 주세요.')
+      const sessionExp = Math.min(expiry,now()+900000)
+      const ticket = await seal({aud:SITE+PREFIX,purpose:'data-exchange',state,token,sessionExp,exp:Math.min(sessionExp,now()+60000)},env)
+      return exchangePage(ticket,'__admin-session','관리자 데이터 조회 연결을 확인했습니다.')
+    }
     if (authPath) {
       if (!/^[a-f0-9]{64}$/.test(url.searchParams.get('state') || '')) return reply(400, '프리뷰 화면에서 다시 연결해 주세요.')
       const token = cookie(request, 'geupddong_access')
@@ -113,7 +162,7 @@ export function createHandler(fetcher = fetch, now = () => Date.now()) {
     }
     const path = url.pathname.slice(PREFIX.length) || '/index.html'
     const target = path === '/' ? '/index.html' : path
-    if (!assets.has(target.slice(1)) && !validEndpoint(target)) return reply(404, '지원하지 않는 경로입니다.')
+    if (!assets.has(target.slice(1)) && !validEndpoint(target) && target !== '/__connect-admin') return reply(404, '지원하지 않는 경로입니다.')
     if (!/^[a-f0-9]{64}$/.test(env.PREVIEW_SESSION_KEY || '')) return reply(503, '프리뷰 인증 연결을 준비 중입니다.')
     const session = await open(cookie(request, SESSION), env, 'session', now())
     if (!session) {
@@ -128,11 +177,18 @@ export function createHandler(fetcher = fetch, now = () => Date.now()) {
       // Verify the caller's current role with the existing API; never substitute a privileged service identity.
       const result = await identity(fetcher, session.token)
       if (result.status !== 200) return result.status === 401 && target.endsWith('.html') ? login() : reply(result.status, '관리자 로그인을 다시 확인해 주세요.')
+      if (target === '/__connect-admin') {
+        const state = hex(random(32))
+        return new Response(null,{status:302,headers:{...headers,Location:ADMIN_AUTH_URL+'?state='+state,'Set-Cookie':cookieValue(DATA_STATE,state,180)}})
+      }
       if (target === '/backend/api/v1/auth/me') return new Response(JSON.stringify({ roles:['ADMIN'], nickname:'관리자', accessTokenExpiresAt:new Date(session.exp).toISOString() }), {headers:{...headers,'Content-Type':'application/json'}})
       if (validEndpoint(target)) {
         const server = target.startsWith('/server/'), path = target.slice(server ? 7 : 8)
         const origin = server ? 'https://admin.geupddong.com' : 'https://api.geupddong.com'
-        const upstream = await fetcher(origin + path + url.search, {method:'GET',headers:{Cookie:'geupddong_access=' + session.token,Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(20000)})
+        const dataSession = server ? await open(cookie(request,DATA_SESSION),env,'data-session',now()) : null
+        if (server && !dataSession) return new Response(JSON.stringify({code:'ADMIN_DATA_AUTH_REQUIRED',message:'관리자 서버의 기존 로그인 연결이 필요합니다.'}),{status:428,headers:{...headers,'Content-Type':'application/json'}})
+        const credentials = 'geupddong_access=' + session.token + (server ? '; CF_Authorization='+dataSession.token : '')
+        const upstream = await fetcher(origin + path + url.search, {method:'GET',headers:{Cookie:credentials,Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(20000)})
         if (upstream.status >= 300 && upstream.status < 400) { await upstream.body?.cancel(); return reply(502,'예상하지 않은 조회 응답입니다.') }
         return new Response(upstream.body,{status:upstream.status,headers:{...headers,'Content-Type':upstream.headers.get('Content-Type') || 'application/json'}})
       }

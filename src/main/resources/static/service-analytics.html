@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ko">
   <head>
+  <script src="/admin-responsive.js?v=2"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>서비스 이용 분석 | 급똥 관리자</title>
@@ -8,8 +9,8 @@
     <link rel="stylesheet" href="/admin-shell.css?v=6" />
     <link rel="stylesheet" href="/admin-session.css?v=1" />
     <link rel="stylesheet" href="/service-analytics.css?v=4" />
-    <link rel="icon" type="image/svg+xml" href="/brand/hangul-point-v1/favicon.svg" /><link rel="icon" type="image/png" sizes="32x32" href="/brand/hangul-point-v1/favicon-32.png" /><link rel="apple-touch-icon" sizes="180x180" href="/brand/hangul-point-v1/apple-touch-icon.png" /><link rel="stylesheet" href="/brand.css?v=2" />
-  <link rel="stylesheet" href="/admin-responsive.css?v=1" />
+    <link rel="icon" type="image/svg+xml" href="/brand/hangul-point-v1/favicon.svg" /><link rel="icon" type="image/png" sizes="32x32" href="/brand/hangul-point-v1/favicon-32.png" /><link rel="apple-touch-icon" sizes="180x180" href="/brand/hangul-point-v1/apple-touch-icon.png" /><link rel="stylesheet" href="/brand.css?v=3" />
+  <link rel="stylesheet" href="/admin-responsive.css?v=2" />
 </head>
   <body class="admin-page analytics-page">
     <main id="loading-shell" class="page-loading" hidden>
@@ -18,7 +19,7 @@
     </main>
     <main id="auth-shell" class="auth-shell" hidden>
       <section class="login-card">
-        <img class="admin-login-brand" src="/brand/hangul-point-v1/lockup-ko.svg" alt="급똥" width="646" height="232" /><p class="eyebrow">GEUPDDONG ADMIN</p>
+        <span class="admin-login-brand" role="img" aria-label="급똥">급똥</span><p class="eyebrow">GEUPDDONG ADMIN</p>
         <h1 id="auth-title">관리자 로그인</h1>
         <p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p>
         <div class="login-actions">
@@ -39,7 +40,7 @@
       data-admin-page="analytics"
       data-admin-title="서비스 이용 분석"
     >
-      <header class="page-header analytics-page-header">
+      <header class="page-header admin-header-tools analytics-page-header">
         <div>
           <p class="eyebrow">SERVICE INSIGHTS</p>
           <h1>서비스 이용 분석</h1>
@@ -150,7 +151,7 @@
         </p>
       </details>
     </main>
-    <script src="/admin-shell.js?v=12"></script><script src="/admin-responsive.js?v=1"></script>
+    <script src="/admin-shell.js?v=13"></script>
     <script src="/admin-session.js?v=2"></script>
     <script src="/origin-bots.js?v=1"></script>
     <script src="/service-analytics.js?v=4"></script>

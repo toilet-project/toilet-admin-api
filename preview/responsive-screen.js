@@ -13,11 +13,14 @@
       return url.pathname+url.search+url.hash
     } catch { return null }
   }
-  let page=cleanPath(query.get('page')||'toilets.html')||base+'/toilets.html'
+  let savedPage
+  try { savedPage=sessionStorage.getItem('admin.preview.page') } catch {}
+  let page=cleanPath(query.get('page')||savedPage||'toilets.html')||base+'/toilets.html'
   function remember() {
     const url=new URL(location.href)
     url.search=new URLSearchParams({size,page:page.slice(base.length+1)}).toString()
     history.replaceState(null,'',url)
+    try { sessionStorage.setItem('admin.preview.page',page) } catch {}
     document.querySelector('#live-size').href=page
   }
   function resize(value) {

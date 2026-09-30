@@ -19,6 +19,7 @@
       else if (pct >= 80 || at) add(m.id,`${m.label} ${pct >= 80 ? '포함량 80% 이상' : '주기 내 포함량 초과 예상'}`,at ? `현재 평균 속도 기준 ${at}. 초기 캐시 채우기처럼 일시적인 증가면 달라집니다.` : '남은 포함량과 청구 종료일을 확인하세요.','cost')
     }
     const cost=usage?.costSummary
+    if(!usage || cost?.observedSubtotalUsd==null) add('cost-unavailable','요금 집계 확인 필요','현재 초과액을 산출하지 못했습니다. 다른 상태 지표가 정상이더라도 비용을 0원으로 판단하지 마세요.','cost','info')
     if(finite(budget) && budget>0 && finite(cost?.observedSubtotalUsd)) {
       if(cost.observedSubtotalUsd >= budget) add('budget','설정한 추가요금 예산 도달','집계 가능한 현재 초과액 소계가 예산 이상입니다.','cost','critical')
       else if(cost.observedSubtotalUsd >= budget*.8 || (finite(cost.projectedSubtotalUsd) && cost.projectedSubtotalUsd>=budget)) add('budget','추가요금 예산 주의','현재 사용량 또는 종료 예상 소계가 설정 예산에 접근했습니다. 미산출 비용은 별도입니다.','cost')

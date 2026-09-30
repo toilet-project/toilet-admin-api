@@ -12,6 +12,7 @@ const empty={sections:{r2:{status:'OK',data:{lastHourPuts:0,previousHourPuts:0,g
 assert.equal(assess(usage,empty,null).length,0)
 assert.ok(assess(usage,empty,5).some(a=>a.id==='budget'))
 assert.ok(!assess({...usage,costSummary:{observedSubtotalUsd:null,projectedSubtotalUsd:null}},empty,5).some(a=>a.id==='budget'))
+assert.ok(assess(null,empty,5).some(a=>a.id==='cost-unavailable'))
 const spike={sections:{r2:{status:'OK',data:{lastHourPuts:1000,previousHourPuts:0,getOk:40,getMissing:60,serverErrors:1}}}}
 assert.deepEqual(assess(usage,spike,null).map(a=>a.id),['put-spike','r2-miss','r2-errors'])
 assert.ok(assess(usage,{sections:{traffic:{status:'UNAVAILABLE',data:null}}},null).some(a=>a.id==='coverage'))

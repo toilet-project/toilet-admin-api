@@ -22,6 +22,8 @@
     toggle?.setAttribute('aria-expanded', String(!compact.matches || preference === 'open'))
     document.querySelectorAll('[data-responsive-tabs]').forEach(el => el._responsiveTabs?.sync())
     document.querySelectorAll('.admin-disclosure').forEach(el => { el.open = compact.matches ? el._compactOpen || false : true })
+    document.querySelectorAll('.admin-analytics-filters').forEach(el => el._sync?.())
+    compactCloudflareHeader(document.querySelector('main[data-admin-page]'))
     updateDocks()
   }
   function tabs(host, panels, labels, key, before = null) {
@@ -91,6 +93,31 @@
     footer._action = action; footer._marker = marker
     target.append(footer)
   }
+  function analyticsFilters(main) {
+    const filters = main.querySelector('.analytics-filter-line')
+    const actions = main.querySelector('.analytics-control-actions')
+    if (!filters || !actions || filters.closest('.admin-analytics-filters')) return
+    const panel = document.createElement('div')
+    panel.className = 'admin-analytics-filters'; panel.id = 'admin-analytics-filters'
+    filters.before(panel); panel.append(filters)
+    const note = main.querySelector('.analytics-bot-note')
+    if (note) panel.append(note)
+    const button = document.createElement('button')
+    button.type = 'button'; button.className = 'admin-filter-toggle'; button.textContent = '상세 필터'
+    button.setAttribute('aria-controls', panel.id)
+    let expanded = false
+    panel._sync = () => { panel.hidden = compact.matches && !expanded; button.setAttribute('aria-expanded', String(!panel.hidden)) }
+    button.addEventListener('click', () => { expanded = !expanded; panel._sync() })
+    actions.append(button); panel._sync()
+  }
+  function compactCloudflareHeader(main) {
+    const link = main?.querySelector('#cloudflare-dashboard-link')
+    if (!link) return
+    if (!link._originalPlace) { const marker = document.createComment('Cloudflare dashboard'); link.before(marker); link._originalPlace = marker }
+    const context = main.querySelector('.cm-context')
+    if (compact.matches && context && link.parentElement !== context) context.insertBefore(link, context.querySelector('#cm-refresh'))
+    if (!compact.matches && link.parentElement === context) link._originalPlace.after(link)
+  }
   function updateDocks() {
     document.querySelectorAll('.admin-action-dock').forEach(footer => {
       const { _action: action, _marker: marker } = footer
@@ -105,7 +132,8 @@
     if (!main) return
     disclosure(main.querySelector('.opening-hours-members'), '적용 대상 시설 확인')
     disclosure(main.querySelector('.opening-hours-history'), '변경 이력 확인')
-    disclosure(main.querySelector('.analytics-filter-line'), '상세 필터')
+    analyticsFilters(main)
+    compactCloudflareHeader(main)
     dock('.opening-hours-actions', '.opening-hours-detail')
     dock('#region-confirm', '.region-detail')
     dock('#change-decision-submit', '.change-detail-pane')

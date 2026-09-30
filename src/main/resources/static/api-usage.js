@@ -9,7 +9,7 @@
   const money = (value, currency) => value == null ? '—' : new Intl.NumberFormat('ko-KR', { style: 'currency', currency, minimumFractionDigits: currency === 'USD' ? 2 : 0, maximumFractionDigits: currency === 'USD' ? 2 : 0 }).format(value)
   const date = value => value ? new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value)) : '집계 전'
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]))
-  const statusNames = { manual: '콘솔 확인값 · 자동 갱신 아님', connected: '집계 연결됨', partial: '일부 집계', stale: '갱신 지연', error: '조회 실패', unconfigured: '연결 필요', inactive: '미사용', 'no-data': '집계 대기' }
+  const statusNames = { connected: '집계 연결됨', partial: '일부 집계', stale: '갱신 지연', error: '조회 실패', unconfigured: '연결 필요', inactive: '미사용', 'no-data': '집계 대기', 'reference-only': '자동 집계 없음' }
   const state = service => `<span class="au-state ${data?.demo ? 'unconfigured' : escape(service.status)}">${data?.demo ? '예시 데이터 · 실제 사용량 아님' : escape(statusNames[service.status] || '확인 필요')}</span>`
   const sum = (metrics, key) => metrics.every(item => item[key] != null) ? metrics.reduce((value, item) => value + Number(item[key]), 0) : null
   const unitValue = (value, unit) => value == null ? '—' : `${number(value)}<small class="au-unit"> ${escape(unit)}</small>`
@@ -49,14 +49,33 @@
   }
   function card(service) {
     const def=service.definition, known=service.metrics.filter(item=>item.used!=null)
-    const volume=sum(service.metrics,'used'), projected=sum(service.metrics,'projected'), visibleMetrics=def.id==='kakao' ? 2 : 3
+    const complete=known.length===service.metrics.length
+    const volume=known.length ? sum(known,'used') : null, projected=known.length ? sum(known,'projected') : null
+    const unit=known[0]?.definition.unit || def.metrics[0].unit, visibleMetrics=def.id==='kakao' ? 2 : 3
+    const usageLabel=complete ? '이번 달 사용량' : known.length===1 ? `${known[0].definition.name} 사용량` : '집계된 항목 사용량'
+    const projectionLabel=complete ? '월말 예상 사용량' : known.length===1 ? `${known[0].definition.name} 월말 예상` : '집계된 항목 월말 예상'
     const shared=def.id==='kakao' && projected!=null ? `<p class="au-shared-quota">지도·Local 월말 예상 ${percent(projected/3000000*100)} / 앱 공용 월 300만 건<br>다른 API 사용량 미포함 · 일간 한도도 별도 적용</p>` : ''
-    return `<article class="au-card" data-service="${escape(def.id)}"><div class="au-card-body" role="region" aria-label="${escape(def.name)} 카드 내용" tabindex="0"><div class="au-card-head"><div class="au-card-identity"><span class="au-brand ${def.id==='kakao'||def.id==='naver' ? def.id : ''}" aria-hidden="true">${escape(def.badge)}</span><div><h3>${escape(def.name)}</h3>${state(service)}</div></div><button type="button" class="au-detail-link" data-detail="${escape(def.id)}" aria-label="${escape(def.name)} 상세보기">상세보기 ↗</button></div><p class="au-card-desc">${escape(def.description)}</p><div class="au-volume-pair"><div><span>이번 달 사용량</span><strong>${unitValue(volume,def.metrics[0].unit)}</strong></div><div><span>월말 예상 사용량</span><strong>${unitValue(projected,def.metrics[0].unit)}</strong></div></div><div class="au-card-metrics">${service.metrics.slice(0,visibleMetrics).map(item=>meter(item,service)).join('')}${service.metrics.length>visibleMetrics ? `<details class="au-quota-more"><summary>다른 ${service.metrics.length-visibleMetrics}개 API의 무료 쿼터 보기</summary>${service.metrics.slice(visibleMetrics).map(item=>meter(item,service)).join('')}</details>` : ''}${shared}</div></div><div class="au-card-foot">${service.asOf ? `${date(service.asOf)} KST · ${service.source?.includes('콘솔 확인값') ? '콘솔 확인 · 자동 갱신 아님' : '자동 집계'} · ${known.length}/${service.metrics.length}개 항목` : escape(service.message)}</div></article>`
+    return `<article class="au-card" data-service="${escape(def.id)}"><div class="au-card-body" role="region" aria-label="${escape(def.name)} 카드 내용" tabindex="0"><div class="au-card-head"><div class="au-card-identity"><span class="au-brand ${def.id==='kakao'||def.id==='naver' ? def.id : ''}" aria-hidden="true">${escape(def.badge)}</span><div><h3>${escape(def.name)}</h3>${state(service)}</div></div><div class="au-card-actions"><a class="au-dashboard-link" href="${escape(def.consoleUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escape(def.name)} 공급자 대시보드 새 창에서 열기">대시보드 ↗</a><button type="button" class="au-detail-link" data-detail="${escape(def.id)}" aria-label="${escape(def.name)} 상세보기">상세보기 ↗</button></div></div><p class="au-card-desc">${escape(def.description)}</p><div class="au-volume-pair"><div><span>${escape(usageLabel)}</span><strong>${unitValue(volume,unit)}</strong></div><div><span>${escape(projectionLabel)}</span><strong>${unitValue(projected,unit)}</strong></div></div><div class="au-card-metrics">${service.metrics.slice(0,visibleMetrics).map(item=>meter(item,service)).join('')}${service.metrics.length>visibleMetrics ? `<details class="au-quota-more"><summary>다른 ${service.metrics.length-visibleMetrics}개 API의 무료 쿼터 보기</summary>${service.metrics.slice(visibleMetrics).map(item=>meter(item,service)).join('')}</details>` : ''}${shared}</div></div><div class="au-card-foot">${service.asOf ? `${date(service.asOf)} KST · 자동 집계 · ${known.length}/${service.metrics.length}개 항목` : escape(service.message)}</div></article>`
+  }
+  const monitored = service => service.definition.id !== 'kakao' || ['connected','partial'].includes(service.status)
+  function referenceEntry(service) {
+    const snapshot = service.reference, billing = snapshot.billing
+    const rows = Object.entries(snapshot.metrics).map(([id, value]) => {
+      const metric = service.definition.metrics.find(item => item.id === id)
+      return metric ? `<div><dt>${escape(metric.name)}</dt><dd>${number(value.used)}${escape(metric.unit)}</dd></div>` : ''
+    }).join('')
+    const credit = billing ? `<div><dt>확인 당시 크레딧 잔액</dt><dd>${money(billing.creditRemaining,billing.currency)}</dd></div><div><dt>이번 달 확인된 크레딧 차감</dt><dd>${money(billing.promotionalCreditApplied,billing.currency)}</dd></div>` : ''
+    return `<article class="au-reference-entry"><div class="au-reference-head"><h3>${escape(service.definition.name)}</h3><a class="au-dashboard-link" href="${escape(service.definition.consoleUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escape(service.definition.name)} 공급자 대시보드 새 창에서 열기">대시보드 ↗</a></div><p>${escape(snapshot.source)} · ${date(snapshot.asOf)} KST 기준</p><dl>${rows}${credit}</dl></article>`
   }
   function render() {
-    byId('au-cards').innerHTML=data.services.map(card).join('')
+    const live = data.services.filter(monitored), references = data.services.filter(service => service.reference)
+    byId('au-cards').innerHTML=live.map(card).join('')
     byId('au-cards').setAttribute('aria-busy','false')
-    byId('au-updated').textContent=`${date(data.checkedAt)} KST 확인 · 자동 집계 5분 갱신`
+    byId('au-monitored-count').textContent=live.length
+    byId('au-reference-section').hidden=references.length===0
+    byId('au-reference-count').textContent=references.length
+    byId('au-reference-list').innerHTML=references.map(referenceEntry).join('')
+    byId('au-updated').textContent=`${date(data.checkedAt)} KST 조회 · 실제 집계 시각은 카드별 표시`
     byId('au-status').classList.remove('is-error')
     byId('au-status').hidden=!data.demo
     byId('au-status').textContent=data.demo ? '화면 검증용 예시이며 실제 사용량이 아닙니다.' : ''
@@ -70,8 +89,7 @@
       else renderHistory()
       return
     }
-    byId('au-history-service').innerHTML=data.services.map(s=>`<option value="${escape(s.definition.id)}">${escape(s.definition.name)}</option>`).join('')
-    byId('au-history-service').value='kakao'
+    byId('au-history-service').innerHTML=data.services.filter(monitored).map(s=>`<option value="${escape(s.definition.id)}">${escape(s.definition.name)}</option>`).join('')
     byId('au-history-service').addEventListener('change',()=>selectHistoryService(),{signal:events.signal})
     byId('au-history-metric').addEventListener('change',renderHistory,{signal:events.signal})
     selectHistoryService()

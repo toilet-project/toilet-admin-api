@@ -22,12 +22,17 @@ assert.ok(source.includes('image: ${{ secrets.DOCKERHUB_USERNAME }}/toilet-admin
 assert.ok(steps.find(s => s.uses?.startsWith('docker/build-push-action@')).with.tags.includes('${{ github.sha }}'));
 assert.ok(!/docker (image|system|volume) prune|--remove-orphans|set -x/.test(source));
 const secrets = {
+  'vars.API_USAGE_GOOGLE_TRANSLATION_PROJECT_ID': 'fixture-translation-project',
   'secrets.SPRING_DB_URL': 'jdbc:mysql://fixture.invalid:3306/fixture?serverTimezone=Asia/Seoul',
   'secrets.SPRING_DB_USERNAME': 'fixture', 'secrets.SPRING_DB_PASSWORD': 'synthetic-only',
   'secrets.ADMIN_PORT': '8089', 'secrets.KAKAO_REST_API_KEY': 'fixture-rest',
   'secrets.KAKAO_JAVASCRIPT_KEY': 'fixture-js', 'secrets.DOCKERHUB_USERNAME': 'fixture',
   'secrets.CLOUDFLARE_ACCOUNT_ID': '11111111111111111111111111111111',
   'secrets.CLOUDFLARE_ANALYTICS_API_TOKEN': 'synthetic-cloudflare-token',
+  'secrets.API_USAGE_NAVER_CREDENTIALS_BASE64': Buffer.from('{"accessKey":"fixture","secretKey":"fixture"}').toString('base64'),
+  'secrets.API_USAGE_MANUAL_SNAPSHOTS_BASE64': Buffer.from('{"current":{},"history":{}}').toString('base64'),
+  'vars.API_USAGE_GOOGLE_PROJECT_ID': 'fixture-google-project',
+  'secrets.API_USAGE_GOOGLE_CREDENTIALS_BASE64': Buffer.from('{"type":"service_account","fixture":true}').toString('base64'),
   'github.sha': '1111111111111111111111111111111111111111',
   'vars.HOST_METRICS_ENABLED': 'HOST_FLAG',
   'vars.ORIGIN_BOTS_ENABLED': 'BOT_FLAG'
@@ -51,12 +56,17 @@ docker() {
     'image tag sha256:fixture-old '*) return 0 ;;
     'compose config --quiet') [ "$TEST_MODE" != configfail ] ;;
     'compose pull toilet-admin') [ "$TEST_MODE" != pullfail ] ;;
+    'run -d --name '*) [ "$TEST_MODE" != preflightstartfail ] ;;
+    'port '*) printf '%s\\n' '127.0.0.1:18089' ;;
+    'logs --tail 120 '*) printf '%s\\n' 'SyntheticStartupException' ;;
+    'rm -f '*) return 0 ;;
     'compose up -d --wait --wait-timeout 120 toilet-admin') [ "$TEST_MODE" != upfail ] ;;
     *) printf '%s\\n' 'Unexpected Docker operation' >&2; return 99 ;;
   esac
 }
 curl() {
   printf '%s\\n' 'health' >> "$FIXTURE_DIR/commands.log"
+  case "$*" in *:18089/*) [ "$TEST_MODE" != preflightfail ] || return 22; printf '%s' '{"status":"UP"}'; return 0;; esac
   case "$TEST_MODE" in
     healthfail) return 22 ;;
     healthdown) printf '%s' '{"status":"DOWN"}' ;;
@@ -69,7 +79,7 @@ flock() { [ "$TEST_MODE" != locked ]; }
 sleep() { :; }
 `;
 function bashPath(p) {return p.replaceAll('\\', '/').replace(/^([A-Za-z]):/, (_, d) => '/' + d.toLowerCase());}
-for (const mode of ['success', 'first', 'locked', 'imagefail', 'configfail', 'pullfail', 'upfail', 'healthfail', 'healthdown', 'healthinvalid', 'hostmonitor', 'hostmissing', 'botmonitor', 'botmissing', 'bothmonitors']) {
+for (const mode of ['success', 'first', 'locked', 'imagefail', 'configfail', 'pullfail', 'preflightstartfail', 'preflightfail', 'upfail', 'healthfail', 'healthdown', 'healthinvalid', 'hostmonitor', 'hostmissing', 'botmonitor', 'botmissing', 'bothmonitors']) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'admin-deploy-fixture-'));
   if (mode !== 'first') {
     fs.writeFileSync(path.join(dir, '.env'), 'FIXTURE_OLD=true\n');
@@ -101,10 +111,16 @@ for (const mode of ['success', 'first', 'locked', 'imagefail', 'configfail', 'pu
       assert.equal(fs.readFileSync(path.join(dir, backups[0], '.env'), 'utf8'), 'FIXTURE_OLD=true\n');
       assert.equal(fs.readFileSync(path.join(dir, backups[0], 'docker-compose.yml'), 'utf8'), 'fixture-old-compose\n');
     }
-    if (['imagefail', 'configfail', 'pullfail', 'hostmissing', 'botmissing'].includes(mode)) assert.ok(!commands.includes('compose up'));
+    if (['imagefail', 'configfail', 'pullfail', 'preflightstartfail', 'preflightfail', 'hostmissing', 'botmissing'].includes(mode)) assert.ok(!commands.includes('compose up'));
     if (mode === 'imagefail') assert.equal(fs.readFileSync(path.join(dir, '.env'), 'utf8'), 'FIXTURE_OLD=true\n');
-    if (mode.startsWith('health')) assert.equal(commands.split('\n').filter(x => x === 'health').length, 30);
-    if (mode === 'upfail') assert.ok(!commands.includes('health'));
+    if (mode.startsWith('health')) assert.equal(commands.split('\n').filter(x => x === 'health').length, 31);
+    if (mode === 'preflightfail') {
+      assert.equal(commands.split('\n').filter(x => x === 'health').length, 60);
+      assert.equal(fs.readFileSync(path.join(dir,'.env'),'utf8'),'FIXTURE_OLD=true\n');
+      assert.equal(fs.readFileSync(path.join(dir,'docker-compose.yml'),'utf8'),'fixture-old-compose\n');
+      assert.ok(fs.existsSync(path.join(dir,backups[0],'candidate-startup.log')));
+    }
+    if (mode === 'upfail') assert.equal(commands.split('\n').filter(x => x === 'health').length,1);
     if (mode === 'success') assert.equal(fs.readFileSync(path.join(dir, backups[0], 'admin-image-id'), 'utf8'), 'sha256:fixture-old\n');
   }
   assert.ok(!commands.includes('prune'));
@@ -119,10 +135,14 @@ for (const mode of ['success', 'first', 'locked', 'imagefail', 'configfail', 'pu
     assert.equal(generatedEnv.includes('ORIGIN_BOTS_DIRECTORY='), botEnabled);
   }
   if (mode === 'success') {
+    const usageEnv = fs.readFileSync(path.join(dir,'.env'),'utf8');
+    assert.ok(usageEnv.includes('API_USAGE_GOOGLE_PROJECT_ID=fixture-google-project'));
+    assert.ok(usageEnv.includes('API_USAGE_NAVER_CREDENTIALS_BASE64='+secrets['secrets.API_USAGE_NAVER_CREDENTIALS_BASE64']));
+    assert.ok(usageEnv.includes('API_USAGE_GOOGLE_CREDENTIALS_BASE64='+secrets['secrets.API_USAGE_GOOGLE_CREDENTIALS_BASE64']));
     assert.equal(YAML.parse(fs.readFileSync(path.join(dir,'docker-compose.yml'),'utf8')).services['toilet-admin'].volumes, undefined);
     assert.doesNotMatch(fs.readFileSync(path.join(dir,'.env'),'utf8'), /HOST_METRICS_DIRECTORY=/);
   }
   assert.equal((commands.match(/compose up/g) || []).length <= 1, true);
   console.log('PASS ' + mode);
 }
-console.log('15 offline scenarios passed; no Docker/server/network/real secrets used. Synthetic temp fixtures retained.');
+console.log('17 offline scenarios passed; no Docker/server/network/real secrets used. Synthetic temp fixtures retained.');

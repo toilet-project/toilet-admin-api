@@ -36,7 +36,7 @@ final class AnalyticsSnapshotLoader {
                         text(row,"os"), text(row,"browser"), text(row,"country"), text(row,"city"),
                         alias(row.path("v").asLong()), alias(row.path("s").asLong()), row.path("seconds").asInt(),
                         text(row,"bucket"), text(row,"detail"), row.path("success").isNull()?null:row.path("success").asInt()==1,
-                        row.path("key").asInt()==1, traffic(row)
+                        row.path("key").asInt()==1, traffic(row), context(row,"client","UNKNOWN"), context(row,"evidence","UNCLASSIFIED")
                     });
                     case "summary" -> summaries.add(new Object[]{ java.sql.Date.valueOf(text(row,"date")),
                         row.path("users").asLong(), row.path("new").asLong(), row.path("sessions").asLong(), row.path("views").asLong(),
@@ -50,10 +50,15 @@ final class AnalyticsSnapshotLoader {
             }
         }
         if (captured == null || captured.isAfter(Instant.now().plusSeconds(60))) throw new IOException("Snapshot timestamp invalid");
-        jdbc.batchUpdate("INSERT INTO service_analytics_event(event_id,occurred_at,occurred_date,event_name,page_key,channel_key,source_key,device_type,os_family,browser_family,country_code,city_name,visitor_hash,session_hash,engagement_seconds,result_count_bucket,event_detail,success_status,key_event,traffic_class) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", events);
+        jdbc.batchUpdate("INSERT INTO service_analytics_event(event_id,occurred_at,occurred_date,event_name,page_key,channel_key,source_key,device_type,os_family,browser_family,country_code,city_name,visitor_hash,session_hash,engagement_seconds,result_count_bucket,event_detail,success_status,key_event,traffic_class,client_context,client_context_evidence) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", events);
         jdbc.batchUpdate("INSERT INTO service_analytics_daily_summary VALUES(?,?,?,?,?,?,?,?,?)", summaries);
         jdbc.batchUpdate("INSERT INTO service_analytics_daily_dimension VALUES(?,?,?,?,?,?,?,?,?,?)", dimensions);
         return Clock.fixed(captured, ZoneOffset.UTC);
+    }
+    private static String context(JsonNode row, String field, String fallback) throws IOException {
+        String value=row.has(field)?row.path(field).asText():fallback;
+        if(!java.util.Set.of("UNKNOWN","BROWSER","KAKAOTALK","LINE","NAVER_APP","INSTAGRAM","FACEBOOK","GOOGLE_APP","ANDROID_WEBVIEW","IOS_WEBVIEW","AUTOMATION","UNCLASSIFIED","REQUEST_UA","LOG_UA").contains(value))throw new IOException("Invalid client context");
+        return value;
     }
     private static String text(JsonNode row, String field) { return row.path(field).isNull()?"":row.path(field).asText(); }
     private static String traffic(JsonNode row) throws IOException {

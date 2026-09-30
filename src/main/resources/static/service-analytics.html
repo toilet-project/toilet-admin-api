@@ -47,9 +47,7 @@
           <p>방문의 변화부터 실제 이용 행동까지, 원인을 좁혀 확인합니다.</p>
         </div>
         <div class="analytics-header-actions">
-          <button id="analytics-export" type="button" disabled>
-            CSV 내보내기</button
-          ><button
+          <button
             id="analytics-refresh"
             type="button"
             class="analytics-primary-button"
@@ -69,6 +67,7 @@
             ><button type="button" data-range="custom">직접 선택</button>
           </div>
           <div class="analytics-control-actions">
+          <button id="analytics-export" type="button" disabled>CSV 내보내기</button>
           <span id="analytics-updated-at" class="analytics-muted"
             >연결 확인 중</span
           >
@@ -104,7 +103,7 @@
             >접속 국가<select id="filter-country">
               <option value="">모든 국가</option>
             </select></label
-          ><button id="analytics-reset" type="button">필터 초기화</button>
+          ><label>접속 환경<select id="filter-client"><option value="">모든 접속 환경</option></select></label><button id="analytics-reset" type="button">필터 초기화</button>
         </div>
         <div
           id="analytics-filter-chips"
@@ -154,6 +153,6 @@
     <script src="/admin-shell.js?v=13"></script>
     <script src="/admin-session.js?v=2"></script>
     <script src="/origin-bots.js?v=1"></script>
-    <script src="/service-analytics.js?v=4"></script>
+    <script src="/service-analytics.js?v=5"></script>
   </body>
 </html>

@@ -45,10 +45,13 @@ public class ServiceAnalyticsController {
             @RequestParam(required=false) String device,
             @RequestParam(required=false) String page,
             @RequestParam(required=false) String country,
+            @RequestParam(required=false) String client,
+            @RequestParam(required=false) String evidence,
             @RequestParam(defaultValue="true") boolean excludeBots) {
         Map<String,String> filters=new LinkedHashMap<>();
         filters.put("source",source); filters.put("channel",channel); filters.put("device",device);
         filters.put("page",page); filters.put("country",country);
+        filters.put("client",client); filters.put("evidence",evidence);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(explorer.explore(range,from,to,filters,excludeBots));
     }
 

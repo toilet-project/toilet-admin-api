@@ -71,6 +71,8 @@
       Campaign: '캠페인',
       Unassigned: '미분류',
     },
+    client: { KAKAOTALK: '카카오톡 앱', LINE: 'LINE 앱', NAVER_APP: '네이버 앱', INSTAGRAM: 'Instagram 앱', FACEBOOK: 'Facebook 앱', GOOGLE_APP: 'Google 앱', ANDROID_WEBVIEW: 'Android 앱 내 브라우저', IOS_WEBVIEW: 'iOS 앱 내 브라우저·미확인', BROWSER: '일반 브라우저', AUTOMATION: '자동화 표시', UNKNOWN: '미확인·기록 없음' },
+    evidence: { REQUEST_UA: '접속 요청에서 확인', LOG_UA: '기존 로그 대조로 보완', UNCLASSIFIED: '미분류·기록 없음' },
     device: { mobile: '모바일', desktop: '데스크톱', tablet: '태블릿' },
     country: {
       KR: '대한민국',
@@ -118,6 +120,8 @@
     screen: ['앱 안의 화면', 'events', '열기'],
     channel: ['유입 채널', 'sessions', '첫 유입 세션'],
     source: ['유입 소스', 'sessions', '첫 유입 세션'],
+    client: ['접속 환경', 'sessions', '첫 유입 세션'],
+    evidence: ['접속 환경 확인 근거', 'sessions', '첫 유입 세션'],
     event: ['이용 행동', 'events', '발생'],
     device: ['기기', 'visitors', '일별 방문자 합계'],
     os: ['운영체제', 'visitors', '일별 방문자 합계'],
@@ -212,7 +216,7 @@
         0,
       ),
       filterable =
-        ['page', 'source', 'channel', 'device', 'country'].includes(type) &&
+        ['page', 'source', 'channel', 'device', 'country', 'client', 'evidence'].includes(type) &&
         state.report.detailed,
       detail = type === 'event';
     return `<article class="analytics-panel analytics-detail-table" data-table="${type}"><header><div><h2>${esc(title)}</h2><p>${num(rows.length)}개 항목 · ${filterable ? '항목 선택으로 전체 분석에 필터 적용' : '선택 기간의 집계'}</p></div></header><div class="analytics-table-controls"><input aria-label="${esc(title)} 검색" data-search="${type}" type="search" placeholder="항목 찾기" value="${esc(pref.search)}"><select aria-label="${esc(title)} 정렬" data-sort="${type}">${[
@@ -365,7 +369,7 @@
       state.tab === 'overview'
         ? overview()
         : state.tab === 'acquisition'
-          ? `<p class="analytics-section-note">첫 유입이 기록된 세션을 기준으로 비교합니다. 내부 이동의 조회 횟수를 유입 건수에 더하지 않습니다.</p><div class="analytics-two-column">${table('channel')}${table('source')}</div>`
+          ? `<p class="analytics-section-note">첫 유입이 기록된 세션을 기준으로 비교합니다. 내부 이동의 조회 횟수를 유입 건수에 더하지 않습니다.</p><div class="analytics-two-column">${table('channel')}${table('source')}</div><p class="analytics-section-note">출처를 몰라도 어떤 앱에서 열었는지 확인할 수 있습니다. 앱 종류는 유입 게시글·대화방의 확정 정보가 아닙니다. 항목을 선택하면 이용 행동까지 함께 좁혀집니다.</p><div class="analytics-two-column">${table('client')}${table('evidence')}</div>`
           : state.tab === 'content'
             ? `<p class="analytics-section-note">URL이 바뀌는 페이지와 지도 안에서 열리는 화면을 구분합니다. 화장실별 식별자는 수집하지 않아 상세 페이지는 유형별로 합산됩니다.</p>${table('page')}${table('screen')}`
             : state.tab === 'behavior'
@@ -412,7 +416,7 @@
     $('analytics-definitions-list').innerHTML = r.notices
       .map((n) => `<li>${esc(n)}</li>`)
       .join('');
-    for (const type of ['source', 'page', 'country']) {
+    for (const type of ['source', 'page', 'country', 'client']) {
       const select = $(`filter-${type}`),
         existing = new Map(
           [...select.options]
@@ -425,7 +429,7 @@
       if (state.filters[type])
         existing.set(state.filters[type], label(type, state.filters[type]));
       select.innerHTML =
-        `<option value="">${{ source: '전체 유입', page: '전체 페이지', country: '모든 국가' }[type]}</option>` +
+        `<option value="">${{ source: '전체 유입', page: '전체 페이지', country: '모든 국가', client: '모든 접속 환경' }[type]}</option>` +
         [...existing]
           .sort(
             (a, b) =>
@@ -437,7 +441,7 @@
       select.value = state.filters[type] || '';
     }
     $('filter-device').value = state.filters.device || '';
-    for (const type of ['device', 'source', 'page', 'country'])
+    for (const type of ['device', 'source', 'page', 'country', 'client'])
       $(`filter-${type}`).disabled = !r.detailed;
     $('analytics-filter-chips').innerHTML = Object.entries(state.filters)
       .map(
@@ -625,7 +629,7 @@
         [],
       ],
       types = {
-        acquisition: ['channel', 'source'],
+        acquisition: ['channel', 'source', 'client', 'evidence'],
         content: ['page', 'screen'],
         behavior: ['event'],
         audience: ['device', 'os', 'browser', 'country', 'city'],

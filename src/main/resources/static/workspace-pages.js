@@ -51,23 +51,7 @@
 
   async function loadCloudflare() {
     try {
-      const data = await json('/api/admin/v1/cloudflare/usage')
-      const metrics = [
-        ['cf-workers', data.workersRequests, '회', '월 포함량'],
-        ['cf-d1', data.d1RowsRead, '행', '월 포함량'],
-        ['cf-r2', data.r2StorageBytes, 'byte', 'Standard 월 포함량'],
-      ]
-      metrics.forEach(([prefix, metric, unit, limitLabel]) => {
-        const used = unit === 'byte' ? `${(metric.used / 1000 ** 3).toFixed(2)} GB` : `${number(metric.used)}${unit}`
-        const limit = unit === 'byte' ? `${(metric.limit / 1000 ** 3).toFixed(0)} GB` : `${number(metric.limit)}${unit}`
-        setText(`${prefix}-value`, used)
-        setText(`${prefix}-limit`, `${limitLabel} ${limit} · ${metric.usedPercent}% 사용`)
-        const bar = byId(`${prefix}-bar`)
-        if (bar) bar.style.width = `${Math.min(metric.usedPercent, 100)}%`
-      })
-      const link = byId('cloudflare-dashboard-link')
-      if (link && data.dashboardUrl) link.href = data.dashboardUrl
-      setText('workspace-status', `${data.planLabel} · ${monthDay(data.usagePeriodStart)}–${monthDay(data.usagePeriodEnd)} 청구 주기 · ${dateTime(data.lastSuccessfulAt || data.checkedAt)} 조회 · ${data.message}`)
+      globalThis.CloudflareMonitorView.start()
     } catch {
       setText('workspace-status', 'Cloudflare 이용량을 불러오지 못했습니다.')
     }

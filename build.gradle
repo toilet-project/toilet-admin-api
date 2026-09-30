@@ -39,6 +39,13 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+tasks.register('cloudflarePreviewClasspath') {
+    dependsOn testClasses
+    doLast {
+        file('build/cloudflare-preview-classpath.txt').text = sourceSets.test.runtimeClasspath.asPath
+    }
+}
+
 // Test-only, loopback, synthetic H2 preview. Not packaged in the production bootJar.
 tasks.register('analyticsPreview', JavaExec) {
     dependsOn testClasses

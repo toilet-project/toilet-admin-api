@@ -112,6 +112,31 @@ class CloudflareMonitoringServiceTest {
         assertThatThrownBy(()->CloudflareMonitoringService.workers(json.readTree("[{\"sum\":{}}]"))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(()->CloudflareMonitoringService.num(json.readTree("-1"))).isInstanceOf(IllegalArgumentException.class);
     }
+    @Test void olderWorkflowListsNeverReplaceNewerConfirmedRuns() throws Exception {
+        var client=mock(CloudflareAnalyticsClient.class);
+        when(client.isConfigured()).thenReturn(true);
+        var fresh=json.readTree("""
+          [{"id":12,"status":"completed","conclusion":"success","created_at":"2026-09-30T06:00:00Z","updated_at":"2026-09-30T06:05:00Z"}]
+          """);
+        var older=json.readTree("""
+          [{"id":11,"status":"completed","conclusion":"success","created_at":"2026-09-29T06:00:00Z","updated_at":"2026-09-29T06:05:00Z"}]
+          """);
+        var newerFailure=json.readTree("""
+          [{"id":13,"status":"completed","conclusion":"failure","created_at":"2026-09-30T07:00:00Z","updated_at":"2026-09-30T07:05:00Z"}]
+          """);
+        when(client.queryRefreshRuns()).thenReturn(fresh,older,older,newerFailure);
+        var clock=mock(Clock.class);
+        when(clock.instant()).thenReturn(end.plusSeconds(1800),end.plusSeconds(2101),end.plusSeconds(2402),end.plusSeconds(2703));
+        var svc=new CloudflareMonitoringService(client,true,300,"example.test","bucket",clock);
+        assertThat(svc.getMonitoring().sections().get("refresh").status()).isEqualTo("OK");
+        var stale=svc.getMonitoring().sections().get("refresh");
+        assertThat(stale.status()).isEqualTo("UNAVAILABLE");
+        assertThat(stale.data()).isNull();
+        assertThat(svc.getMonitoring().sections().get("refresh").status()).isEqualTo("UNAVAILABLE");
+        var recovered=svc.getMonitoring().sections().get("refresh");
+        assertThat(recovered.status()).isEqualTo("OK");
+        assertThat(((com.example.toiletadmin.cloudflare.dto.CloudflareMonitoringResponse.RefreshHealth)recovered.data()).runs().getFirst().conclusion()).isEqualTo("failure");
+    }
     @Test void workflowUsesLatestRunAndDoesNotTrustProviderLinks() throws Exception {
         var r=CloudflareMonitoringService.refreshRuns(json.readTree("""
           [

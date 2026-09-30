@@ -119,8 +119,10 @@ public class CloudflareAnalyticsClient {
     }
     public JsonNode queryRefreshRuns() {
         // Public execution metadata only. Never forward the Cloudflare credential to GitHub.
-        JsonNode root = restClient.get().uri("https://api.github.com/repos/toilet-project/toilet-web/actions/workflows/shared-toilet-cache-refresh.yml/runs?branch=main&per_page=5")
+        // The filename alias returned older lists in production. Use the verified workflow ID.
+        JsonNode root = restClient.get().uri("https://api.github.com/repos/toilet-project/toilet-web/actions/workflows/360043856/runs?branch=main&per_page=5&page=1")
                 .header("User-Agent", "geupddong-admin-monitor").header("Accept", "application/vnd.github+json")
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache").header("X-GitHub-Api-Version", "2022-11-28")
                 .retrieve().body(JsonNode.class);
         if (root == null || !root.path("workflow_runs").isArray() || root.path("workflow_runs").size() > 5) {
             throw new IllegalStateException("Workflow status unavailable");

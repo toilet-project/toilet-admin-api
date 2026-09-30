@@ -23,6 +23,8 @@
   function render(data) {
     const root = document.getElementById('cf-cost-monitor')
     if (!root) return
+    const selectedService=root.querySelector('[data-service][aria-pressed="true"]')?.dataset.service||'전체'
+    const includeZero=root.querySelector('#cf-include-zero')?.checked||false
     const metrics = data.metrics || [], summary = data.costSummary || {}
     root.innerHTML = '<div class="cf-summary"><article class="cf-summary-card"><p>현재까지 예상 초과액 · 확인 항목 소계</p><strong>' + esc(money(summary.observedSubtotalUsd)) + '</strong><small>Workers 기본요금 $' + n(summary.baseFeeUsd ?? 5) + ' 별도 · 세금·할인 제외</small></article><article class="cf-summary-card"><p>청구 종료 시 예상 초과액 · 동일 항목</p><strong>' + esc(money(summary.projectedSubtotalUsd)) + '</strong><small>현재 주기 평균 사용 속도 기준. 캐시 최초 생성이나 봇 방문이 줄면 달라집니다.</small></article><article class="cf-summary-card"><p>요금 집계 범위</p><strong>' + n(summary.pricedMetrics || 0) + '<span style="font-size:17px">개 산출 · ' + n(summary.unpricedMetrics || 0) + '개 미산출</span></strong><small>미산출 항목은 무료라는 뜻이 아닙니다. 운영·미리보기·다른 앱을 포함한 계정 전체입니다.</small></article></div><div class="cf-notice" role="status">' + esc(data.message) + '<br>' + esc(summary.note || '요금 집계 응답이 없습니다. API 연결 상태를 확인하세요.') + '</div><div class="cf-toolbar"><h2>서비스별 사용량과 예상 요금</h2><label><input type="checkbox" id="cf-include-zero"> 사용량 0인 항목도 보기</label></div><div class="cf-filter" aria-label="서비스 필터">' + ['전체','R2','Workers','D1','Durable Objects'].map((s,i) => '<button type="button" data-service="' + esc(s) + '" aria-pressed="' + (i === 0) + '">' + esc(s) + '</button>').join('') + '</div><section class="cf-meters" id="cf-meters" aria-live="polite"></section><section class="cf-panel"><h2>실제로 사용한 리소스</h2><p class="cf-muted">같은 계정의 다른 앱도 포함량을 함께 사용합니다. 저장량은 최근 관측값이고 나머지는 청구 주기 누계입니다.</p><div class="cf-table-wrap"><table class="cf-table"><thead><tr><th>서비스</th><th>리소스</th><th>요청 / 작업</th><th>CPU 시간</th><th>행 읽기 / 쓰기</th><th>현재 저장량</th><th>오류</th></tr></thead><tbody>' +
       (data.resources || []).filter(r => [r.requests,r.cpuMs,r.rowsRead,r.rowsWritten,r.storageBytes,r.errors].some(v => v > 0)).map(r => '<tr><td>' + esc(r.service) + '</td><td class="cf-resource-name">' + esc(r.name) + '</td><td>' + n(r.requests) + '</td><td>' + (r.cpuMs == null ? '—' : n(r.cpuMs) + ' ms') + '</td><td>' + n(r.rowsRead) + ' / ' + n(r.rowsWritten) + '</td><td>' + (r.storageBytes == null ? '—' : format(r.storageBytes,'bytes')) + '</td><td>' + n(r.errors) + '</td></tr>').join('') +
@@ -38,7 +40,9 @@
         ['갱신·변경 알림·Tunnel 상태','28일 순환 갱신 성공/실패/누락, 변경 알림 대기열, DO 실행 오류, 원본 5xx·Tunnel 연결 상태를 확인합니다.']
       ].map(([h,p]) => '<article class="cf-monitor-item"><h3>' + esc(h) + '</h3><p>' + esc(p) + '</p></article>').join('') +
       '</div><p class="cf-muted">예상액은 청구서가 아닙니다. 조회는 서버에서 5분간 재사용하고, 반영 지연을 고려해 15분 전까지 요청합니다. 기간은 설정된 청구 갱신일 기준 UTC이며 화면 시각은 KST입니다. 공개 단가 확인: 2026-09-30.</p></section>'
-    let service = '전체'
+    let service = selectedService
+    document.getElementById('cf-include-zero').checked=includeZero
+    root.querySelectorAll('[data-service]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.service===service)))
     function update() {
       const showZero = document.getElementById('cf-include-zero').checked
       const visible = metrics.filter(m => (service === '전체' || m.service === service) && (showZero || m.used == null || m.used > 0 || m.status === 'STALE'))

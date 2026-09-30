@@ -22,7 +22,7 @@
     const b = billing.observed, format = value => money(value,b.currency)
     return `<details class="au-secondary"><summary>현재 크레딧과 결제 내역</summary><p>${escape(b.source)} · ${date(b.asOf)} KST 확인 · 계정 공용</p><dl class="au-billing-rows"><div><dt>이번 달 체험 크레딧 차감</dt><dd>${format(b.promotionalCreditApplied)}</dd></div><div><dt>남은 크레딧</dt><dd>${format(b.creditRemaining)}</dd></div><div><dt>크레딧 적용 후 현재 금액</dt><dd>${format(b.netCost)}</dd></div></dl><p>크레딧 종료일 ${escape(b.creditExpiresOn || '미확인')} · 다른 서비스와 잔액을 공유합니다.</p></details>`
   }
-  let data, selectedId, timer, estimateTimer, estimateSequence = 0, busy = false, opener
+  let data, selectedId, timer, estimateTimer, estimateSequence = 0, busy = false, authorized = false, opener
   const tabs = [byId('au-tab-overview'),byId('au-tab-history')]
   function selectTab(selected, focus = false) {
     tabs.forEach(tab => {
@@ -35,7 +35,7 @@
   }
 
   async function json(url) {
-    const response = await fetch(url, { credentials: 'include', signal: requests.signal, cache: 'no-store' })
+    const response = await fetch(url, { credentials: 'include', signal: AbortSignal.any([requests.signal,AbortSignal.timeout(30000)]), cache: 'no-store' })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     return response.json()
   }
@@ -132,7 +132,7 @@
     byId('au-history-content').innerHTML=`<div class="au-growth-stats"><div><span>이번 달 월말 예상</span><strong>${unitValue(item.projected,metric.unit)}</strong></div><div><span>전월 전체 대비 월말 예상 증감</span><strong>${escape(comparison)}</strong></div></div><div class="au-history-chart" role="img" aria-label="최근 6개월 ${escape(metric.name)} 사용량. 정확한 수치와 상태는 아래 표에서 확인할 수 있습니다.">${bars}</div><div class="au-table-wrap"><table class="au-table"><thead><tr><th scope="col">월</th><th scope="col">조회 사용량 (${escape(metric.unit)})</th><th scope="col">집계 범위</th><th scope="col">월말 예상</th><th scope="col">전월 대비</th></tr></thead><tbody>${table}</tbody></table></div>${eligible===0 ? '<p class="au-notice">비교할 수 있는 과거 월 전체 기록이 아직 없습니다. 확보한 월별 기록을 보관하며, 미집계 월은 0건으로 처리하지 않습니다.</p>' : ''}<p class="au-detail-meta">이번 달은 ${date(service.asOf)} KST까지의 누계와 월말 예상을 구분해 표시합니다. 전월 대비는 같은 집계 출처·범위가 확인된 월끼리만 계산합니다.</p>`
   }
   async function load() {
-    if (busy || events.signal.aborted) return
+    if (!authorized || busy || events.signal.aborted) return
     busy = true; byId('api-usage-refresh').disabled = true
     try { data = await json('/api/admin/v1/api-usage'); if (!events.signal.aborted) render() }
     catch (error) {
@@ -141,6 +141,7 @@
         byId('au-status').classList.add('is-error')
         byId('au-status').hidden = false
         byId('au-cards').setAttribute('aria-busy','false')
+        byId('au-cards').querySelectorAll('.au-placeholder .au-state').forEach(s=>s.textContent='조회 실패')
       }
     } finally { busy = false; byId('api-usage-refresh').disabled = false }
   }
@@ -212,6 +213,7 @@
       const loading = document.getElementById('loading-shell'), auth = document.getElementById('auth-shell')
       if (loading) loading.hidden = true
       if (auth) auth.hidden = true
+      authorized = true
       main.hidden = false
       await load()
       if (!events.signal.aborted) timer = setInterval(()=>{ if (!document.hidden) void load() },300000)

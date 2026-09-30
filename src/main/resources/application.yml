@@ -52,6 +52,21 @@ cloudflare:
     r2-storage-byte-included: ${CLOUDFLARE_R2_STORAGE_BYTE_INCLUDED:10000000000}
     dashboard-url: ${CLOUDFLARE_DASHBOARD_URL:https://dash.cloudflare.com/}
 
+api-usage:
+  snapshot-directory: ${API_USAGE_SNAPSHOT_DIRECTORY:}
+  manual-snapshots-base64: ${API_USAGE_MANUAL_SNAPSHOTS_BASE64:}
+  naver:
+    credentials-file: ${API_USAGE_NAVER_CREDENTIALS_FILE:}
+    credentials-base64: ${API_USAGE_NAVER_CREDENTIALS_BASE64:}
+  google:
+    translation-project-id: ${API_USAGE_GOOGLE_TRANSLATION_PROJECT_ID:}
+    project-id: ${API_USAGE_GOOGLE_PROJECT_ID:}
+    credentials-file: ${API_USAGE_GOOGLE_CREDENTIALS_FILE:}
+    credentials-base64: ${API_USAGE_GOOGLE_CREDENTIALS_BASE64:}
+    maps-filter: ${API_USAGE_GOOGLE_MAPS_FILTER:}
+    autocomplete-filter: ${API_USAGE_GOOGLE_AUTOCOMPLETE_FILTER:}
+    details-filter: ${API_USAGE_GOOGLE_DETAILS_FILTER:}
+
 management:
   endpoints:
     web:

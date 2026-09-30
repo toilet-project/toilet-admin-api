@@ -166,7 +166,7 @@
       "active": true,
       "currency": "USD",
       "timeZone": "America/Los_Angeles",
-      "consoleUrl": "https://console.cloud.google.com/google/maps-apis/metrics",
+      "consoleUrl": "https://console.cloud.google.com/google/maps-apis/metrics?project=geupddong-mobile-maps",
       "pricingUrl": "https://developers.google.com/maps/billing-and-pricing/pricing",
       "notes": [
         "현재 앱의 기본 Maps SDK 지도 로드는 무료입니다. 웹 Dynamic Maps, Places, Street View 등 다른 상품은 포함하지 않습니다.",
@@ -198,7 +198,7 @@
       "active": true,
       "currency": "USD",
       "timeZone": "America/Los_Angeles",
-      "consoleUrl": "https://console.cloud.google.com/google/maps-apis/metrics",
+      "consoleUrl": "https://console.cloud.google.com/google/maps-apis/metrics?project=geupddong-mobile-maps",
       "pricingUrl": "https://developers.google.com/maps/billing-and-pricing/pricing",
       "notes": [
         "현재 검색은 세션 토큰 없는 Autocomplete Requests와 주소·좌표를 요청하는 Place Details Essentials 기준입니다. 요청 필드나 세션 방식이 바뀌면 단가도 달라집니다.",

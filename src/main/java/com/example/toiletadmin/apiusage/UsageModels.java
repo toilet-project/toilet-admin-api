@@ -35,7 +35,7 @@ public final class UsageModels {
                               BigDecimal estimatedCost, BigDecimal projectedCost) {}
     public record ServiceUsage(Service definition, String status, String message, String source,
                                String scope, Instant asOf, Instant periodStart, Instant periodEnd,
-                               List<MetricUsage> metrics, BillingUsage billing) {}
+                               List<MetricUsage> metrics, BillingUsage billing, Snapshot reference) {}
     public record Report(Instant checkedAt, String pricingVerifiedAt, List<ServiceUsage> services) {}
     public record Estimate(String currency, long quantity, long freeApplied, long overage,
                            BigDecimal cost, String period) {}

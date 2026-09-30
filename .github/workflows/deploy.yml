@@ -56,19 +56,25 @@ jobs:
           SNAPSHOTS: ${{ secrets.API_USAGE_MANUAL_SNAPSHOTS_BASE64 }}
         run: |
           python3 - <<'PY'
-          import base64, json, os
-          value = os.environ.get('SNAPSHOTS', '')
+          import base64, binascii, json, os
+          # GitHub's secret editor may preserve line breaks from a pasted base64 file.
+          value = ''.join(os.environ.get('SNAPSHOTS', '').split())
           if not value or len(value) > 131072:
               raise SystemExit('Protected API usage snapshots are missing or oversized')
           try:
               decoded = base64.b64decode(value, validate=True)
+          except (binascii.Error, ValueError):
+              raise SystemExit('Protected API usage snapshots are not valid base64')
+          try:
               payload = json.loads(decoded)
-              assert len(decoded) <= 65536
-              assert isinstance(payload.get('current'), dict)
-              assert isinstance(payload.get('history'), dict)
-              assert all(isinstance(item, dict) and 'month' in item for item in payload['current'].values())
-          except Exception:
-              raise SystemExit('Protected API usage snapshots have an invalid format')
+          except (UnicodeDecodeError, json.JSONDecodeError):
+              raise SystemExit('Protected API usage snapshots are not valid JSON')
+          if (len(decoded) > 65536 or not isinstance(payload, dict)
+                  or not isinstance(payload.get('current'), dict)
+                  or not isinstance(payload.get('history'), dict)
+                  or not all(isinstance(item, dict) and 'month' in item
+                             for item in payload['current'].values())):
+              raise SystemExit('Protected API usage snapshots have an invalid structure')
           print('Protected API usage snapshots validated without revealing values')
           PY
 

@@ -15,6 +15,10 @@ public class CloudflareMonitorProbe {
                 10_000_000, 25_000_000_000L, 10_000_000_000L, "https://dash.cloudflare.com/");
         var result = service.getUsage();
         Files.writeString(Path.of(args[0]), new ObjectMapper().writeValueAsString(result));
+        var monitoring = new CloudflareMonitoringService(client, true, 300, "geupddong.com", "geupddong-next-production-cache").getMonitoring();
+        Files.writeString(Path.of(args[0]).resolveSibling("admin-monitor-preview.json"), new ObjectMapper().writeValueAsString(monitoring));
+        System.out.println("Monitoring: " + monitoring.status() + ", " + monitoring.sections().entrySet().stream()
+                .map(e -> e.getKey() + ":" + e.getValue().status()).toList());
         System.out.println("Read-only probe: " + result.status() + ", " + result.metrics().size() + " metrics, "
                 + result.resources().size() + " resources. No credentials in output.");
     }

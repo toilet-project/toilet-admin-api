@@ -223,13 +223,16 @@ public class CloudflareUsageService {
             Double count = number(row.path("sum").path("requests"));
             if (action.isBlank() || storage.isBlank() || count == null || !d.path("responseStatusCode").isNumber()) return null;
             int code = d.path("responseStatusCode").asInt();
-            String category = code == 401 || code == 403 || FREE.contains(action) ? "FREE"
-                    : CLASS_A.contains(action) ? "A" : CLASS_B.contains(action) ? "B" : "UNKNOWN";
+            String category = billingClass(action, code);
             String key = storage + ":" + category + ":" + action;
             long former = result.containsKey(key) ? result.get(key).requests() : 0;
             result.put(key, new OperationUsage(action, storage, category, former + count.longValue()));
         }
         return List.copyOf(result.values());
+    }
+    static String billingClass(String action, int code) {
+        return code == 401 || code == 403 || FREE.contains(action) ? "FREE"
+                : CLASS_A.contains(action) ? "A" : CLASS_B.contains(action) ? "B" : "UNKNOWN";
     }
     private static Double operationTotal(List<OperationUsage> rows, String storage, String category, boolean known) {
         return !known ? null : (double) rows.stream().filter(o -> o.storageClass().equals(storage) && o.billingClass().equals(category)).mapToLong(OperationUsage::requests).sum();

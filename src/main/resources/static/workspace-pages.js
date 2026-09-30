@@ -51,11 +51,7 @@
 
   async function loadCloudflare() {
     try {
-      const data = await json('/api/admin/v1/cloudflare/usage')
-      globalThis.CloudflareCostView.render(data)
-      const link = byId('cloudflare-dashboard-link')
-      if (link && data.dashboardUrl) link.href = data.dashboardUrl
-      setText('workspace-status', `${data.planLabel} · ${monthDay(data.usagePeriodStart)}–${monthDay(data.usagePeriodEnd)} 청구 주기 · ${dateTime(data.measurementEnd || data.lastSuccessfulAt || data.checkedAt)} 조회 · ${data.message}`)
+      globalThis.CloudflareMonitorView.start()
     } catch {
       setText('workspace-status', 'Cloudflare 이용량을 불러오지 못했습니다.')
     }

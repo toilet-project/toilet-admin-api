@@ -1,5 +1,5 @@
 (() => {
-  const base='/admin-responsive', preferenceKey='admin.preview.screen'
+  const base='/preview', preferenceKey='admin.preview.screen'
   const sizes={13:[1280,800],15:[1440,900],desktop:[1920,1080]}
   const pages=new Set(['','index.html','toilets.html','reports.html','public-data-changes.html','opening-hours.html','data-quality.html','duplicate-names.html','regions.html','operations.html','service-analytics.html','members.html','permissions.html','batch-syncs.html','features.html','cloudflare.html','api-usage.html','notifications.html'])
   const frame=document.querySelector('#admin-preview'), query=new URLSearchParams(location.search)
@@ -9,7 +9,12 @@
   const cleanPath=value=>{
     try {
       const url=new URL(value,location.origin+base+'/')
-      if(url.origin!==location.origin || !url.pathname.startsWith(base+'/') || !pages.has(url.pathname.slice(base.length+1)) || url.search.length>1500) return null
+      if(url.origin!==location.origin || !url.pathname.startsWith(base+'/') || url.search.length>1500) return null
+      const name=url.pathname.slice(base.length+1)
+      if(!pages.has(name)) {
+        if(!pages.has(name+'.html')) return null
+        url.pathname+='.html'
+      }
       return url.pathname+url.search+url.hash
     } catch { return null }
   }

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
+  "name": "geupddong-admin-preview",
+  "account_id": "1611d88218de929b3ed6e2cd7c863be5",
+  "compatibility_date": "2026-09-30",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{"pattern":"admin.geupddong.com/preview*","zone_name":"geupddong.com"}],
+  "assets": {
+    "directory": "./build/admin-preview-assets",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  "observability": {"enabled":false}
+}

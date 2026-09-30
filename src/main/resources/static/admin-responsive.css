@@ -12,6 +12,8 @@
 :root[data-admin-compact][data-admin-nav-open] .admin-frame { grid-template-columns:220px minmax(0,1fr); }
 :root[data-admin-compact] .admin-sidebar { position:sticky; display:flex; flex-direction:column; align-items:stretch; gap:16px; padding:14px 9px; height:100dvh; overflow-y:auto; scrollbar-width:thin; }
 :root[data-admin-compact] .admin-brand { margin:0; padding:0 4px; }
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-brand { flex-shrink:0; padding:0; align-items:center; white-space:nowrap; }
+:root[data-admin-compact]:not([data-admin-nav-open]) .admin-frame .admin-brand strong { font-size:20px; }
 :root[data-admin-compact] .admin-brand small { font-size:8px; }
 :root[data-admin-compact] .admin-nav { display:grid; flex:none; gap:12px; overflow:visible; }
 :root[data-admin-compact] .admin-nav-group { display:grid; gap:3px; }

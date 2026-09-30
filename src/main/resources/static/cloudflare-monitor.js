@@ -130,7 +130,7 @@
     const chartMetric=document.getElementById('cm-chart-metric')?.value
     const opened=Array.from(root.querySelectorAll('details[open]')).map(d=>[d.closest('section')?.querySelector('h2,h3')?.textContent,d.querySelector('summary')?.textContent])
     const tabs=[['overview','한눈에 보기'],['cost','비용 · 예산'],['cache','R2 · 트래픽'],['health','성능 · 운영']]
-    if(!root.children.length) {
+    if(!root.querySelector('#cm-refresh')) {
       root.innerHTML=`<div class="cm-context"><span id="cm-progress" role="status"></span><button type="button" id="cm-refresh" disabled>새로 조회</button></div><nav class="cm-tabs" role="tablist" aria-label="Cloudflare 모니터링">${tabs.map(([id,label])=>`<button type="button" role="tab" id="cm-tab-${id}" data-cm-tab="${id}" aria-controls="cm-panel-${id}" aria-selected="false">${label}</button>`).join('')}</nav>${tabs.map(([id])=>`<div role="tabpanel" id="cm-panel-${id}" data-cm-panel="${id}" aria-labelledby="cm-tab-${id}" tabindex="0" hidden></div>`).join('')}`
       root.addEventListener('click',e=>{
         const b=e.target.closest('button');if(!b)return
@@ -189,7 +189,7 @@
     authorized=true;refresh();clearInterval(timer)
     timer=setInterval(()=>{if(!document.hidden&&!document.querySelector('#cf-monitor-root input:focus'))refresh()},300000)
   }
-  loader=globalThis.CloudflareMonitorLoader.create({fetchJson,onChange:render})
+  loader=M.createLoader({fetchJson,onChange:render})
   globalThis.CloudflareMonitorView={render,start}
   document.addEventListener('admin:before-route-change',()=>{disposed=true;authorized=false;requests.abort();clearInterval(timer)},{once:true})
   // Static headings, tabs and placeholders do not need a protected API request.

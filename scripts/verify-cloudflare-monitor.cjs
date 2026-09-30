@@ -23,7 +23,7 @@ console.log('Cloudflare monitor calculations and alert boundaries passed.')
 assert.equal(assess(null,{sections:{}},null,{usagePending:true,monitoringPending:true}).length,0)
 assert.ok(assess(usage,empty,null,{states:{r2:{status:'error'}}}).some(a=>a.id==='coverage'))
 async function verifyProgressiveLoading() {
-  const {create}=require('../src/main/resources/static/cloudflare-monitor-loader.js')
+  const {createLoader:create}=require('../src/main/resources/static/cloudflare-monitor-model.js')
   const requests=[],updates=[]
   const loader=create({fetchJson:url=>new Promise((resolve,reject)=>requests.push({url,resolve,reject})),
     onChange:(bundle,states)=>updates.push(structuredClone({bundle,states}))})

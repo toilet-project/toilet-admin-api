@@ -1,0 +1,28 @@
+
+.cf-intro{max-width:880px;color:#60766b;line-height:1.65}.cf-summary{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:16px;margin:20px 0}
+.cf-summary-card,.cf-meter,.cf-panel{background:#fff;border:1px solid #dfe9e4;border-radius:16px;padding:24px;min-width:0}
+.cf-summary-card:first-child{background:#163f35;color:#fff;border-color:#163f35}.cf-summary-card p{margin:0 0 14px;font-size:14px}.cf-summary-card strong{font-size:34px;letter-spacing:-1px;display:block}
+.cf-summary-card small{display:block;line-height:1.6;margin-top:12px;opacity:.8}.cf-summary-card .cf-muted{color:inherit}
+.cf-summary-card:first-child small{color:#d8eae2;opacity:1}
+.cf-notice{border-left:4px solid #d89234;background:#fff8ed;padding:16px 20px;border-radius:8px;line-height:1.7;color:#80521d;margin-bottom:24px}
+.cf-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:26px 0 14px}
+.cf-toolbar h2{margin:0;font-size:20px}.cf-toolbar label{display:flex;align-items:center;gap:8px;color:#52685d;font-size:14px}
+.cf-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.cf-filter button{border:1px solid #d7e4dd;border-radius:22px;padding:9px 15px;background:white;color:#426252;cursor:pointer;font:inherit;font-size:13px}
+.cf-filter button[aria-pressed=true]{background:#217453;color:white;border-color:#217453}
+.cf-meters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.cf-meter header{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.cf-meter h3{font-size:16px;margin:5px 0 18px}.cf-service{color:#6e8277;font-size:11px;font-weight:700;letter-spacing:.6px}
+.cf-badge{border-radius:5px;padding:5px 7px;font-size:11px;white-space:nowrap;background:#edf5ef;color:#326b4a}
+.cf-badge.warn{background:#fff0d8;color:#995910}.cf-badge.over{background:#ffe8e5;color:#b33829}.cf-badge.unknown{background:#eef1f3;color:#667780}
+.cf-number{font-size:30px;letter-spacing:-.7px;font-weight:750;overflow-wrap:anywhere}.cf-number small{font-size:14px;letter-spacing:0;margin-left:4px;font-weight:500;color:#698174}
+.cf-limit{font-size:13px;color:#63786c;margin:10px 0}.cf-track{background:#ecf1ed;height:6px;border-radius:8px;overflow:hidden;margin-bottom:16px}.cf-track i{display:block;height:100%;background:#298259;border-radius:8px}
+.cf-meter.is-warn .cf-track i{background:#dd9833}.cf-meter.is-over .cf-track i{background:#cc604b}
+.cf-prices{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid #edf1ee;padding-top:14px}.cf-prices span{display:block;font-size:11px;color:#688071;margin-bottom:6px}.cf-prices strong{font-size:17px}
+.cf-rate{font-size:12px;line-height:1.6;color:#687e71;margin:15px 0 0}.cf-meter details{margin-top:12px;font-size:12px;line-height:1.65;color:#718379}.cf-meter summary{cursor:pointer}.cf-meter details p{margin:8px 0}
+.cf-panel{margin-top:22px}.cf-panel h2{font-size:19px;margin:0 0 10px}.cf-muted{font-size:13px;line-height:1.65;color:#6d8075}
+.cf-table-wrap{overflow-x:auto;margin-top:18px}.cf-table{border-collapse:collapse;width:100%;text-align:left;font-size:13px}
+.cf-table th{color:#60786a;background:#f6f9f7;font-weight:600;white-space:nowrap}.cf-table td,.cf-table th{padding:13px 12px;border-bottom:1px solid #eaf0ec}
+.cf-table td:first-child{overflow-wrap:anywhere;min-width:100px}.cf-table .cf-resource-name{min-width:220px;max-width:400px}
+.cf-monitor-list{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}.cf-monitor-item{background:#f7faf8;border-radius:10px;padding:17px}.cf-monitor-item h3{font-size:14px;margin:0 0 9px}.cf-monitor-item p{font-size:13px;line-height:1.65;color:#657d6f;margin:0}
+.cf-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:20px;font-size:12px}.cf-empty{padding:30px;color:#697f71}
+@media(max-width:1200px){.cf-summary{grid-template-columns:1fr 1fr}.cf-summary-card:last-child{grid-column:1/-1}.cf-meters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.cf-summary,.cf-meters,.cf-monitor-list{grid-template-columns:1fr}.cf-summary-card:last-child{grid-column:auto}.cf-summary-card,.cf-meter,.cf-panel{padding:19px}.cf-summary-card strong{font-size:29px}.cf-number{font-size:28px}.cf-prices{gap:16px}}

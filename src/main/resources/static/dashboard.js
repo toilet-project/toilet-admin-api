@@ -226,25 +226,27 @@ function formatBytes(value) {
 function quotaMarkup(label, metric, bytes = false) {
   const used = bytes ? formatBytes(metric.used) : number(metric.used)
   const limit = bytes ? formatBytes(metric.limit) : number(metric.limit)
-  const level = metric.usedPercent >= 100 ? 'is-critical' : metric.usedPercent >= 80 ? 'is-high' : ''
+  const level = metric.usedPercent >= 100 ? 'is-critical' : metric.usedPercent >= 80 || metric.status === 'WARN' ? 'is-high' : ''
   return `<div><div><span>${label}</span><strong>${used} <small>/ ${limit} · ${metric.usedPercent}%</small></strong></div><div class="quota-track ${level}" role="progressbar" aria-label="${label} 이용률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${metric.usedPercent}"><i style="width:${Math.min(metric.usedPercent, 100)}%"></i></div></div>`
 }
 
 async function loadCloudflare() {
   try {
     const data = await fetchJson('/api/admin/v1/cloudflare/usage')
-    if (data.dashboardUrl) {
-      el('cloudflare-link').href = data.dashboardUrl
-    }
-    el('cloudflare-quotas').innerHTML = [
-      quotaMarkup('Workers 요청 · 월', data.workersRequests),
-      quotaMarkup('D1 행 읽기 · 월', data.d1RowsRead),
-      quotaMarkup('R2 현재 저장량', data.r2StorageBytes, true),
-    ].join('')
+    el('cloudflare-link').href = '/cloudflare.html'
+    const selected = ['r2-a', 'workers-cpu', 'r2-b', 'd1-write']
+    el('cloudflare-quotas').innerHTML = selected.map(id => {
+      const metric = data.metrics?.find(item => item.id === id)
+      if (!metric || metric.used == null || metric.status === 'STALE') {
+        return `<div><div><span>${id === 'r2-a' ? 'R2 Class A · 저장·목록' : id === 'r2-b' ? 'R2 Class B · 읽기' : id === 'workers-cpu' ? 'Workers CPU' : 'D1 행 쓰기'}</span><strong>확인 필요</strong></div></div>`
+      }
+      const percent = metric.included > 0 ? metric.used * 100 / metric.included : 0
+      return quotaMarkup(metric.label, {used: metric.used, limit: metric.included, usedPercent: Math.round(percent * 10) / 10, status: metric.status})
+    }).join('')
     const lastSuccess = data.lastSuccessfulAt ? ` · 마지막 성공 ${formatDateTime(data.lastSuccessfulAt)}` : ''
     const period = `${formatMonthDay(data.usagePeriodStart)}–${formatMonthDay(data.usagePeriodEnd)}`
     el('cloudflare-note').textContent = data.available
-      ? `${data.planLabel} · ${period} 청구 주기 · ${formatDateTime(data.checkedAt)} 조회 · ${data.message}`
+      ? `${data.planLabel} · ${period} 청구 주기 · ${formatDateTime(data.checkedAt)} 조회 · ${data.message} · 자세한 예상액과 미집계 항목은 상세 화면에서 확인하세요.`
       : `${data.message}${lastSuccess}`
     return data.available
   } catch (error) {

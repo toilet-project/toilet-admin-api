@@ -33,15 +33,6 @@ const cloudflareEnvironmentBlock = [
  'CLOUDFLARE_DASHBOARD_URL=https://dash.cloudflare.com/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}'
 ].join('\n');
 let reviewedDeployment = deploy.env.DEPLOY_SCRIPT;
-const apiUsageEnvironmentBlock = [
- 'API_USAGE_GOOGLE_TRANSLATION_PROJECT_ID=${{ vars.API_USAGE_GOOGLE_TRANSLATION_PROJECT_ID }}',
- 'API_USAGE_GOOGLE_PROJECT_ID=${{ vars.API_USAGE_GOOGLE_PROJECT_ID }}',
- 'API_USAGE_GOOGLE_CREDENTIALS_BASE64=${{ secrets.API_USAGE_GOOGLE_CREDENTIALS_BASE64 }}',
- 'API_USAGE_NAVER_CREDENTIALS_BASE64=${{ secrets.API_USAGE_NAVER_CREDENTIALS_BASE64 }}',
- 'API_USAGE_MANUAL_SNAPSHOTS_BASE64=${{ secrets.API_USAGE_MANUAL_SNAPSHOTS_BASE64 }}'
-].join('\n');
-assert.equal(reviewedDeployment.split(apiUsageEnvironmentBlock).length - 1, 1);
-reviewedDeployment = reviewedDeployment.replace(apiUsageEnvironmentBlock+'\n','');
 const botBlocks = JSON.parse(fs.readFileSync(path.join(root,'scripts/origin-bot-deployment-blocks.json'),'utf8'));
 for (const [name, expected] of Object.entries(botBlocks)) {
  const actual = reviewedDeployment.match(new RegExp('# BEGIN OPTIONAL ORIGIN BOT '+name+'\\n[\\s\\S]*?# END OPTIONAL ORIGIN BOT '+name+'\\n\\n','g'));

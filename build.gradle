@@ -54,11 +54,3 @@ tasks.register('analyticsPreviewClasspath') {
         file('build/analytics-preview-classpath.txt').text = sourceSets.test.runtimeClasspath.asPath
     }
 }
-
-tasks.register('apiUsagePreview', JavaExec) {
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'com.example.toiletadmin.apiusage.ApiUsagePreviewServer'
-    jvmArgs '-Xmx192m'
-    args (findProperty('previewPort') ?: '8193'), (findProperty('previewMode') ?: 'empty')
-}

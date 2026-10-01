@@ -17,7 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** Test classpath only: aggregate SQL over a disposable H2 snapshot. Never loads production configuration. */
 public final class AnalyticsPreviewServer {
     private static final Set<String> ASSETS=Set.of("service-analytics.html","service-analytics.js","service-analytics.css","origin-bots.js",
-            "dashboard.css","admin-shell.css","admin-shell.js","admin-session.css","brand.css","favicon.ico",
+            "admin-responsive.js","admin-responsive.css","dashboard.css","admin-shell.css","admin-shell.js","admin-session.css","brand.css","favicon.ico",
             "brand/hangul-point-v1/lockup-ko.svg","brand/hangul-point-v1/favicon.svg",
             "brand/hangul-point-v1/favicon-32.png","brand/hangul-point-v1/apple-touch-icon.png");
     public static void main(String[] args) throws Exception {
@@ -68,7 +68,7 @@ public final class AnalyticsPreviewServer {
                     Map<String,String> query=new HashMap<>();
                     String raw=exchange.getRequestURI().getRawQuery();
                     if(raw!=null)for(String entry:raw.split("&")){String[] parts=entry.split("=",2);query.put(URLDecoder.decode(parts[0],StandardCharsets.UTF_8),parts.length==2?URLDecoder.decode(parts[1],StandardCharsets.UTF_8):"");}
-                    Map<String,String> filters=new HashMap<>();for(String key:List.of("device","source","channel","page","country"))if(query.containsKey(key))filters.put(key,query.get(key));
+                    Map<String,String> filters=new HashMap<>();for(String key:List.of("device","source","channel","page","country","client","evidence"))if(query.containsKey(key))filters.put(key,query.get(key));
                     String exclude=query.getOrDefault("excludeBots","true");
                     if(!Set.of("true","false").contains(exclude)) throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST);
                     body=json.writeValueAsBytes(service.explore(query.getOrDefault("range","7d"),query.get("from"),query.get("to"),filters,Boolean.parseBoolean(exclude)));
@@ -120,7 +120,7 @@ public final class AnalyticsPreviewServer {
              occurred_at TIMESTAMP,occurred_date DATE,event_name VARCHAR(40),page_key VARCHAR(120),channel_key VARCHAR(40),
              source_key VARCHAR(80),device_type VARCHAR(20),os_family VARCHAR(30),browser_family VARCHAR(30),country_code VARCHAR(2),
              city_name VARCHAR(80),visitor_hash BINARY(32),session_hash BINARY(32),engagement_seconds INTEGER,result_count_bucket VARCHAR(16),
-             event_detail VARCHAR(40),success_status BOOLEAN,key_event BOOLEAN,traffic_class VARCHAR(16) NOT NULL DEFAULT 'LEGACY')
+             event_detail VARCHAR(40),success_status BOOLEAN,key_event BOOLEAN,client_context VARCHAR(24) NOT NULL DEFAULT 'UNKNOWN',client_context_evidence VARCHAR(16) NOT NULL DEFAULT 'UNCLASSIFIED',traffic_class VARCHAR(16) NOT NULL DEFAULT 'LEGACY')
             """);
         jdbc.execute("CREATE INDEX idx_preview_date ON service_analytics_event(occurred_date,event_name)");
         jdbc.execute("CREATE TABLE service_analytics_daily_summary(analytics_date DATE,active_users BIGINT,new_users BIGINT,sessions BIGINT,views BIGINT,engaged_sessions BIGINT,key_events BIGINT,total_engagement_seconds BIGINT,calculated_at TIMESTAMP)");

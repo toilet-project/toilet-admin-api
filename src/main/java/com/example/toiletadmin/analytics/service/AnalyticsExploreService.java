@@ -12,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AnalyticsExploreService {
-    private static final List<String> DIMENSIONS=List.of("page","source","channel","device","os","browser","country","city","event","screen");
+    private static final List<String> DIMENSIONS=List.of("page","source","channel","device","os","browser","country","city","event","screen","client","evidence");
     private final AnalyticsExploreRepository repository;
     private final ServiceAnalyticsRepository summaries;
     private final Clock clock;
@@ -36,7 +36,7 @@ public class AnalyticsExploreService {
         if(stored!=null && stored.expires().isAfter(clock.instant())) return stored.response();
         if(!summaries.schemaReady()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"분석 저장소를 준비하고 있습니다.");
         try {
-            AnalyticsExploreResponse response=build(q.withBotClassification(repository.botClassificationAvailable()));
+            AnalyticsExploreResponse response=build(q.withBotClassification(repository.botClassificationAvailable()).withClientContext(repository.clientContextAvailable()));
             cache.entrySet().removeIf(e->!e.getValue().expires().isAfter(clock.instant()));
             if(cache.size()>=32) cache.remove(cache.keySet().iterator().next());
             cache.put(key,new Cached(clock.instant().plusSeconds(60),response));
@@ -58,6 +58,10 @@ public class AnalyticsExploreService {
         notices.add("직접 접속·확인 불가는 출처가 전달되지 않은 방문을 포함합니다. 접속 지역은 네트워크 기준이며 실제 위치·국적이 아닙니다.");
         notices.add("방문한 페이지 필터는 해당 페이지를 조회한 세션 전체의 유입과 행동을 보여줍니다. 주요 행동 건수에는 결과 선택·주변 검색·제보 시작·제출·로그인·리뷰 제출이 포함되며 모두 성공 건수라는 뜻은 아닙니다.");
         if(first!=null && q.from().isBefore(first)) notices.add("보관 중인 첫 이벤트는 "+first+"입니다. 그 이전 구간은 기록 없음으로 표시합니다.");
+        notices.add("접속 환경은 브라우저가 전달한 앱·브라우저 표시 기준입니다. 카카오톡·LINE에서 열렸어도 유입 게시글·대화방이나 실제 방문자를 특정하지 않습니다. 일반 브라우저 역시 사람임을 보증하지 않습니다.");
+        notices.add("접속 환경 확인 근거: 요청에서 확인은 신규 기록, 로그 대조로 보완은 보관 로그와 정확히 일치한 과거 기록입니다. 미분류·기록 없음은 추정해서 채우지 않습니다.");
+        notices.add("로그가 일부만 남은 세션은 확인된 이벤트만 보완합니다. 접속 환경 필터는 해당 유형으로 분류된 기록에 적용됩니다.");
+        if (!q.clientContextAvailable()) notices.add("접속 환경 수집 준비 중입니다. 기존 방문·유입 통계는 그대로 조회됩니다.");
         List<Point> daily; List<Point> trend; List<Point> prevTrend=List.of();
         Metrics current; Metrics previous=null;
         Map<String,List<Row>> dimensions=new LinkedHashMap<>(), prior=new LinkedHashMap<>();
@@ -78,6 +82,8 @@ public class AnalyticsExploreService {
             current=metric(summaries.summary(q.from(),q.to()));
             trend=summaries.trend(q.from(),q.to()).stream().map(p->new Point(p.date(),new Metrics(p.activeUsers(),p.sessions(),p.views(),0,p.keyEvents(),0,0,0,0,0))).toList();
             Map<String,String> legacy=Map.of("page","PAGE","source","SOURCE","channel","CHANNEL","device","DEVICE","os","OS","browser","BROWSER","country","COUNTRY","city","CITY","event","EVENT_DETAIL");
+            legacy=new LinkedHashMap<>(legacy); legacy.put("client","CLIENT_CONTEXT"); legacy.put("evidence","CLIENT_EVIDENCE");
+            notices.add("일별 접속 환경 집계는 수집·로그 보완이 된 날짜에만 제공됩니다. 오래된 미기록 구간은 복원할 수 없습니다.");
             for(var entry:legacy.entrySet()) {
                 var rows=summaries.dimensions(entry.getValue(),q.from(),q.to(),501);
                 truncated|=rows.size()>500;

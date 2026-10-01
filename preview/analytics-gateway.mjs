@@ -4,7 +4,7 @@ export const AUTH_URL = 'https://api.geupddong.com/__analytics-preview-auth'
 const SESSION = '__Secure-AnalyticsPreview'
 const STATE = '__Secure-AnalyticsPreviewState'
 const encoder = new TextEncoder()
-const assets = new Set(['service-analytics.html', 'service-analytics.js', 'origin-bots.js', 'service-analytics.css', 'dashboard.css', 'admin-shell.js', 'admin-shell.css', 'admin-session.css'])
+const assets = new Set(['admin-responsive.js', 'admin-responsive.css', 'service-analytics.html', 'service-analytics.js', 'origin-bots.js', 'service-analytics.css', 'dashboard.css', 'admin-shell.js', 'admin-shell.css', 'admin-session.css'])
 for (const file of ['brand.css', 'favicon.ico', 'brand/hangul-point-v1/lockup-ko.svg', 'brand/hangul-point-v1/favicon.svg', 'brand/hangul-point-v1/favicon-32.png', 'brand/hangul-point-v1/apple-touch-icon.png']) assets.add(file)
 const endpoints = new Set(['/preview-auth', '/api/admin/v1/service-analytics/explore', '/api/admin/v1/service-analytics/realtime', '/api/admin/v1/service-analytics/origin-bots'])
 const headers = { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.geupddong.com; frame-ancestors 'none'; form-action 'self'; base-uri 'none'" }

@@ -30,6 +30,28 @@ class AnalyticsExploreRepositoryTest {
                 Timestamp.from(instant),java.sql.Date.valueOf(instant.atZone(ZoneId.of("Asia/Seoul")).toLocalDate()),name,page,"none".equals(source)?"Direct":"Organic Search",source,"mobile","iOS","Safari","KR","Seoul",v,s,engagement,"0",detail,success,false);
     }
     private AnalyticsExploreQuery query(String range,Map<String,String> filters){return AnalyticsExploreQuery.resolve(range,null,null,filters,CLOCK);}
+    @Test void clientContextIsIndependentOfReferrerAndWorksBeforeAndAfterMigration(){
+        event("2026-09-24T01:00:00Z","session_start",1,1,"none","/","",null,0);
+        event("2026-09-24T01:01:00Z","toilet_detail_open",1,1,"none","/","",null,0);
+        event("2026-09-24T01:02:00Z","session_start",2,2,"naver","/","",null,0);
+        assertThat(repository.clientContextAvailable()).isFalse();
+        assertThat(repository.dimension("client",query("today",Map.of()))).extracting(Row::key).containsExactly("UNKNOWN");
+        assertThat(repository.dimension("evidence",query("today",Map.of()))).extracting(Row::key).containsExactly("UNCLASSIFIED");
+        assertThat(repository.daily(query("today",Map.of("client","KAKAOTALK")))).isEmpty();
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context VARCHAR(24) DEFAULT 'UNKNOWN'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context_evidence VARCHAR(16) DEFAULT 'UNCLASSIFIED'");
+        assertThat(repository.clientContextAvailable()).isTrue();
+        jdbc.update("UPDATE service_analytics_event SET client_context='KAKAOTALK',client_context_evidence='LOG_UA' WHERE event_id<=2");
+        var q=query("today",Map.of("client","KAKAOTALK")).withClientContext(true);
+        assertThat(q.previous().clientContextAvailable()).isTrue();
+        assertThat(q.includingBots().clientContextAvailable()).isTrue();
+        assertThat(repository.dimension("source",q)).extracting(Row::key).containsExactly("none");
+        assertThat(repository.dimension("client",q).getFirst().metrics().sessions()).isEqualTo(1);
+        assertThat(repository.dimension("client",q).getFirst().metrics().events()).isEqualTo(2);
+        assertThat(repository.dimension("evidence",q)).extracting(Row::key).containsExactly("LOG_UA");
+        assertThat(repository.daily(query("today",Map.of("client","' OR 1=1 --")).withClientContext(true))).isEmpty();
+        assertThat(repository.daily(query("today",Map.of("evidence","LOG_UA")).withClientContext(true)).getFirst().metrics().events()).isEqualTo(2);
+    }
     @Test void sessionStartsAndVisitorDaysAreNotEventCounts(){
         event("2026-09-23T01:00:00Z","session_start",1,1,"naver","/","",null,0);
         event("2026-09-24T01:00:00Z","session_start",1,2,"naver","/","",null,0);

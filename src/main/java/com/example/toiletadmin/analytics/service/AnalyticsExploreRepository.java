@@ -11,10 +11,11 @@ import org.springframework.stereotype.Repository;
 public class AnalyticsExploreRepository {
     public static final int ROW_LIMIT = 500;
     private final JdbcTemplate jdbc;
-    private static final Map<String,String> COLUMNS = Map.of(
-            "source","source_key", "channel","channel_key", "device","device_type",
-            "page","page_key", "country","country_code", "os","os_family", "browser","browser_family",
-            "city","city_name", "event","event_name", "screen","event_detail");
+    private static final Map<String,String> COLUMNS = Map.ofEntries(
+            Map.entry("source","source_key"), Map.entry("channel","channel_key"), Map.entry("device","device_type"),
+            Map.entry("page","page_key"), Map.entry("country","country_code"), Map.entry("os","os_family"), Map.entry("browser","browser_family"),
+            Map.entry("city","city_name"), Map.entry("event","event_name"), Map.entry("screen","event_detail"),
+            Map.entry("client","client_context"), Map.entry("evidence","client_context_evidence"));
     private static final String COUNTS = """
         COUNT(DISTINCT visitor_hash) AS visitors,
         COUNT(DISTINCT CASE WHEN event_name='session_start' THEN session_hash END) AS sessions,
@@ -33,7 +34,7 @@ public class AnalyticsExploreRepository {
         List<Object> args=new ArrayList<>(List.of(java.sql.Date.valueOf(q.from()),java.sql.Date.valueOf(q.to()),Timestamp.from(q.start()),Timestamp.from(q.until())));
         if(q.botClassificationAvailable() && q.excludeBots()) sql.append(" AND traffic_class<>'BOT'");
         q.filters().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(e->{
-            String column=COLUMNS.get(e.getKey());
+            String column=column(e.getKey(),q);
             if(column==null) throw new IllegalArgumentException("Unsupported dimension");
             if(e.getKey().equals("page")) {
                 sql.append(" AND session_hash IN (SELECT session_hash FROM service_analytics_event WHERE occurred_date BETWEEN ? AND ? AND occurred_at>=? AND occurred_at<? AND event_name='page_view' AND page_key=?");
@@ -71,17 +72,17 @@ public class AnalyticsExploreRepository {
                 (rs,n)->new Point(String.format("%02d:00",rs.getInt("bucket")),metrics(rs)));
     }
     public List<Row> dimension(String dimension, AnalyticsExploreQuery q) {
-        String column=COLUMNS.get(dimension); if(column==null) throw new IllegalArgumentException("Unsupported dimension");
+        String column=column(dimension,q); if(column==null) throw new IllegalArgumentException("Unsupported dimension");
         Where w=where(q);
         String extra=switch(dimension) {
             case "screen" -> " AND event_name='screen_view'";
             default -> "";
         };
         String counts=COUNTS;
-        if(!Set.of("source","channel").contains(dimension)) counts=counts.replace(
+        if(!Set.of("source","channel","client","evidence").contains(dimension)) counts=counts.replace(
                 "COUNT(DISTINCT CASE WHEN event_name='session_start' THEN session_hash END) AS sessions", "COUNT(DISTINCT session_hash) AS sessions");
         // Sum daily visitor counts explicitly; never present these as period-wide unique people.
-        String order=switch(dimension) { case "source","channel"->"sessions";case "page"->"views";case "event","screen"->"events";default->"visitors";};
+        String order=switch(dimension) { case "source","channel","client","evidence"->"sessions";case "page"->"views";case "event","screen"->"events";default->"visitors";};
         String sql="SELECT dimension_key,SUM(visitors) AS visitors,SUM(sessions) AS sessions,SUM(views) AS views,SUM(events) AS events,"+
                 "SUM(key_events) AS key_events,SUM(engagement) AS engagement,SUM(successes) AS successes,SUM(failures) AS failures,"+
                 "SUM(unspecified) AS unspecified,SUM(empty_results) AS empty_results FROM (SELECT "+column+" AS dimension_key,occurred_date,"+
@@ -124,6 +125,15 @@ public class AnalyticsExploreRepository {
     public java.time.LocalDate firstEventDate() {
         return jdbc.queryForObject("SELECT MIN(occurred_date) FROM service_analytics_event",(rs,n)->
                 rs.getDate(1)==null?null:rs.getDate(1).toLocalDate());
+    }
+    private static String column(String dimension, AnalyticsExploreQuery q) {
+        if (!q.clientContextAvailable() && dimension.equals("client")) return "'UNKNOWN'";
+        if (!q.clientContextAvailable() && dimension.equals("evidence")) return "'UNCLASSIFIED'";
+        return COLUMNS.get(dimension);
+    }
+    public boolean clientContextAvailable() {
+        return ServiceAnalyticsRepository.columnAvailable(jdbc,"client_context")
+                && ServiceAnalyticsRepository.columnAvailable(jdbc,"client_context_evidence");
     }
     public boolean botClassificationAvailable() {
         return ServiceAnalyticsRepository.botClassificationAvailable(jdbc);

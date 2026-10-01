@@ -10,7 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 public record AnalyticsExploreQuery(LocalDate from, LocalDate to, Instant until,
                                     LocalDate previousFrom, LocalDate previousTo, Instant previousUntil,
                                     boolean hourly, Map<String,String> filters,
-                                    boolean excludeBots, boolean botClassificationAvailable) {
+                                    boolean excludeBots, boolean botClassificationAvailable, boolean clientContextAvailable) {
     static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     public static AnalyticsExploreQuery resolve(String range, String from, String to,
                                                 Map<String,String> filters, Clock clock) {
@@ -34,7 +34,7 @@ public record AnalyticsExploreQuery(LocalDate from, LocalDate to, Instant until,
             if (days < 1 || days > 93 || end.isAfter(now.toLocalDate())) throw new IllegalArgumentException();
             Map<String,String> clean = new LinkedHashMap<>();
             for (var filter : filters.entrySet()) {
-                if (!Map.of("source",1,"channel",1,"device",1,"page",1,"country",1).containsKey(filter.getKey()))
+                if (!Map.of("source",1,"channel",1,"device",1,"page",1,"country",1,"client",1,"evidence",1).containsKey(filter.getKey()))
                     throw new IllegalArgumentException();
                 String value = filter.getValue() == null ? "" : filter.getValue().trim();
                 if (value.length()>120 || value.chars().anyMatch(Character::isISOControl)) throw new IllegalArgumentException();
@@ -46,19 +46,22 @@ public record AnalyticsExploreQuery(LocalDate from, LocalDate to, Instant until,
             Instant until = ongoing ? clock.instant() : end.plusDays(1).atStartOfDay(SEOUL).toInstant();
             Instant previousUntil = ongoing ? previousEnd.atTime(now.toLocalTime()).atZone(SEOUL).toInstant()
                     : previousEnd.plusDays(1).atStartOfDay(SEOUL).toInstant();
-            return new AnalyticsExploreQuery(start,end,until,previousStart,previousEnd,previousUntil,days==1,Map.copyOf(clean),excludeBots,false);
+            return new AnalyticsExploreQuery(start,end,until,previousStart,previousEnd,previousUntil,days==1,Map.copyOf(clean),excludeBots,false,false);
         } catch (RuntimeException error) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"조회 기간은 오늘까지 최대 93일이며 허용된 필터만 사용할 수 있습니다.");
         }
     }
     public AnalyticsExploreQuery previous() {
-        return new AnalyticsExploreQuery(previousFrom,previousTo,previousUntil,previousFrom,previousTo,previousUntil,hourly,filters,excludeBots,botClassificationAvailable);
+        return new AnalyticsExploreQuery(previousFrom,previousTo,previousUntil,previousFrom,previousTo,previousUntil,hourly,filters,excludeBots,botClassificationAvailable,clientContextAvailable);
     }
     public AnalyticsExploreQuery withBotClassification(boolean available) {
-        return new AnalyticsExploreQuery(from,to,until,previousFrom,previousTo,previousUntil,hourly,filters,excludeBots,available);
+        return new AnalyticsExploreQuery(from,to,until,previousFrom,previousTo,previousUntil,hourly,filters,excludeBots,available,clientContextAvailable);
     }
     public AnalyticsExploreQuery includingBots() {
-        return new AnalyticsExploreQuery(from,to,until,previousFrom,previousTo,previousUntil,hourly,filters,false,botClassificationAvailable);
+        return new AnalyticsExploreQuery(from,to,until,previousFrom,previousTo,previousUntil,hourly,filters,false,botClassificationAvailable,clientContextAvailable);
+    }
+    public AnalyticsExploreQuery withClientContext(boolean available) {
+        return new AnalyticsExploreQuery(from,to,until,previousFrom,previousTo,previousUntil,hourly,filters,excludeBots,botClassificationAvailable,available);
     }
     public Instant start() { return from.atStartOfDay(SEOUL).toInstant(); }
 }

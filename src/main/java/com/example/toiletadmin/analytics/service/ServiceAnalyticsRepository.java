@@ -80,11 +80,15 @@ public class ServiceAnalyticsRepository {
     }
 
     static boolean botClassificationAvailable(JdbcTemplate jdbc) {
+        return columnAvailable(jdbc,"traffic_class");
+    }
+
+    static boolean columnAvailable(JdbcTemplate jdbc, String name) {
         // A read-only metadata probe supports the transition before the API migration.
         return Boolean.TRUE.equals(jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Boolean>) connection -> {
             var meta=connection.getMetaData();
             String table=meta.storesUpperCaseIdentifiers()?"SERVICE_ANALYTICS_EVENT":"service_analytics_event";
-            String column=meta.storesUpperCaseIdentifiers()?"TRAFFIC_CLASS":"traffic_class";
+            String column=meta.storesUpperCaseIdentifiers()?name.toUpperCase(java.util.Locale.ROOT):name;
             try(var columns=meta.getColumns(connection.getCatalog(),connection.getSchema(),table,column)) {
                 while(columns.next()) if(table.equalsIgnoreCase(columns.getString("TABLE_NAME"))
                         && column.equalsIgnoreCase(columns.getString("COLUMN_NAME"))) return true;

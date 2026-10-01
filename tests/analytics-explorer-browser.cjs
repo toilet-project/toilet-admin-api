@@ -184,7 +184,7 @@ const ready = page => page.waitForFunction(() => document.querySelector('#analyt
     assert(tipBox.x >= 0 && tipBox.x + tipBox.width <= 390 && tipBox.y >= 0 && tipBox.y + tipBox.height <= 960, 'tooltip stays inside mobile viewport');
     if (screenshotDir) await touchPage.screenshot({ path: path.join(screenshotDir, 'analytics-tooltip-mobile.png') });
     // The compact mobile shell hides the heading; tap a visible, non-interactive area.
-    await touchPage.locator('#analytics-bot-note').tap(); assert.equal(await touchTip.isVisible(), false);
+    await touchPage.locator('#analytics-kpis article').first().tap(); assert.equal(await touchTip.isVisible(), false);
     await touchTarget.tap(); await touchTarget.tap(); await ready(touchPage);
     assert.equal(await touchPage.locator('.analytics-single-chart').first().getByRole('button').count(), today.trend.filter(point => point.metrics).length);
     await touchContext.close();

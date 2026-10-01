@@ -377,7 +377,9 @@
   }
   function renderView() {
     hidePoint();
-    const bots = state.tab === 'bots';
+    const popular = state.tab === 'popular';
+    const bots = state.tab === 'bots' || popular;
+    $('analytics-updated-at').hidden = bots;
     $('analytics-kpis').hidden = bots;
     root.querySelector('.analytics-filter-line').hidden = bots;
     $('analytics-filter-chips').hidden = bots;
@@ -388,12 +390,22 @@
     $('analytics-export').disabled = bots || !state.report;
     document.querySelectorAll('.analytics-tabs [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === state.tab ? 'page' : 'false'));
     if (bots) {
+      // Independent tabs must not be reset by a late global-summary response.
+      state.request++;
+      state.controller?.abort();
+      state.busy = false;
+      root.classList.remove('is-loading');
+      $('analytics-refresh').disabled = false;
+      $('analytics-error').hidden = true;
+      $('analytics-view').setAttribute('aria-busy', 'false');
       const query = {range: state.range};
       if (state.range === 'custom') { query.from=state.from; query.to=state.to; }
-      window.OriginBotAnalytics?.show($('analytics-view'), query);
+      if (popular) { window.OriginBotAnalytics?.cancel(); window.PopularToiletsAnalytics?.show($('analytics-view'), query); }
+      else { window.PopularToiletsAnalytics?.cancel(); window.OriginBotAnalytics?.show($('analytics-view'), query); }
       return;
     }
     window.OriginBotAnalytics?.cancel();
+    window.PopularToiletsAnalytics?.cancel();
     if (!state.report) return;
     $('analytics-view').innerHTML =
       state.tab === 'overview'
@@ -491,7 +503,7 @@
   }
   async function load() {
     hidePoint();
-    if (state.tab === 'bots') {
+    if (state.tab === 'bots' || state.tab === 'popular') {
       document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.range === state.range)));
       $('analytics-custom-range').hidden = state.range !== 'custom';
       renderView();
@@ -576,7 +588,7 @@
         root.classList.remove('is-loading');
         $('analytics-view').setAttribute('aria-busy', 'false');
         $('analytics-refresh').disabled = false;
-        $('analytics-export').disabled = state.tab === 'bots' || !state.report;
+        $('analytics-export').disabled = state.tab === 'bots' || state.tab === 'popular' || !state.report;
         root
           .querySelectorAll('.analytics-filter-line select')
           .forEach(
@@ -748,8 +760,9 @@
       return;
     }
     if (b.dataset.tab) {
-      const leavingBots = state.tab === 'bots' && b.dataset.tab !== 'bots';
+      const leavingBots = (state.tab === 'bots' || state.tab === 'popular') && b.dataset.tab !== state.tab;
       if (leavingBots) window.OriginBotAnalytics?.cancel();
+      if (leavingBots) window.PopularToiletsAnalytics?.cancel();
       state.tab = b.dataset.tab;
       if (leavingBots) load(); else renderView();
     } else if (b.dataset.range) {

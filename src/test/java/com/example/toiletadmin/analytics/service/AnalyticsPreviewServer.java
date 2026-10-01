@@ -111,6 +111,8 @@ public final class AnalyticsPreviewServer {
                         content=content.replace("https://api.geupddong.com/api/v1/auth/me","/preview-auth");
                         if(realSnapshot)content=content.replace("지금 들어오는 방문","복사 시점 직전 30분").replace("최근 30분 · 전체 서비스 기준","복사 시점 직전 30분 · 전체 서비스 기준");
                     }
+                    if(file.equals("popular-toilets.js") && engagementMetadata!=null)
+                        content=content.replace("https://geupddong.com/toilet/","https://preview.geupddong.com/toilet/");
                     // Keep the existing shell's design without opening unrelated admin pages in the test.
                     if(file.equals("admin-shell.js"))content += "\ndocument.querySelectorAll('a').forEach(a=>{a.removeAttribute('href');a.setAttribute('aria-disabled','true')});";
                     body=content.getBytes(StandardCharsets.UTF_8);

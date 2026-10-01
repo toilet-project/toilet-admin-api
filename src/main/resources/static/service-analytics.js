@@ -379,6 +379,7 @@
     hidePoint();
     const popular = state.tab === 'popular';
     const bots = state.tab === 'bots' || popular;
+    $('analytics-updated-at').hidden = bots;
     $('analytics-kpis').hidden = bots;
     root.querySelector('.analytics-filter-line').hidden = bots;
     $('analytics-filter-chips').hidden = bots;
@@ -389,6 +390,14 @@
     $('analytics-export').disabled = bots || !state.report;
     document.querySelectorAll('.analytics-tabs [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === state.tab ? 'page' : 'false'));
     if (bots) {
+      // Independent tabs must not be reset by a late global-summary response.
+      state.request++;
+      state.controller?.abort();
+      state.busy = false;
+      root.classList.remove('is-loading');
+      $('analytics-refresh').disabled = false;
+      $('analytics-error').hidden = true;
+      $('analytics-view').setAttribute('aria-busy', 'false');
       const query = {range: state.range};
       if (state.range === 'custom') { query.from=state.from; query.to=state.to; }
       if (popular) { window.OriginBotAnalytics?.cancel(); window.PopularToiletsAnalytics?.show($('analytics-view'), query); }

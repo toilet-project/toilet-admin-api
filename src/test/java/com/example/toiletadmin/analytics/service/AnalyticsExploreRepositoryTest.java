@@ -30,6 +30,41 @@ class AnalyticsExploreRepositoryTest {
                 Timestamp.from(instant),java.sql.Date.valueOf(instant.atZone(ZoneId.of("Asia/Seoul")).toLocalDate()),name,page,"none".equals(source)?"Direct":"Organic Search",source,"mobile","iOS","Safari","KR","Seoul",v,s,engagement,"0",detail,success,false);
     }
     private AnalyticsExploreQuery query(String range,Map<String,String> filters){return AnalyticsExploreQuery.resolve(range,null,null,filters,CLOCK);}
+    @Test void unattributedCohortsKeepLegacyUnknownAndExcludeKnownSourcesAndBots(){
+        for(int i=1;i<=3;i++) {
+            event("2026-09-24T01:00:00Z","session_start",i,i,i==3?"naver":"none","/regions","",null,0);
+            event("2026-09-24T01:01:00Z","page_view",i,i,i==3?"naver":"none","/regions","",null,0);
+            event("2026-09-24T01:02:00Z","toilet_detail_open",i,i,i==3?"naver":"none","/regions","",null,0);
+            event("2026-09-24T01:03:00Z","toilet_search",i,i,i==3?"naver":"none","/regions","",true,10);
+        }
+        // Duplicate starts must not double-count visits or activity.
+        event("2026-09-24T01:04:00Z","session_start",1,1,"none","/regions","",null,0);
+        var legacy=repository.entryClues(query("today",Map.of()));
+        assertThat(legacy.evidenceAvailable()).isFalse();
+        assertThat(legacy.rows()).hasSize(1);
+        var row=legacy.rows().getFirst();
+        assertThat(row.entry()).isEqualTo("UNRECORDED");assertThat(row.navigation()).isEqualTo("UNKNOWN");
+        assertThat(row.sessions()).isEqualTo(2);assertThat(row.views()).isEqualTo(2);
+        assertThat(row.withDetail()).isEqualTo(2);assertThat(row.withSearch()).isEqualTo(2);
+        assertThat(row.engagementSeconds()).isEqualTo(20);
+        assertThat(repository.entryClues(query("today",Map.of("source","naver"))).rows()).isEmpty();
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN traffic_class VARCHAR(16) DEFAULT 'UNFLAGGED'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN acquisition_evidence VARCHAR(24) DEFAULT 'UNRECORDED'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN entry_navigation VARCHAR(16) DEFAULT 'UNKNOWN'");
+        jdbc.update("UPDATE service_analytics_event SET traffic_class='BOT' WHERE event_id BETWEEN 5 AND 8");
+        jdbc.update("UPDATE service_analytics_event SET acquisition_evidence='NO_REFERRER',entry_navigation='RELOAD' WHERE event_id<=4 OR event_id=13");
+        assertThat(repository.entryEvidenceAvailable()).isTrue();
+        var q=query("today",Map.of("unattributed","true","entry","NO_REFERRER","navigation","RELOAD","browser","Safari","os","iOS","landing","/regions")).withEntryEvidence(true).withBotClassification(true);
+        assertThat(q.previous().entryEvidenceAvailable()).isTrue();
+        assertThat(q.includingBots().entryEvidenceAvailable()).isTrue();
+        var filtered=repository.entryClues(q).rows().getFirst();
+        assertThat(filtered.sessions()).isOne();assertThat(filtered.views()).isOne();
+        assertThat(repository.daily(q).getFirst().metrics().sessions()).isEqualTo(filtered.sessions());
+        var bots=query("today",Map.of()).withEntryEvidence(true).withBotClassification(true);
+        assertThat(repository.entryClues(bots).rows()).hasSize(1);
+        assertThat(repository.entryClues(bots.includingBots()).rows()).hasSize(2);
+        assertThat(repository.entryClues(query("today",Map.of("browser","' OR 1=1 --")))).extracting(EntryClues::rows).asList().isEmpty();
+    }
     @Test void clientContextIsIndependentOfReferrerAndWorksBeforeAndAfterMigration(){
         event("2026-09-24T01:00:00Z","session_start",1,1,"none","/","",null,0);
         event("2026-09-24T01:01:00Z","toilet_detail_open",1,1,"none","/","",null,0);

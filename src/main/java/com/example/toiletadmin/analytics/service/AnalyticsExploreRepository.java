@@ -15,7 +15,8 @@ public class AnalyticsExploreRepository {
             Map.entry("source","source_key"), Map.entry("channel","channel_key"), Map.entry("device","device_type"),
             Map.entry("page","page_key"), Map.entry("country","country_code"), Map.entry("os","os_family"), Map.entry("browser","browser_family"),
             Map.entry("city","city_name"), Map.entry("event","event_name"), Map.entry("screen","event_detail"),
-            Map.entry("client","client_context"), Map.entry("evidence","client_context_evidence"));
+            Map.entry("client","client_context"), Map.entry("evidence","client_context_evidence"),
+            Map.entry("entry","acquisition_evidence"),Map.entry("navigation","entry_navigation"),Map.entry("landing","page_key"));
     private static final String COUNTS = """
         COUNT(DISTINCT visitor_hash) AS visitors,
         COUNT(DISTINCT CASE WHEN event_name='session_start' THEN session_hash END) AS sessions,
@@ -34,10 +35,15 @@ public class AnalyticsExploreRepository {
         List<Object> args=new ArrayList<>(List.of(java.sql.Date.valueOf(q.from()),java.sql.Date.valueOf(q.to()),Timestamp.from(q.start()),Timestamp.from(q.until())));
         if(q.botClassificationAvailable() && q.excludeBots()) sql.append(" AND traffic_class<>'BOT'");
         q.filters().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(e->{
+            if(e.getKey().equals("unattributed")) {
+                sql.append(" AND source_key IN ('none','unknown') AND channel_key IN ('Direct','Unassigned')");
+                return;
+            }
             String column=column(e.getKey(),q);
             if(column==null) throw new IllegalArgumentException("Unsupported dimension");
-            if(e.getKey().equals("page")) {
-                sql.append(" AND session_hash IN (SELECT session_hash FROM service_analytics_event WHERE occurred_date BETWEEN ? AND ? AND occurred_at>=? AND occurred_at<? AND event_name='page_view' AND page_key=?");
+            if(e.getKey().equals("page") || e.getKey().equals("landing")) {
+                sql.append(" AND session_hash IN (SELECT session_hash FROM service_analytics_event WHERE occurred_date BETWEEN ? AND ? AND occurred_at>=? AND occurred_at<? AND event_name='")
+                        .append(e.getKey().equals("landing")?"session_start":"page_view").append("' AND page_key=?");
                 if(q.botClassificationAvailable() && q.excludeBots()) sql.append(" AND traffic_class<>'BOT'");
                 sql.append(')');
                 args.addAll(List.of(java.sql.Date.valueOf(q.from()),java.sql.Date.valueOf(q.to()),Timestamp.from(q.start()),Timestamp.from(q.until()),e.getValue()));
@@ -79,10 +85,10 @@ public class AnalyticsExploreRepository {
             default -> "";
         };
         String counts=COUNTS;
-        if(!Set.of("source","channel","client","evidence").contains(dimension)) counts=counts.replace(
+        if(!Set.of("source","channel","client","evidence","entry","navigation").contains(dimension)) counts=counts.replace(
                 "COUNT(DISTINCT CASE WHEN event_name='session_start' THEN session_hash END) AS sessions", "COUNT(DISTINCT session_hash) AS sessions");
         // Sum daily visitor counts explicitly; never present these as period-wide unique people.
-        String order=switch(dimension) { case "source","channel","client","evidence"->"sessions";case "page"->"views";case "event","screen"->"events";default->"visitors";};
+        String order=switch(dimension) { case "source","channel","client","evidence","entry","navigation"->"sessions";case "page"->"views";case "event","screen"->"events";default->"visitors";};
         String sql="SELECT dimension_key,SUM(visitors) AS visitors,SUM(sessions) AS sessions,SUM(views) AS views,SUM(events) AS events,"+
                 "SUM(key_events) AS key_events,SUM(engagement) AS engagement,SUM(successes) AS successes,SUM(failures) AS failures,"+
                 "SUM(unspecified) AS unspecified,SUM(empty_results) AS empty_results FROM (SELECT "+column+" AS dimension_key,occurred_date,"+
@@ -129,6 +135,8 @@ public class AnalyticsExploreRepository {
     private static String column(String dimension, AnalyticsExploreQuery q) {
         if (!q.clientContextAvailable() && dimension.equals("client")) return "'UNKNOWN'";
         if (!q.clientContextAvailable() && dimension.equals("evidence")) return "'UNCLASSIFIED'";
+        if (!q.entryEvidenceAvailable() && dimension.equals("entry")) return "'UNRECORDED'";
+        if (!q.entryEvidenceAvailable() && dimension.equals("navigation")) return "'UNKNOWN'";
         if (q.clientContextAvailable() && Set.of("source","channel").contains(dimension)) {
             // Split only unattributed traffic by observed app context. A known referrer or
             // campaign remains authoritative; the stored acquisition fields are never rewritten.
@@ -143,6 +151,26 @@ public class AnalyticsExploreRepository {
     public boolean clientContextAvailable() {
         return ServiceAnalyticsRepository.columnAvailable(jdbc,"client_context")
                 && ServiceAnalyticsRepository.columnAvailable(jdbc,"client_context_evidence");
+    }
+    public boolean entryEvidenceAvailable() {
+        return ServiceAnalyticsRepository.columnAvailable(jdbc,"acquisition_evidence")
+                && ServiceAnalyticsRepository.columnAvailable(jdbc,"entry_navigation");
+    }
+
+    /** Anonymous cohorts only: never return session/visitor hashes or an individual visit trail. */
+    public EntryClues entryClues(AnalyticsExploreQuery q) {
+        Where w=where(q);
+        String sql="WITH filtered AS (SELECT event_id,occurred_date,session_hash,event_name,page_key,source_key,channel_key,device_type,os_family,browser_family,engagement_seconds,"
+                +column("client",q)+" AS client,"+column("entry",q)+" AS entry,"+column("navigation",q)+" AS navigation FROM service_analytics_event"+w.sql()+"),"
+                +" starts AS (SELECT *,ROW_NUMBER() OVER(PARTITION BY occurred_date,session_hash ORDER BY event_id) AS seq FROM filtered WHERE event_name='session_start' AND source_key IN ('none','unknown') AND channel_key IN ('Direct','Unassigned')),"
+                +" activity AS (SELECT occurred_date,session_hash,SUM(CASE WHEN event_name='page_view' THEN 1 ELSE 0 END) AS views,"
+                +"MAX(CASE WHEN event_name='toilet_detail_open' THEN 1 ELSE 0 END) AS detail,MAX(CASE WHEN event_name IN ('toilet_search','nearby_search') THEN 1 ELSE 0 END) AS search_used,SUM(engagement_seconds) AS engagement FROM filtered GROUP BY occurred_date,session_hash)"
+                +" SELECT s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation,COUNT(*) AS sessions,SUM(a.views) AS views,SUM(a.detail) AS details,SUM(a.search_used) AS searches,SUM(a.engagement) AS engagement"
+                +" FROM starts s JOIN activity a ON a.occurred_date=s.occurred_date AND a.session_hash=s.session_hash WHERE s.seq=1"
+                +" GROUP BY s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation"
+                +" ORDER BY sessions DESC,s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation LIMIT 101";
+        List<EntryClue> rows=query(sql,w.args(),(rs,n)->new EntryClue(rs.getString("device_type"),rs.getString("os_family"),rs.getString("browser_family"),rs.getString("page_key"),rs.getString("client"),rs.getString("entry"),rs.getString("navigation"),rs.getLong("sessions"),rs.getLong("views"),rs.getLong("details"),rs.getLong("searches"),rs.getLong("engagement")));
+        return new EntryClues(true,q.entryEvidenceAvailable(),rows.size()>100,rows.stream().limit(100).toList());
     }
     public boolean botClassificationAvailable() {
         return ServiceAnalyticsRepository.botClassificationAvailable(jdbc);

@@ -12,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AnalyticsExploreService {
-    private static final List<String> DIMENSIONS=List.of("page","source","channel","device","os","browser","country","city","event","screen","client","evidence");
+    private static final List<String> DIMENSIONS=List.of("page","source","channel","device","os","browser","country","city","event","screen","client","evidence","entry","navigation");
     private final AnalyticsExploreRepository repository;
     private final ServiceAnalyticsRepository summaries;
     private final Clock clock;
@@ -36,7 +36,7 @@ public class AnalyticsExploreService {
         if(stored!=null && stored.expires().isAfter(clock.instant())) return stored.response();
         if(!summaries.schemaReady()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"분석 저장소를 준비하고 있습니다.");
         try {
-            AnalyticsExploreResponse response=build(q.withBotClassification(repository.botClassificationAvailable()).withClientContext(repository.clientContextAvailable()));
+            AnalyticsExploreResponse response=build(q.withBotClassification(repository.botClassificationAvailable()).withClientContext(repository.clientContextAvailable()).withEntryEvidence(repository.entryEvidenceAvailable()));
             cache.entrySet().removeIf(e->!e.getValue().expires().isAfter(clock.instant()));
             if(cache.size()>=32) cache.remove(cache.keySet().iterator().next());
             cache.put(key,new Cached(clock.instant().plusSeconds(60),response));
@@ -62,6 +62,7 @@ public class AnalyticsExploreService {
         notices.add("유입 채널·소스의 ‘앱 · 출처 미확인’은 출처 없이 열린 방문 중 앱 표시가 확인된 기록입니다. 실제 추천 출처가 확인된 방문은 원래 채널·소스를 유지하며, 출처 확인 불가 합계에는 이 앱 방문도 포함됩니다.");
         notices.add("접속 환경 확인 근거: 요청에서 확인은 신규 기록, 로그 대조로 보완은 보관 로그와 정확히 일치한 과거 기록입니다. 미분류·기록 없음은 추정해서 채우지 않습니다.");
         notices.add("로그가 일부만 남은 세션은 확인된 이벤트만 보완합니다. 접속 환경 필터는 해당 유형으로 분류된 기록에 적용됩니다.");
+        notices.add("미확인 유입 단서는 같은 환경·첫 진입 화면을 묶은 합계입니다. 새로고침·뒤로가기·열린 화면 재시작은 신규 수집 이후만 확인되며 주소 직접 입력·즐겨찾기·출처를 숨긴 링크는 서로 구별할 수 없습니다. 기기나 이용 행동만으로 사람·봇을 단정하지 않습니다.");
         if (!q.clientContextAvailable()) notices.add("접속 환경 수집 준비 중입니다. 기존 방문·유입 통계는 그대로 조회됩니다.");
         List<Point> daily; List<Point> trend; List<Point> prevTrend=List.of();
         Metrics current; Metrics previous=null;
@@ -85,6 +86,7 @@ public class AnalyticsExploreService {
             trend=summaries.trend(q.from(),q.to()).stream().map(p->new Point(p.date(),new Metrics(p.activeUsers(),p.sessions(),p.views(),0,p.keyEvents(),0,0,0,0,0))).toList();
             Map<String,String> legacy=Map.of("page","PAGE","source","SOURCE","channel","CHANNEL","device","DEVICE","os","OS","browser","BROWSER","country","COUNTRY","city","CITY","event","EVENT_DETAIL");
             legacy=new LinkedHashMap<>(legacy); legacy.put("client","CLIENT_CONTEXT"); legacy.put("evidence","CLIENT_EVIDENCE");
+            legacy.put("entry","ACQUISITION_EVIDENCE"); legacy.put("navigation","ENTRY_NAVIGATION");
             notices.add("일별 접속 환경 집계는 수집·로그 보완이 된 날짜에만 제공됩니다. 오래된 미기록 구간은 복원할 수 없습니다.");
             for(var entry:legacy.entrySet()) {
                 var rows=summaries.dimensions(entry.getValue(),q.from(),q.to(),501);
@@ -109,7 +111,8 @@ public class AnalyticsExploreService {
                 q.until().atZone(AnalyticsExploreQuery.SEOUL).toLocalDateTime().toString(),q.hourly()&&detailed,detailed,compare,comparisonNote,
                 q.from().equals(q.to())?"일일 추정 방문자":"일별 추정 방문자 합계",current,previous,trend,prevTrend,dimensions,prior,flows,
                 new Quality(quality[0],quality[1],quality[2],quality[3],truncated,summaries.lastCalculatedAt(),summaries.lastEventAt()),notices,q.filters(),
-                new BotFilter(q.excludeBots(),q.botClassificationAvailable(),detailed,coverage[0],coverage[1],coverage[2],botNote));
+                new BotFilter(q.excludeBots(),q.botClassificationAvailable(),detailed,coverage[0],coverage[1],coverage[2],botNote),
+                detailed?repository.entryClues(q):new EntryClues(false,q.entryEvidenceAvailable(),false,List.of()));
     }
     private static Metrics metric(SummaryMetrics x) {
         return new Metrics(x.activeUsers(),x.sessions(),x.views(),0,x.keyEvents(),(long)(x.averageEngagementSeconds()*x.activeUsers()),0,0,0,0);

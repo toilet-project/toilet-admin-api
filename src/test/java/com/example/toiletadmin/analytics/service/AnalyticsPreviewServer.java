@@ -68,7 +68,7 @@ public final class AnalyticsPreviewServer {
                     Map<String,String> query=new HashMap<>();
                     String raw=exchange.getRequestURI().getRawQuery();
                     if(raw!=null)for(String entry:raw.split("&")){String[] parts=entry.split("=",2);query.put(URLDecoder.decode(parts[0],StandardCharsets.UTF_8),parts.length==2?URLDecoder.decode(parts[1],StandardCharsets.UTF_8):"");}
-                    Map<String,String> filters=new HashMap<>();for(String key:List.of("device","source","channel","page","country","client","evidence"))if(query.containsKey(key))filters.put(key,query.get(key));
+                    Map<String,String> filters=new HashMap<>();for(String key:List.of("device","source","channel","page","country","client","evidence","entry","navigation","browser","os","landing","unattributed"))if(query.containsKey(key))filters.put(key,query.get(key));
                     String exclude=query.getOrDefault("excludeBots","true");
                     if(!Set.of("true","false").contains(exclude)) throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST);
                     body=json.writeValueAsBytes(service.explore(query.getOrDefault("range","7d"),query.get("from"),query.get("to"),filters,Boolean.parseBoolean(exclude)));
@@ -123,6 +123,8 @@ public final class AnalyticsPreviewServer {
              event_detail VARCHAR(40),success_status BOOLEAN,key_event BOOLEAN,client_context VARCHAR(24) NOT NULL DEFAULT 'UNKNOWN',client_context_evidence VARCHAR(16) NOT NULL DEFAULT 'UNCLASSIFIED',traffic_class VARCHAR(16) NOT NULL DEFAULT 'LEGACY')
             """);
         jdbc.execute("CREATE INDEX idx_preview_date ON service_analytics_event(occurred_date,event_name)");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN acquisition_evidence VARCHAR(24) DEFAULT 'UNRECORDED'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN entry_navigation VARCHAR(16) DEFAULT 'UNKNOWN'");
         jdbc.execute("CREATE TABLE service_analytics_daily_summary(analytics_date DATE,active_users BIGINT,new_users BIGINT,sessions BIGINT,views BIGINT,engaged_sessions BIGINT,key_events BIGINT,total_engagement_seconds BIGINT,calculated_at TIMESTAMP)");
         jdbc.execute("CREATE TABLE service_analytics_daily_dimension(analytics_date DATE,dimension_type VARCHAR(30),dimension_key VARCHAR(120),dimension_label VARCHAR(120),active_users BIGINT,views BIGINT,sessions BIGINT,event_count BIGINT,key_events BIGINT,engagement_seconds BIGINT)");
     }
@@ -150,5 +152,6 @@ public final class AnalyticsPreviewServer {
         jdbc.update("UPDATE service_analytics_event SET traffic_class=CASE WHEN source_key='google' THEN 'BOT' ELSE 'UNFLAGGED' END");
         jdbc.update("UPDATE service_analytics_event SET client_context='KAKAOTALK',client_context_evidence='LOG_UA' WHERE source_key='none' AND city_name IN ('검증 도시 1','검증 도시 2')");
         jdbc.update("UPDATE service_analytics_event SET client_context='LINE',client_context_evidence='REQUEST_UA' WHERE source_key='none' AND city_name='검증 도시 3'");
+        jdbc.update("UPDATE service_analytics_event SET acquisition_evidence='NO_REFERRER',entry_navigation='RELOAD' WHERE source_key='none' AND city_name IN ('검증 도시 4','검증 도시 5')");
     }
 }

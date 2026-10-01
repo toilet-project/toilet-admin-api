@@ -57,6 +57,8 @@
       kakao: 'Kakao',
       instagram: 'Instagram',
       facebook: 'Facebook',
+      copy_link: '복사된 공유 링크',
+      share_link: '공유 링크 · 대상 앱 미확인',
     },
     channel: {
       Direct: '직접 접속·확인 불가',
@@ -73,6 +75,9 @@
     },
     client: { KAKAOTALK: '카카오톡 앱', LINE: 'LINE 앱', NAVER_APP: '네이버 앱', INSTAGRAM: 'Instagram 앱', FACEBOOK: 'Facebook 앱', GOOGLE_APP: 'Google 앱', ANDROID_WEBVIEW: 'Android 앱 내 브라우저', IOS_WEBVIEW: 'iOS 앱 내 브라우저·미확인', BROWSER: '일반 브라우저', AUTOMATION: '자동화 표시', UNKNOWN: '미확인·기록 없음' },
     evidence: { REQUEST_UA: '접속 요청에서 확인', LOG_UA: '기존 로그 대조로 보완', UNCLASSIFIED: '미분류·기록 없음' },
+    entry: { UTM: '공유·홍보 링크 표시', REFERRER: '이전 사이트 전달', INTERNAL: '서비스 내부 이동', NO_REFERRER: '이전 사이트 정보 없음', INVALID_REFERRER: '이전 사이트 정보 해석 실패', UNRECORDED: '과거 기록 · 사유 미수집' },
+    navigation: { NAVIGATE: '일반 페이지 진입', RELOAD: '새로고침', HISTORY: '뒤로·앞으로 가기', PRERENDER: '미리 열린 화면', CONTINUATION: '열린 탭에서 세션 재시작', UNKNOWN: '진입 방식 미기록' },
+    unattributed: { true: '출처 미확인 방문만' },
     device: { mobile: '모바일', desktop: '데스크톱', tablet: '태블릿' },
     country: {
       KR: '대한민국',
@@ -116,6 +121,7 @@
   };
   const acquisitionApps = new Set(['KAKAOTALK', 'LINE', 'NAVER_APP', 'INSTAGRAM', 'FACEBOOK', 'GOOGLE_APP', 'ANDROID_WEBVIEW', 'IOS_WEBVIEW']);
   const label = (type, key) => {
+    if (type === 'landing') return `첫 화면: ${labels.page[key] || key}`;
     if ((type === 'source' || type === 'channel') && key?.startsWith('unattributed:')) {
       const client = key.slice('unattributed:'.length);
       if (acquisitionApps.has(client)) return `${labels.client[client]} · 출처 미확인`;
@@ -129,6 +135,8 @@
     source: ['유입 소스', 'sessions', '첫 유입 세션'],
     client: ['접속 환경', 'sessions', '첫 유입 세션'],
     evidence: ['접속 환경 확인 근거', 'sessions', '첫 유입 세션'],
+    entry: ['유입 출처 확인 근거', 'sessions', '첫 유입 세션'],
+    navigation: ['첫 진입 방식', 'sessions', '첫 유입 세션'],
     event: ['이용 행동', 'events', '발생'],
     device: ['기기', 'visitors', '일별 방문자 합계'],
     os: ['운영체제', 'visitors', '일별 방문자 합계'],
@@ -224,7 +232,7 @@
         0,
       ),
       filterable =
-        ['page', 'source', 'channel', 'device', 'country', 'client', 'evidence'].includes(type) &&
+        ['page', 'source', 'channel', 'device', 'country', 'client', 'evidence', 'entry', 'navigation', 'browser', 'os'].includes(type) &&
         state.report.detailed,
       detail = type === 'event';
     return `<article class="analytics-panel analytics-detail-table" data-table="${type}"><header><div><h2>${esc(title)}</h2><p>${num(rows.length)}개 항목 · ${filterable ? '항목 선택으로 전체 분석에 필터 적용' : '선택 기간의 집계'}</p></div></header><div class="analytics-table-controls"><input aria-label="${esc(title)} 검색" data-search="${type}" type="search" placeholder="항목 찾기" value="${esc(pref.search)}"><select aria-label="${esc(title)} 정렬" data-sort="${type}">${[
@@ -353,6 +361,20 @@
       c = r.current;
     return `<div class="analytics-two-column">${panel('확인해야 할 집계', `<dl class="analytics-quality-list"><div><dt>알 수 없는 페이지 조회</dt><dd>${r.detailed ? `${num(q.unknownPageViews)}건 · ${pct(q.unknownPageViews, c.views)}` : '상세 기간에서 확인'}</dd></div><div><dt>직접 접속·출처 확인 불가</dt><dd>${r.detailed ? `${num(q.unattributedSessions)}세션 · ${pct(q.unattributedSessions, c.sessions)}` : '상세 기간에서 확인'}</dd></div><div><dt>내부 출처로 기록된 유입</dt><dd>${r.detailed ? `${num(q.internalSessions)}세션` : '—'}</dd></div><div><dt>같은 세션의 반복 시작 이벤트</dt><dd>${r.detailed ? `${num(q.duplicateStarts)}건` : '—'}</dd></div></dl><p>이 값만으로 봇이나 오류를 확정하지 않습니다. 과거 원본 기록은 새 집계 방식으로 자동 복원되지 않습니다.</p>`)}${panel('집계 범위와 갱신', `<dl class="analytics-quality-list"><div><dt>현재 조회 방식</dt><dd>${r.detailed ? '보관 중인 이벤트 상세 집계' : '일별 집계'}</dd></div><div><dt>조회 기준 시각</dt><dd>${esc(r.cutoff.replace('T', ' ').slice(0, 16))} KST</dd></div><div><dt>마지막 일별 집계</dt><dd>${dateTime(q.lastCalculatedAt)}</dd></div><div><dt>마지막 수집 이벤트</dt><dd>${dateTime(q.lastEventAt)}</dd></div><div><dt>원본 보관</dt><dd>35일 · 조회 결과 최대 1분 캐시</dd></div></dl><p>${esc(r.comparisonNote)}</p>`)}</div>${panel('지표 해석', `<ul class="analytics-note-list">${r.notices.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`)}`;
   }
+  function clueRows() {
+    const search=(state.tables.clues?.search || '').toLowerCase();
+    return (state.report.entryClues?.rows || []).map((row,index)=>({...row,index})).filter(row=>
+      [row.os,row.browser,...['device','landing','client','entry','navigation'].map(type=>label(type,row[type]))].join(' ').toLowerCase().includes(search));
+  }
+  function entryClues() {
+    const r=state.report, clues=r.entryClues;
+    if (!clues?.available) return panel('미확인 유입 살펴보기','<p class="analytics-empty">같은 환경·첫 화면별 단서는 최근 35일 상세 조회에서 제공됩니다.</p>');
+    const unknown=r.quality.unattributedSessions;
+    const app=(r.dimensions.source || []).filter(row=>row.key.startsWith('unattributed:')).reduce((sum,row)=>sum+row.metrics.sessions,0);
+    const summary=`<div class="analytics-entry-summary"><div><span>출처 기록 있음</span><strong>${num(Math.max(0,r.current.sessions-unknown))}<small>세션</small></strong></div><div><span>앱 단서 확인 · 출처 미확인</span><strong>${num(app)}<small>세션</small></strong></div><div><span>그 밖의 출처 미확인</span><strong>${num(Math.max(0,unknown-app))}<small>세션 · ${pct(Math.max(0,unknown-app),r.current.sessions)}</small></strong></div></div>`;
+    const rows=clueRows(), pref=state.tables.clues || {search:'',page:0}, page=Math.min(pref.page,Math.max(0,Math.ceil(rows.length/10)-1));
+    return `<article class="analytics-panel analytics-entry-clues" data-table="clues"><header><div><h2>미확인 유입 살펴보기</h2><p>같은 환경과 첫 화면을 묶은 합계 · 유형을 누르면 이용 행동까지 확인</p></div><button type="button" class="analytics-link" data-filter="unattributed" data-value="true">미확인 방문만 보기</button></header>${summary}<p class="analytics-section-note">${clues.evidenceAvailable ? '새로고침·뒤로가기·열린 탭 재시작은 첫 진입 기록이 있는 방문에만 표시합니다.' : '새로운 진입 방식 수집을 준비 중입니다. 아래에는 기존 기록으로 확인할 수 있는 단서를 표시합니다.'} 주소 직접 입력·즐겨찾기·출처를 숨긴 링크는 서로 구별할 수 없습니다.</p><div class="analytics-table-controls"><input data-search="clues" aria-label="미확인 유입 단서 검색" placeholder="브라우저, 기기, 첫 화면, 단서 찾기" value="${esc(pref.search)}"></div><div class="analytics-table-wrap"><table><thead><tr><th>접속 환경 · 첫 화면</th><th>출처 단서 · 진입 방식</th><th>세션</th><th>조회</th><th>상세 열기 / 검색</th></tr></thead><tbody>${rows.slice(page*10,page*10+10).map(row=>`<tr><td><button type="button" class="analytics-link" data-clue="${row.index}">${esc(row.browser)} · ${esc(row.os)}</button><small>${esc(label('device',row.device))} · ${esc(label('client',row.client))}</small><small>${esc(label('landing',row.landing))}</small></td><td>${esc(label('entry',row.entry))}<small>${esc(label('navigation',row.navigation))}</small></td><td>${num(row.sessions)}</td><td>${num(row.views)}</td><td>${num(row.withDetail)} / ${num(row.withSearch)}<small>이용한 세션 수 · 중복 가능</small></td></tr>`).join('') || '<tr><td colspan="5">이 조건에 해당하는 미확인 방문이 없습니다.</td></tr>'}</tbody></table></div><footer class="analytics-table-footer"><span>${num(rows.length)}개 유형${clues.truncated?' · 상위 100개, 기간·필터를 좁혀 확인':''} · 개인 식별정보 없음</span><div><button data-page="clues" data-value="${page-1}" ${page===0?'disabled':''}>이전</button><span>${page+1} / ${Math.max(1,Math.ceil(rows.length/10))}</span><button data-page="clues" data-value="${page+1}" ${(page+1)*10>=rows.length?'disabled':''}>다음</button></div></footer></article>`;
+  }
   function renderView() {
     hidePoint();
     const bots = state.tab === 'bots';
@@ -377,7 +399,7 @@
       state.tab === 'overview'
         ? overview()
         : state.tab === 'acquisition'
-          ? `<p class="analytics-section-note">첫 유입이 기록된 세션을 기준으로 비교합니다. 내부 이동의 조회 횟수를 유입 건수에 더하지 않습니다. ${state.report.detailed ? '출처가 없어도 앱 표시가 확인되면 두 표에서 ‘앱 · 출처 미확인’으로 구분합니다.' : '이 기간의 일별 집계에는 출처와 앱의 조합이 없어 앱별 세분화는 아래 접속 환경에서 확인합니다.'}</p><div class="analytics-two-column">${table('channel')}${table('source')}</div><p class="analytics-section-note">출처를 몰라도 어떤 앱에서 열었는지 확인할 수 있습니다. 앱 종류는 유입 게시글·대화방의 확정 정보가 아닙니다. 항목을 선택하면 이용 행동까지 함께 좁혀집니다.</p><div class="analytics-two-column">${table('client')}${table('evidence')}</div>`
+          ? `<p class="analytics-section-note">첫 유입이 기록된 세션을 기준으로 비교합니다. 내부 이동의 조회 횟수를 유입 건수에 더하지 않습니다. ${state.report.detailed ? '출처가 없어도 앱 표시가 확인되면 두 표에서 ‘앱 · 출처 미확인’으로 구분합니다.' : '이 기간의 일별 집계에는 출처와 앱의 조합이 없어 앱별 세분화는 아래 접속 환경에서 확인합니다.'}</p>${entryClues()}<div class="analytics-two-column">${table('channel')}${table('source')}</div><p class="analytics-section-note">출처를 몰라도 어떤 앱에서 열었는지 확인할 수 있습니다. 앱 종류는 유입 게시글·대화방의 확정 정보가 아닙니다. 항목을 선택하면 이용 행동까지 함께 좁혀집니다.</p><div class="analytics-two-column">${table('client')}${table('evidence')}</div><details class="analytics-entry-dimensions"><summary>유입 근거·진입 방식 전체 분포</summary><div class="analytics-two-column">${table('entry')}${table('navigation')}</div></details>`
           : state.tab === 'content'
             ? `<p class="analytics-section-note">URL이 바뀌는 페이지와 지도 안에서 열리는 화면을 구분합니다. 화장실별 식별자는 수집하지 않아 상세 페이지는 유형별로 합산됩니다.</p>${table('page')}${table('screen')}`
             : state.tab === 'behavior'
@@ -637,7 +659,7 @@
         [],
       ],
       types = {
-        acquisition: ['channel', 'source', 'client', 'evidence'],
+        acquisition: ['channel', 'source', 'client', 'evidence', 'entry', 'navigation'],
         content: ['page', 'screen'],
         behavior: ['event'],
         audience: ['device', 'os', 'browser', 'country', 'city'],
@@ -697,6 +719,10 @@
         ]),
       );
     }
+    if (state.tab === 'acquisition' && state.report.entryClues?.available) {
+      rows.push([],['미확인 유입 단서','운영체제','브라우저','첫 화면','접속 환경','출처 확인 근거','진입 방식','세션','조회','상세를 연 세션','검색한 세션']);
+      for (const row of clueRows()) rows.push([label('device',row.device),row.os,row.browser,label('landing',row.landing),label('client',row.client),label('entry',row.entry),label('navigation',row.navigation),row.sessions,row.views,row.withDetail,row.withSearch]);
+    }
     const cell = (v) => {
         let s = String(v ?? '');
         if (/^[\s]*[=+\-@]/.test(s)) s = "'" + s;
@@ -734,6 +760,12 @@
       }
       state.range = b.dataset.range;
       state.back = null;
+      load();
+    } else if (b.dataset.clue !== undefined && !state.busy) {
+      const row=state.report.entryClues?.rows[Number(b.dataset.clue)];
+      if (!row) return;
+      for (const type of ['device','os','browser','landing','client','entry','navigation']) state.filters[type]=row[type];
+      state.filters.unattributed='true';
       load();
     } else if (b.dataset.filter) applyFilter(b.dataset.filter, b.dataset.value);
     else if (b.dataset.remove) applyFilter(b.dataset.remove, '');

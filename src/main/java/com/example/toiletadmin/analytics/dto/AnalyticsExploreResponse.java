@@ -10,7 +10,11 @@ public record AnalyticsExploreResponse(
         String comparisonNote, String visitorDefinition, Metrics current, Metrics previous,
         List<Point> trend, List<Point> previousTrend, Map<String, List<Row>> dimensions,
         Map<String, List<Row>> previousDimensions, List<Flow> flows,
-        Quality quality, List<String> notices, Map<String, String> filters, BotFilter botFilter) {
+        Quality quality, List<String> notices, Map<String, String> filters, BotFilter botFilter, EntryClues entryClues) {
+
+    public record EntryClues(boolean available, boolean evidenceAvailable, boolean truncated, List<EntryClue> rows) { }
+    public record EntryClue(String device,String os,String browser,String landing,String client,String entry,String navigation,
+                            long sessions,long views,long withDetail,long withSearch,long engagementSeconds) { }
 
     public record BotFilter(boolean excludeBots, boolean schemaAvailable, boolean toggleAvailable,
                             long botEvents, long unflaggedEvents, long legacyEvents, String note) { }

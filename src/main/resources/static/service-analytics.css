@@ -1,3 +1,13 @@
+.analytics-entry-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:14px 0; }
+.analytics-entry-summary > div { padding:14px; border-radius:12px; background:#f4f8f5; border:1px solid #e2ebe5; }
+.analytics-entry-summary span { display:block; color:#64796c; font-size:12px; }
+.analytics-entry-summary strong { display:flex; flex-wrap:wrap; align-items:baseline; gap:7px; margin-top:7px; font-size:25px; color:#22593d; }
+.analytics-entry-summary small { font-size:11px; font-weight:400; color:#6c7d73; }
+.analytics-entry-clues td:first-child { min-width:210px; }
+.analytics-entry-clues td:nth-child(2) { min-width:185px; }
+.analytics-entry-dimensions { margin-top:16px; }
+.analytics-entry-dimensions > summary { cursor:pointer; color:#347553; padding:12px 0; }
+@media(max-width:640px) { .analytics-entry-summary { grid-template-columns:1fr; gap:6px; } .analytics-entry-summary > div { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; gap:8px; } .analytics-entry-summary strong { font-size:21px; margin:0; } }
 .analytics-page {
   --a-green: #26734e;
   --a-deep: #173b2a;

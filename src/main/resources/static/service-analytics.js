@@ -114,7 +114,14 @@
       review_submit: '리뷰 제출',
     },
   };
-  const label = (type, key) => labels[type]?.[key] || key || '값 없음';
+  const acquisitionApps = new Set(['KAKAOTALK', 'LINE', 'NAVER_APP', 'INSTAGRAM', 'FACEBOOK', 'GOOGLE_APP', 'ANDROID_WEBVIEW', 'IOS_WEBVIEW']);
+  const label = (type, key) => {
+    if ((type === 'source' || type === 'channel') && key?.startsWith('unattributed:')) {
+      const client = key.slice('unattributed:'.length);
+      if (acquisitionApps.has(client)) return `${labels.client[client]} · 출처 미확인`;
+    }
+    return labels[type]?.[key] || key || '값 없음';
+  };
   const specs = {
     page: ['페이지', 'views', '조회'],
     screen: ['앱 안의 화면', 'events', '열기'],
@@ -157,6 +164,7 @@
   }
   function fallback(type, key) {
     return (type === 'page' && key === '/other') ||
+      (['source', 'channel'].includes(type) && key?.startsWith('unattributed:')) ||
       (type === 'source' && ['none', 'unknown'].includes(key)) ||
       (type === 'channel' && ['Direct', 'Unassigned'].includes(key)) ||
       (type === 'country' && key === 'XX')
@@ -369,7 +377,7 @@
       state.tab === 'overview'
         ? overview()
         : state.tab === 'acquisition'
-          ? `<p class="analytics-section-note">첫 유입이 기록된 세션을 기준으로 비교합니다. 내부 이동의 조회 횟수를 유입 건수에 더하지 않습니다.</p><div class="analytics-two-column">${table('channel')}${table('source')}</div><p class="analytics-section-note">출처를 몰라도 어떤 앱에서 열었는지 확인할 수 있습니다. 앱 종류는 유입 게시글·대화방의 확정 정보가 아닙니다. 항목을 선택하면 이용 행동까지 함께 좁혀집니다.</p><div class="analytics-two-column">${table('client')}${table('evidence')}</div>`
+          ? `<p class="analytics-section-note">첫 유입이 기록된 세션을 기준으로 비교합니다. 내부 이동의 조회 횟수를 유입 건수에 더하지 않습니다. ${state.report.detailed ? '출처가 없어도 앱 표시가 확인되면 두 표에서 ‘앱 · 출처 미확인’으로 구분합니다.' : '이 기간의 일별 집계에는 출처와 앱의 조합이 없어 앱별 세분화는 아래 접속 환경에서 확인합니다.'}</p><div class="analytics-two-column">${table('channel')}${table('source')}</div><p class="analytics-section-note">출처를 몰라도 어떤 앱에서 열었는지 확인할 수 있습니다. 앱 종류는 유입 게시글·대화방의 확정 정보가 아닙니다. 항목을 선택하면 이용 행동까지 함께 좁혀집니다.</p><div class="analytics-two-column">${table('client')}${table('evidence')}</div>`
           : state.tab === 'content'
             ? `<p class="analytics-section-note">URL이 바뀌는 페이지와 지도 안에서 열리는 화면을 구분합니다. 화장실별 식별자는 수집하지 않아 상세 페이지는 유형별로 합산됩니다.</p>${table('page')}${table('screen')}`
             : state.tab === 'behavior'

@@ -59,6 +59,7 @@ public class AnalyticsExploreService {
         notices.add("방문한 페이지 필터는 해당 페이지를 조회한 세션 전체의 유입과 행동을 보여줍니다. 주요 행동 건수에는 결과 선택·주변 검색·제보 시작·제출·로그인·리뷰 제출이 포함되며 모두 성공 건수라는 뜻은 아닙니다.");
         if(first!=null && q.from().isBefore(first)) notices.add("보관 중인 첫 이벤트는 "+first+"입니다. 그 이전 구간은 기록 없음으로 표시합니다.");
         notices.add("접속 환경은 브라우저가 전달한 앱·브라우저 표시 기준입니다. 카카오톡·LINE에서 열렸어도 유입 게시글·대화방이나 실제 방문자를 특정하지 않습니다. 일반 브라우저 역시 사람임을 보증하지 않습니다.");
+        notices.add("유입 채널·소스의 ‘앱 · 출처 미확인’은 출처 없이 열린 방문 중 앱 표시가 확인된 기록입니다. 실제 추천 출처가 확인된 방문은 원래 채널·소스를 유지하며, 출처 확인 불가 합계에는 이 앱 방문도 포함됩니다.");
         notices.add("접속 환경 확인 근거: 요청에서 확인은 신규 기록, 로그 대조로 보완은 보관 로그와 정확히 일치한 과거 기록입니다. 미분류·기록 없음은 추정해서 채우지 않습니다.");
         notices.add("로그가 일부만 남은 세션은 확인된 이벤트만 보완합니다. 접속 환경 필터는 해당 유형으로 분류된 기록에 적용됩니다.");
         if (!q.clientContextAvailable()) notices.add("접속 환경 수집 준비 중입니다. 기존 방문·유입 통계는 그대로 조회됩니다.");
@@ -79,6 +80,7 @@ public class AnalyticsExploreService {
             flows=repository.flows(q);quality=repository.quality(q);
         } else {
             notices.add("이 기간은 일별 집계로 조회합니다. 시간대·세부 필터·이용 흐름은 원본 이벤트가 보관된 최근 35일에 제공됩니다.");
+            notices.add("일별 집계에는 출처와 접속 환경의 조합이 보관되지 않아 유입 채널·소스의 앱별 세분화는 제공하지 않습니다. 접속 환경 목록은 별도로 확인할 수 있습니다.");
             current=metric(summaries.summary(q.from(),q.to()));
             trend=summaries.trend(q.from(),q.to()).stream().map(p->new Point(p.date(),new Metrics(p.activeUsers(),p.sessions(),p.views(),0,p.keyEvents(),0,0,0,0,0))).toList();
             Map<String,String> legacy=Map.of("page","PAGE","source","SOURCE","channel","CHANNEL","device","DEVICE","os","OS","browser","BROWSER","country","COUNTRY","city","CITY","event","EVENT_DETAIL");

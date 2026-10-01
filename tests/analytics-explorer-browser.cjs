@@ -56,7 +56,28 @@ const ready = page => page.waitForFunction(() => document.querySelector('#analyt
     await screenshot('analytics-overview-desktop');
     await view('acquisition');
     const sourceTable = page.locator('[data-table="source"]');
-    assert.match(await sourceTable.locator('tbody tr').last().innerText(), /직접 접속·확인 불가/);
+    assert.match(await sourceTable.innerText(), /직접 접속·확인 불가/);
+    const appKey='unattributed:KAKAOTALK', appLabel='카카오톡 앱 · 출처 미확인';
+    for (const type of ['source','channel']) {
+      const appTable=page.locator(`[data-table="${type}"]`);
+      assert.equal(await appTable.getByRole('button',{name:appLabel,exact:true}).count(),1);
+      await appTable.locator('[data-search]').fill('카카오톡');
+      assert.equal(await appTable.locator('tbody tr').count(),1);
+      await appTable.locator('[data-search]').fill('');
+      const appResponse=page.waitForResponse(r=>r.url().includes(endpoint)&&new URL(r.url()).searchParams.get(type)===appKey);
+      await appTable.getByRole('button',{name:appLabel,exact:true}).click();
+      const appFiltered=await (await appResponse).json(); await ready(page);
+      assert.equal(appFiltered.current.sessions,api.dimensions[type].find(r=>r.key===appKey).metrics.sessions);
+      assert(appFiltered.previous.sessions>0,'previous period uses the same app-qualified grouping');
+      assert.match(await page.locator('#analytics-filter-chips').innerText(),/카카오톡 앱 · 출처 미확인/);
+      assert.deepEqual(appFiltered.dimensions.source.map(r=>r.key),[appKey]);
+      assert.deepEqual(appFiltered.dimensions.channel.map(r=>r.key),[appKey]);
+      const appDownload=page.waitForEvent('download'); await page.locator('#analytics-export').click();
+      const appCsv=fs.readFileSync(await (await appDownload).path(),'utf8');
+      assert(appCsv.includes(`"${appLabel}","${appKey}"`),'CSV pairs the readable label with its stable filter key');
+      await page.locator('#analytics-reset').click(); await ready(page);
+    }
+    await screenshot('analytics-acquisition-context-desktop');
     const sourceResponse = page.waitForResponse(r => r.url().includes(endpoint) && new URL(r.url()).searchParams.get('source') === 'naver');
     await sourceTable.getByRole('button', { name: 'Naver', exact: true }).click();
     const filtered = await (await sourceResponse).json(); await ready(page);
@@ -143,6 +164,7 @@ const ready = page => page.waitForFunction(() => document.querySelector('#analyt
       for (const tab of ['overview', 'acquisition', 'content', 'behavior', 'audience', 'quality']) {
         await view(tab);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `overflow ${width} ${tab}`);
+        if (tab === 'acquisition' && width === 390) await screenshot('analytics-acquisition-context-mobile');
       }
       await view('overview'); await screenshot('analytics-overview-' + width);
     }
@@ -161,7 +183,8 @@ const ready = page => page.waitForFunction(() => document.querySelector('#analyt
     const tipBox = await touchTip.boundingBox();
     assert(tipBox.x >= 0 && tipBox.x + tipBox.width <= 390 && tipBox.y >= 0 && tipBox.y + tipBox.height <= 960, 'tooltip stays inside mobile viewport');
     if (screenshotDir) await touchPage.screenshot({ path: path.join(screenshotDir, 'analytics-tooltip-mobile.png') });
-    await touchPage.getByRole('heading', { name: '서비스 이용 분석', exact: true }).tap(); assert.equal(await touchTip.isVisible(), false);
+    // The compact mobile shell hides the heading; tap a visible, non-interactive area.
+    await touchPage.locator('#analytics-kpis article').first().tap(); assert.equal(await touchTip.isVisible(), false);
     await touchTarget.tap(); await touchTarget.tap(); await ready(touchPage);
     assert.equal(await touchPage.locator('.analytics-single-chart').first().getByRole('button').count(), today.trend.filter(point => point.metrics).length);
     await touchContext.close();

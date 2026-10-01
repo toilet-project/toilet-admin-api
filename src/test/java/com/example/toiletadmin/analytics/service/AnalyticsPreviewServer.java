@@ -16,7 +16,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** Test classpath only: aggregate SQL over a disposable H2 snapshot. Never loads production configuration. */
 public final class AnalyticsPreviewServer {
-    private static final Set<String> ASSETS=Set.of("service-analytics.html","service-analytics.js","service-analytics.css","origin-bots.js",
+    private static final Set<String> ASSETS=Set.of("service-analytics.html","service-analytics.js","service-analytics.css","origin-bots.js","popular-toilets.js",
             "admin-responsive.js","admin-responsive.css","dashboard.css","admin-shell.css","admin-shell.js","admin-session.css","brand.css","favicon.ico",
             "brand/hangul-point-v1/lockup-ko.svg","brand/hangul-point-v1/favicon.svg",
             "brand/hangul-point-v1/favicon-32.png","brand/hangul-point-v1/apple-touch-icon.png");
@@ -37,6 +37,19 @@ public final class AnalyticsPreviewServer {
         };
         var service=new AnalyticsExploreService(new AnalyticsExploreRepository(jdbc),summaries,clock);
         var json=JsonMapper.builder().findAndAddModules().build();
+        final PopularToiletsService popular;
+        String engagementMetadata=System.getenv("ENGAGEMENT_FIXTURE_METADATA");
+        if(engagementMetadata!=null) {
+            if(realSnapshot)throw new IllegalArgumentException("Synthetic engagement must not mix with operational snapshots");
+            var meta=json.readTree(Files.readString(Path.of(engagementMetadata)));
+            String marker=meta.path("marker").asText(),url=meta.path("jdbcUrl").asText();
+            if(!marker.matches("[a-f0-9]{10}") || !url.matches("jdbc:mysql://127\\.0\\.0\\.1:[0-9]{4,5}/account_retention_test_[a-f0-9]+\\?.*"))throw new IllegalArgumentException("Isolated fixture required");
+            var fixtureJdbc=new JdbcTemplate(new org.springframework.jdbc.datasource.DriverManagerDataSource(url,"root",""));
+            String dataDir=fixtureJdbc.queryForObject("SELECT @@datadir",String.class);
+            if(dataDir==null || !dataDir.replace('\\','/').contains("/account-retention-mysql-"+marker+"/data/"))throw new IllegalArgumentException("Fixture datadir mismatch");
+            if(!marker.equals(fixtureJdbc.queryForObject("SELECT marker FROM account_retention_fixture_guard.fixture_guard",String.class)))throw new IllegalArgumentException("Fixture marker mismatch");
+            popular=new PopularToiletsService(fixtureJdbc);
+        } else popular=new PopularToiletsService(jdbc) { @Override protected boolean ready(){return false;} };
         String botSnapshotPath=System.getenv("ANALYTICS_PREVIEW_BOT_SNAPSHOT");
         final OriginBotService bots;
         if(realSnapshot && botSnapshotPath!=null && !botSnapshotPath.isBlank()) {
@@ -64,6 +77,11 @@ public final class AnalyticsPreviewServer {
                 if(!exchange.getRequestMethod().equals("GET"))throw new ResponseStatusException(org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED);
                 String path=exchange.getRequestURI().getPath();
                 if(path.equals("/preview-auth")) body=json.writeValueAsBytes(Map.of("roles",List.of("ADMIN"),"nickname",realSnapshot?"실데이터 프리뷰":"합성 데이터 검증"));
+                else if(path.equals("/api/admin/v1/service-analytics/popular-toilets")) {
+                    Map<String,String> query=new HashMap<>();String raw=exchange.getRequestURI().getRawQuery();
+                    if(raw!=null)for(String entry:raw.split("&")){String[] parts=entry.split("=",2);query.put(URLDecoder.decode(parts[0],StandardCharsets.UTF_8),parts.length==2?URLDecoder.decode(parts[1],StandardCharsets.UTF_8):"");}
+                    body=json.writeValueAsBytes(popular.report(query.getOrDefault("range","7d"),query.get("from"),query.get("to"),query.getOrDefault("q",""),query.getOrDefault("sort","views"),Integer.parseInt(query.getOrDefault("page","0")),Integer.parseInt(query.getOrDefault("size","15"))));
+                }
                 else if(path.equals("/api/admin/v1/service-analytics/explore")) {
                     Map<String,String> query=new HashMap<>();
                     String raw=exchange.getRequestURI().getRawQuery();

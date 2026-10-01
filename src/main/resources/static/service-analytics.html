@@ -128,6 +128,7 @@
           요약</button
         ><button type="button" data-tab="acquisition">유입 경로</button
         ><button type="button" data-tab="content">페이지·화면</button
+        ><button type="button" data-tab="popular">인기 화장실</button
         ><button type="button" data-tab="behavior">이용 행동</button
         ><button type="button" data-tab="audience">방문 환경</button
         ><button type="button" data-tab="quality">수집 상태</button
@@ -146,13 +147,14 @@
         <ul id="analytics-definitions-list"></ul>
         <p>
           현재 필터와 기간에 해당하는 집계만 표시합니다. 원문 검색어·전체
-          URL·화장실 ID·회원 정보는 분석 데이터에 포함되지 않습니다.
+          URL·회원 정보는 방문 분석 데이터에 포함되지 않습니다. 인기 화장실은 별도 집계한 시설 ID와 조회수를 사용합니다.
         </p>
       </details>
     </main>
     <script src="/admin-shell.js?v=13"></script>
     <script src="/admin-session.js?v=2"></script>
     <script src="/origin-bots.js?v=1"></script>
-    <script src="/service-analytics.js?v=7"></script>
+    <script src="/popular-toilets.js?v=1"></script>
+    <script src="/service-analytics.js?v=8"></script>
   </body>
 </html>

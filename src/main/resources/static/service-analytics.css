@@ -800,3 +800,5 @@
 .origin-bot-times > div { display:grid; grid-template-columns:115px 1fr 58px; gap:12px; align-items:center; margin:10px 0; font-size:12px; }
 .origin-bot-times meter { width:100%; height:12px; accent-color:#287751; }
 .origin-bot-times b { text-align:right; }
+
+.popular-summary{display:flex;align-items:center;gap:28px;margin:18px 0 22px;padding:18px;background:#f1f7f3;border-radius:12px}.popular-summary>div{min-width:110px}.popular-summary span{display:block;font-size:12px;color:#647d70}.popular-summary strong{display:block;font-size:27px;color:#1d5038;margin-top:5px;font-variant-numeric:tabular-nums}.popular-summary small{font-size:13px;margin-left:4px}.popular-summary p{font-size:12px;line-height:1.7;color:#587064;margin:0}.popular-search{display:flex;gap:8px}.popular-toilets td small{display:block;margin-top:5px;color:#73877d;font-size:12px}.popular-toilets td:not(:nth-child(2)){white-space:nowrap;font-variant-numeric:tabular-nums}@media(max-width:640px){.popular-summary{flex-wrap:wrap;gap:16px}.popular-summary p{width:100%}.popular-search{width:100%}.popular-search input{min-width:0;flex:1}.popular-toilets table{min-width:570px}}

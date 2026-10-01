@@ -38,6 +38,8 @@ class AnalyticsExploreRepositoryTest {
         assertThat(repository.dimension("client",query("today",Map.of()))).extracting(Row::key).containsExactly("UNKNOWN");
         assertThat(repository.dimension("evidence",query("today",Map.of()))).extracting(Row::key).containsExactly("UNCLASSIFIED");
         assertThat(repository.daily(query("today",Map.of("client","KAKAOTALK")))).isEmpty();
+        assertThat(repository.dimension("source",query("today",Map.of()))).extracting(Row::key).containsExactlyInAnyOrder("none","naver");
+        assertThat(repository.dimension("channel",query("today",Map.of()))).extracting(Row::key).containsExactlyInAnyOrder("Direct","Organic Search");
         jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context VARCHAR(24) DEFAULT 'UNKNOWN'");
         jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context_evidence VARCHAR(16) DEFAULT 'UNCLASSIFIED'");
         assertThat(repository.clientContextAvailable()).isTrue();
@@ -45,12 +47,60 @@ class AnalyticsExploreRepositoryTest {
         var q=query("today",Map.of("client","KAKAOTALK")).withClientContext(true);
         assertThat(q.previous().clientContextAvailable()).isTrue();
         assertThat(q.includingBots().clientContextAvailable()).isTrue();
-        assertThat(repository.dimension("source",q)).extracting(Row::key).containsExactly("none");
+        assertThat(repository.dimension("source",q)).extracting(Row::key).containsExactly("unattributed:KAKAOTALK");
         assertThat(repository.dimension("client",q).getFirst().metrics().sessions()).isEqualTo(1);
         assertThat(repository.dimension("client",q).getFirst().metrics().events()).isEqualTo(2);
         assertThat(repository.dimension("evidence",q)).extracting(Row::key).containsExactly("LOG_UA");
         assertThat(repository.daily(query("today",Map.of("client","' OR 1=1 --")).withClientContext(true))).isEmpty();
         assertThat(repository.daily(query("today",Map.of("evidence","LOG_UA")).withClientContext(true)).getFirst().metrics().events()).isEqualTo(2);
+    }
+    @Test void acquisitionSplitsOnlySupportedAppEvidenceWithNoKnownSourceOrCampaign(){
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context VARCHAR(24) DEFAULT 'UNKNOWN'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context_evidence VARCHAR(16) DEFAULT 'UNCLASSIFIED'");
+        for(int i=1;i<=9;i++)event("2026-09-24T01:00:00Z","session_start",i,i,i==3?"naver":"none","/","",null,0);
+        jdbc.update("UPDATE service_analytics_event SET client_context='KAKAOTALK',client_context_evidence='LOG_UA' WHERE event_id IN (1,3,4,5)");
+        jdbc.update("UPDATE service_analytics_event SET client_context='LINE',client_context_evidence='REQUEST_UA' WHERE event_id=2");
+        jdbc.update("UPDATE service_analytics_event SET client_context_evidence='UNCLASSIFIED' WHERE event_id=4");
+        jdbc.update("UPDATE service_analytics_event SET channel_key='Campaign' WHERE event_id=5");
+        jdbc.update("UPDATE service_analytics_event SET client_context='BROWSER',client_context_evidence='REQUEST_UA' WHERE event_id=6");
+        jdbc.update("UPDATE service_analytics_event SET client_context='FAKE_APP',client_context_evidence='REQUEST_UA' WHERE event_id=7");
+        jdbc.update("UPDATE service_analytics_event SET client_context='IOS_WEBVIEW',client_context_evidence='REQUEST_UA' WHERE event_id=8");
+        var q=query("today",Map.of()).withClientContext(true);
+        var sources=repository.dimension("source",q);
+        var channels=repository.dimension("channel",q);
+        assertThat(sources).extracting(Row::key).containsExactlyInAnyOrder("none","naver","unattributed:KAKAOTALK","unattributed:LINE","unattributed:IOS_WEBVIEW");
+        assertThat(channels).extracting(Row::key).containsExactlyInAnyOrder("Direct","Organic Search","Campaign","unattributed:KAKAOTALK","unattributed:LINE","unattributed:IOS_WEBVIEW");
+        assertThat(sources.stream().mapToLong(r->r.metrics().sessions()).sum()).isEqualTo(9);
+        assertThat(channels.stream().mapToLong(r->r.metrics().sessions()).sum()).isEqualTo(9);
+        assertThat(repository.quality(q)[1]).isEqualTo(8); // App context never turns into a confirmed referrer.
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM service_analytics_event WHERE source_key='none'",Long.class)).isEqualTo(8);
+        assertThat(repository.daily(query("today",Map.of("source","none")).withClientContext(true)).getFirst().metrics().sessions()).isEqualTo(5);
+        assertThat(repository.daily(query("today",Map.of("source","unattributed:FAKE_APP")).withClientContext(true))).isEmpty();
+    }
+    @Test void appAcquisitionFiltersMatchRowsAcrossComparisonBotExclusionAndBehavior(){
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context VARCHAR(24) DEFAULT 'KAKAOTALK'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context_evidence VARCHAR(16) DEFAULT 'LOG_UA'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN traffic_class VARCHAR(16) DEFAULT 'UNFLAGGED'");
+        event("2026-09-23T01:00:00Z","session_start",1,1,"none","/","",null,0);
+        event("2026-09-24T01:00:00Z","session_start",2,2,"none","/","",null,0);
+        event("2026-09-24T01:01:00Z","page_view",2,2,"none","/toilet/:id","",null,0);
+        event("2026-09-24T01:02:00Z","report_start",2,2,"none","/","",null,0);
+        event("2026-09-24T01:03:00Z","report_submit",2,2,"none","/","",true,0);
+        event("2026-09-24T01:04:00Z","session_start",3,3,"none","/","",null,0);
+        event("2026-09-24T01:05:00Z","session_start",4,4,"naver","/","",null,0);
+        jdbc.update("UPDATE service_analytics_event SET traffic_class='BOT' WHERE event_id=6");
+        var filters=Map.of("source","unattributed:KAKAOTALK","channel","unattributed:KAKAOTALK");
+        var q=query("today",filters).withClientContext(true).withBotClassification(true);
+        assertThat(repository.daily(q).getFirst().metrics().sessions()).isEqualTo(1);
+        assertThat(repository.daily(q).getFirst().metrics().events()).isEqualTo(4);
+        assertThat(repository.daily(q.previous()).getFirst().metrics().sessions()).isEqualTo(1);
+        assertThat(repository.daily(q.includingBots()).getFirst().metrics().sessions()).isEqualTo(2);
+        assertThat(repository.dimension("source",q)).extracting(Row::key).containsExactly("unattributed:KAKAOTALK");
+        assertThat(repository.dimension("channel",q)).extracting(Row::key).containsExactly("unattributed:KAKAOTALK");
+        assertThat(repository.hourly(q).getFirst().metrics().sessions()).isEqualTo(1);
+        assertThat(repository.flows(q).get(1).steps()).extracting(Step::sessions).containsExactly(1L,1L);
+        assertThat(repository.trafficCoverage(q)).containsExactly(1,4,0);
+        assertThat(repository.daily(query("today",Map.of("source","unattributed:KAKAOTALK' OR 1=1 --")).withClientContext(true))).isEmpty();
     }
     @Test void sessionStartsAndVisitorDaysAreNotEventCounts(){
         event("2026-09-23T01:00:00Z","session_start",1,1,"naver","/","",null,0);

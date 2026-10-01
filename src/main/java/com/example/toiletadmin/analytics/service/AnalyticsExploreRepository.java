@@ -129,6 +129,15 @@ public class AnalyticsExploreRepository {
     private static String column(String dimension, AnalyticsExploreQuery q) {
         if (!q.clientContextAvailable() && dimension.equals("client")) return "'UNKNOWN'";
         if (!q.clientContextAvailable() && dimension.equals("evidence")) return "'UNCLASSIFIED'";
+        if (q.clientContextAvailable() && Set.of("source","channel").contains(dimension)) {
+            // Split only unattributed traffic by observed app context. A known referrer or
+            // campaign remains authoritative; the stored acquisition fields are never rewritten.
+            // Use the same expression for rows AND filters (including comparisons and CSV).
+            return "CASE WHEN source_key IN ('none','unknown') AND channel_key IN ('Direct','Unassigned')"
+                    + " AND client_context_evidence IN ('REQUEST_UA','LOG_UA')"
+                    + " AND client_context IN ('KAKAOTALK','LINE','NAVER_APP','INSTAGRAM','FACEBOOK','GOOGLE_APP','ANDROID_WEBVIEW','IOS_WEBVIEW')"
+                    + " THEN CONCAT('unattributed:',client_context) ELSE " + COLUMNS.get(dimension) + " END";
+        }
         return COLUMNS.get(dimension);
     }
     public boolean clientContextAvailable() {

@@ -148,5 +148,7 @@ public final class AnalyticsPreviewServer {
         jdbc.batchUpdate("INSERT INTO service_analytics_event(occurred_at,occurred_date,event_name,page_key,channel_key,source_key,device_type,os_family,browser_family,country_code,city_name,visitor_hash,session_hash,engagement_seconds,result_count_bucket,event_detail,success_status,key_event) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",batch);
         // Synthetic fixtures only; real historical snapshots remain LEGACY, never guessed.
         jdbc.update("UPDATE service_analytics_event SET traffic_class=CASE WHEN source_key='google' THEN 'BOT' ELSE 'UNFLAGGED' END");
+        jdbc.update("UPDATE service_analytics_event SET client_context='KAKAOTALK',client_context_evidence='LOG_UA' WHERE source_key='none' AND city_name IN ('검증 도시 1','검증 도시 2')");
+        jdbc.update("UPDATE service_analytics_event SET client_context='LINE',client_context_evidence='REQUEST_UA' WHERE source_key='none' AND city_name='검증 도시 3'");
     }
 }

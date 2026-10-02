@@ -4,6 +4,13 @@
 .report-review-shell .report-list-item > strong { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.45; }
 .report-review-shell .report-list-item > .report-list-meta { grid-column: 1; justify-content: flex-start; flex-wrap: wrap; white-space: normal; gap: 6px; }
 .report-review-shell .comparison-grid strong { overflow-wrap: anywhere; white-space: pre-line; }
+/* Reserve a compact queue; give the remaining desktop width to the work pane. */
+.report-review-shell .review-detail-column { min-width: 0; }
+@media (min-width: 761px) {
+  .admin-page .report-review-shell { max-width: 1600px; }
+  .report-review-shell .review-layout { grid-template-columns: 260px minmax(0, 1fr); }
+  :root[data-admin-compact] .report-review-shell .review-layout { grid-template-columns: 240px minmax(0, 1fr); }
+}
 .report-resolution { margin: 18px 0; border: 1px solid #d7e7df; border-radius: 12px; padding: 16px; background: #f8fbf9; }
 .resolution-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .resolution-visibility { font-size:12px; color:#24734f; }

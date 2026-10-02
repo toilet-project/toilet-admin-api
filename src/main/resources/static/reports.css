@@ -1,0 +1,6 @@
+/* The review sidebar is narrower than a dashboard row: keep names visible. */
+.report-review-shell .review-list-column { min-width: 0; overflow-x: hidden; }
+.report-review-shell .report-list-item { grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 12px; }
+.report-review-shell .report-list-item > strong { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.45; }
+.report-review-shell .report-list-item > .report-list-meta { grid-column: 1; justify-content: flex-start; flex-wrap: wrap; white-space: normal; gap: 6px; }
+.report-review-shell .comparison-grid strong { overflow-wrap: anywhere; white-space: pre-line; }

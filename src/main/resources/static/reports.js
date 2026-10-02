@@ -3,12 +3,12 @@ const API_BASE = 'https://api.geupddong.com'
 const PAGE_SIZE = 20
 let reports = [], selectedReportId = null, currentPage = 0, totalPages = 0, totalReports = 0, searchTimer, kakaoMapsReady, locationConfirmation = null
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character])
-const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-'
+const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(/(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : value + '+09:00')) : '-'
 const reportTypeLabel = (type) => ({ COORDINATE_CORRECTION: '위치 수정', OPEN_TIME_CORRECTION: '개방 시간 수정', FACILITY_MISSING: '시설 없음', TEMPORARILY_CLOSED: '현재 미개방', NEW_FACILITY: '신규 등록' })[type] || '기타 제보'
 const coordinateReport = report => ['COORDINATE_CORRECTION', 'NEW_FACILITY'].includes(report.reportType)
 const observationReport = report => ['FACILITY_MISSING', 'TEMPORARILY_CLOSED'].includes(report.reportType)
 const approvalLabel = report => observationReport(report) ? '확인 완료' : report.reportType === 'NEW_FACILITY' ? '승인 후 신규 등록' : '승인 후 반영'
-function observationMarkup(report) { return `<div class="comparison-grid"><article><span>접수 당시 위치</span><strong>${escapeHtml(coordinateText(report.latitude, report.longitude))}</strong><small>${escapeHtml(report.roadAddress || report.jibunAddress || '주소 정보 없음')}</small></article><article><span>접수 당시 등록 개방시간</span><strong>${escapeHtml(report.openTime || '정보 없음')}</strong><small>${escapeHtml(date(report.observedAt || report.createdAt))} · 한국시간</small></article></div><p class="status">현장 확인 제보입니다. 확인 완료만으로 시설이 숨겨지거나 개방시간이 변경되지 않습니다.</p>` }
+function observationMarkup(report) { const hours = [report.openTime, report.openTimeDetail].filter(value => typeof value === 'string' && value.trim()); return `<div class="comparison-grid"><article><span>접수 당시 위치</span><strong>${escapeHtml(coordinateText(report.latitude, report.longitude))}</strong><small>${escapeHtml(report.roadAddress || report.jibunAddress || '주소 정보 없음')}</small></article><article><span>접수 당시 등록 개방시간</span><strong>${escapeHtml([...new Set(hours)].join(' · ') || '정보 없음')}</strong><small>${escapeHtml(date(report.observedAt || report.createdAt))} · 한국시간</small></article></div><p class="status">현장 확인 제보입니다. 확인 완료만으로 시설이 숨겨지거나 개방시간이 변경되지 않습니다.</p>` }
 const reportTypeClass = (report) => coordinateReport(report) ? 'location' : 'time'
 const reportStatusLabel = (status) => ({ PENDING: '대기', APPROVED: '승인', REJECTED: '반려', CANCELLED: '취소' })[status] || status
 const reportName = (report) => report.toiletName || `화장실 #${report.toiletId}`

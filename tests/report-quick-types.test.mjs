@@ -23,3 +23,9 @@ test('new facilities share the reviewed-coordinate flow and hide the nonexistent
   assert.match(source, /report\.reportType === 'NEW_FACILITY' \? \{ \.\.\.toilet, latitude: null, longitude: null \}/)
   assert.match(source, /if \(selectedReportId !== id\) return/)
 })
+test('observation retains detailed hours and formats the unzoned API timestamp as Korean time', () => {
+  const html = context.observationMarkup({openTime:'정시',openTimeDetail:'09:00~18:00',observedAt:'2026-10-02T19:30:00'})
+  assert.match(html,/정시 · 09:00~18:00/)
+  assert.match(html,/오후 7:30/)
+  assert.match(context.observationMarkup({openTimeDetail:'<script>alert(1)</script>'}),/&lt;script&gt;/)
+})

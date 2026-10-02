@@ -10,12 +10,12 @@ test('all quick report types are labelled without confusing observations with ho
     assert.equal(vm.runInContext(`reportTypeLabel('${type}')`, context), label)
   }
 })
-test('observation confirmation explicitly promises no automatic hiding or hour changes', () => {
+test('observation keeps evidence and distinguishes a decision without facility changes', () => {
   const html = context.observationMarkup({ latitude: 36.3, longitude: 127.3, roadAddress: '<img src=x>', openTime: '09:00~18:00' })
   assert.match(html, /접수 당시/)
-  assert.match(html, /시설이 숨겨지거나 개방시간이 변경되지 않습니다/)
+  assert.match(html, /시설 변경이 필요하면 아래에서 조치/)
   assert.doesNotMatch(html, /<img/)
-  assert.equal(vm.runInContext("approvalLabel({reportType:'TEMPORARILY_CLOSED'})", context), '확인 완료')
+  assert.equal(vm.runInContext("approvalLabel({reportType:'TEMPORARILY_CLOSED'})", context), '조치 없이 완료')
   assert.equal(vm.runInContext("approvalLabel({reportType:'NEW_FACILITY'})", context), '승인 후 신규 등록')
 })
 test('new facilities share the reviewed-coordinate flow and hide the nonexistent current location', () => {

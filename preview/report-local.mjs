@@ -21,7 +21,7 @@ const server=http.createServer(async(req,res)=>{
   const localOrigin=`http://127.0.0.1:${server.address().port}`
   if(req.method==='GET'&&req.url==='/handoff'&&req.headers.host===new URL(localOrigin).host){
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Referrer-Policy':'origin','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action https://preview.geupddong.com; frame-ancestors 'none'; base-uri 'none'"})
-    return res.end(`<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>격리 시험 관리자 연결</title><body style="font:16px system-ui;padding:32px"><h1>격리 시험 관리자 연결</h1><p>시험 제보 조회·승인·반려만 가능합니다. 운영 데이터는 바뀌지 않습니다.</p><form method="post" action="https://preview.geupddong.com${PREFIX}/__session"><input type="hidden" name="access" value="${accessToken}"><button type="submit">시험 관리자 프리뷰 열기</button></form></body></html>`)
+    return res.end(`<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>격리 시험 관리자 연결</title><body style="font:16px system-ui;padding:32px"><h1>격리 시험 관리자 연결</h1><p>시험 제보 검토·시설 조치만 가능합니다. 운영 데이터는 바뀌지 않습니다.</p><form method="post" action="https://preview.geupddong.com${PREFIX}/__session"><input type="hidden" name="access" value="${accessToken}"><button type="submit">시험 관리자 프리뷰 열기</button></form></body></html>`)
   }
   const local=req.headers.host===new URL(localOrigin).host && req.url.startsWith(PREFIX+'/')
   const received=Buffer.from(String(req.headers['x-report-review-key']||''))
@@ -36,7 +36,7 @@ const server=http.createServer(async(req,res)=>{
     if(path==='/api/admin/v1/map-config'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({enabled:true,javascriptKey}))}
     if(assets.has(path.slice(1))){
       const file=path.slice(1),extension=extname(file);let content=await readFile(resolve(sourceRoot,file))
-      if(extension==='.html')content=content.toString().replace(/<script src="\/admin-session\.js[^\"]*"><\/script>/g,'').replaceAll('href="/',`href="${PREFIX}/`).replaceAll('src="/',`src="${PREFIX}/`).replace('<body class="admin-page">','<body class="admin-page"><div style="padding:10px;text-align:center;background:#fff3cc;color:#634a00">시험 관리자 · 실제 공개 시설 / 별도 시험 제보 · 승인·반려는 운영에 반영되지 않습니다.</div>')
+      if(extension==='.html')content=content.toString().replace(/<script src="\/admin-session\.js[^\"]*"><\/script>/g,'').replaceAll('href="/',`href="${PREFIX}/`).replaceAll('src="/',`src="${PREFIX}/`).replace('<body class="admin-page">','<body class="admin-page"><div style="padding:10px;text-align:center;background:#fff3cc;color:#634a00">시험 관리자 · 실제 공개 시설 / 별도 시험 제보 · 시설 조치도 시험 DB에만 반영됩니다.</div>')
       if(extension==='.js')content=content.toString().replaceAll("'https://api.geupddong.com'",`'${PREFIX}'`).replaceAll("fetch('/api/admin/v1/map-config')",`fetch('${PREFIX}/api/admin/v1/map-config')`).replaceAll('href="/reports.html"',`href="${PREFIX}/reports.html"`)
       if(file==='admin-shell.js')content=content.toString().replaceAll('href="${href}"','href="/admin-reports/reports.html"')
       if(extension==='.css')content=content.toString().replaceAll("url('/brand/",`url('${PREFIX}/brand/`)

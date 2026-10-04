@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch, MagicMock
 
 spec = importlib.util.spec_from_file_location("collector", Path(__file__).with_name("collect.py"))
 c = importlib.util.module_from_spec(spec)
@@ -67,6 +68,59 @@ class CollectorTest(unittest.TestCase):
         self.assertEqual({row["verification"] for row in result["rows"]}, {"declared"})
         stored = json.dumps(result) + "\n".join(self.db.iterdump())
         for secret in ("203.0.113.4", "Baiduspider/2.0", "PRIVATE", "/123"):
+            self.assertNotIn(secret, stored)
+
+    def test_apple_names_and_official_ip_verification(self):
+        registry = {"apple": {"fetchedAt": c.stamp(NOW), "networks": ["17.166.24.0/24"]}}
+        verifier = c.Verifier(registry, NOW, True)
+        for ua in ("Applebot/0.1", "APPLEBOT/0.1",
+                   "Mozilla/5.0 (Macintosh) Safari/605.1.15 (Applebot/0.1; +http://www.apple.com/go/applebot)",
+                   "Mozilla/5.0 (iPhone) Mobile/15E148 Safari/604.1 (Applebot/0.1; +http://www.apple.com/go/applebot)"):
+            self.assertEqual(c.identify(ua), ("Applebot", "apple"))
+        for ua in ("NotApplebot/0.1", "ApplebotFake/0.1", "Applebot-Extended/0.1"):
+            self.assertNotEqual(c.identify(ua)[0], "Applebot")
+        self.assertEqual(verifier.check("apple", "17.166.24.13", NOW), "verified")
+        # An arbitrary Apple-owned IP is not sufficient evidence of Applebot.
+        self.assertEqual(verifier.check("apple", "17.0.0.1", NOW), "unmatched")
+        self.assertEqual(c.Verifier({}, NOW, True).check("apple", "17.166.24.13", NOW), "declared")
+        self.assertEqual(c.Verifier(registry, NOW, False).check("apple", "17.166.24.13", NOW), "declared")
+        self.assertEqual(c.Verifier(registry, NOW + dt.timedelta(days=2), True)
+                         .check("apple", "17.166.24.13", NOW), "declared")
+        self.assertEqual(verifier.check("apple", "17.166.24.13", NOW - dt.timedelta(days=2)), "declared")
+
+    def test_apple_official_registry_and_fetch_failure(self):
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.geturl.return_value = "https://search.developer.apple.com/applebot.json"
+        response.read.return_value = json.dumps({"creationTime": "2026-09-15T10:00:00.000000",
+            "prefixes": [{"ipv4Prefix": "17.166.24.0/24"}]}).encode()
+        with patch.object(c.urllib.request, "urlopen", return_value=response) as fetch:
+            registry = c.fetch_ranges(NOW, ["apple"])
+            self.assertEqual(fetch.call_count, 1)
+            self.assertEqual(fetch.call_args.args[0].full_url, response.geturl.return_value)
+        self.assertEqual(c.Verifier(registry, NOW, True).check("apple", "17.166.24.13", NOW), "verified")
+        with patch.object(c.urllib.request, "urlopen", side_effect=TimeoutError):
+            self.assertEqual(c.fetch_ranges(NOW, ["apple"]), {})
+        response.geturl.return_value = "https://example.com/untrusted"
+        with patch.object(c.urllib.request, "urlopen", return_value=response):
+            self.assertEqual(c.fetch_ranges(NOW, ["apple"]), {})
+
+    def test_apple_upgrade_preserves_cursor_and_existing_other_without_raw_identifiers(self):
+        self.verifier = c.Verifier({"apple": {"fetchedAt": c.stamp(NOW),
+            "networks": ["17.166.24.0/24"]}}, NOW, True)
+        self.log.write_bytes(line(ua="Examplebot/1.0"))
+        self.run_log()
+        with self.log.open("ab") as stream:
+            stream.write(line(ua="Applebot/0.1", ip="17.166.24.13"))
+            stream.write(line(ua="Applebot/0.1", ip="17.0.0.1"))
+        self.run_log(); self.run_log()
+        result = c.export(self.db, NOW, {})
+        self.assertEqual(sum(row["count"] for row in result["rows"]), 3)
+        self.assertEqual(sum(row["count"] for row in result["rows"] if row["bot"] == "Other bot"), 1)
+        self.assertEqual({row["verification"] for row in result["rows"] if row["bot"] == "Applebot"},
+                         {"verified", "unmatched"})
+        stored = json.dumps(result) + "\n".join(self.db.iterdump())
+        for secret in ("17.166.24.13", "17.0.0.1", "Applebot/0.1", "PRIVATE", "/123"):
             self.assertNotIn(secret, stored)
 
     def test_counts_once_and_never_exports_identifiers(self):

@@ -31,7 +31,7 @@ const ready = page => page.waitForFunction(() => document.querySelector('#analyt
     assert.equal(await toggle.getAttribute('aria-checked'),'false');
     await toggle.focus();await page.keyboard.press('Space');await ready(page);
     assert.equal(await toggle.getAttribute('aria-checked'),'true');
-    const view = async tab => { await page.locator(`.analytics-tabs [data-tab="${tab}"]`).click(); };
+    const view = async tab => { await page.locator(`.analytics-tabs [data-tab="${tab}"]`).click(); await ready(page); };
     const screenshot = async name => { if (screenshotDir) { fs.mkdirSync(screenshotDir, { recursive: true }); await page.screenshot({ path: path.join(screenshotDir, name + '.png'), fullPage: true }); } };
     const tooltip = page.locator('#analytics-chart-tooltip');
     const hoverPoint = page.locator('.analytics-single-chart').first().locator('[data-point="1"]');

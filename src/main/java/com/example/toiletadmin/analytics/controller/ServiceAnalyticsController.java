@@ -53,14 +53,15 @@ public class ServiceAnalyticsController {
             @RequestParam(required=false) String os,
             @RequestParam(required=false) String landing,
             @RequestParam(required=false) String unattributed,
-            @RequestParam(defaultValue="true") boolean excludeBots) {
+            @RequestParam(defaultValue="true") boolean excludeBots,
+            @RequestParam(defaultValue="all") String view) {
         Map<String,String> filters=new LinkedHashMap<>();
         filters.put("source",source); filters.put("channel",channel); filters.put("device",device);
         filters.put("page",page); filters.put("country",country);
         filters.put("client",client); filters.put("evidence",evidence);
         filters.put("entry",entry); filters.put("navigation",navigation); filters.put("browser",browser);
         filters.put("os",os); filters.put("landing",landing); filters.put("unattributed",unattributed);
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(explorer.explore(range,from,to,filters,excludeBots));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(explorer.explore(range,from,to,filters,excludeBots,view));
     }
 
     @GetMapping("/overview")

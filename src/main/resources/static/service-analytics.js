@@ -159,6 +159,8 @@
     busy: false,
     realtime: null,
     successfulQuery: null,
+    loadedViews: new Set(),
+    reportQuery: null,
     excludeBots: true,
   };
   let activePoint = null;
@@ -387,7 +389,7 @@
     root.querySelector('.analytics-definitions').hidden = bots;
     $('analytics-exclude-bots').hidden = bots;
     $('analytics-bot-note').hidden = bots;
-    $('analytics-export').disabled = bots || !state.report;
+    $('analytics-export').disabled = bots || state.busy || !state.report || !state.loadedViews.has(state.tab);
     document.querySelectorAll('.analytics-tabs [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === state.tab ? 'page' : 'false'));
     if (bots) {
       // Independent tabs must not be reset by a late global-summary response.
@@ -406,7 +408,10 @@
     }
     window.OriginBotAnalytics?.cancel();
     window.PopularToiletsAnalytics?.cancel();
-    if (!state.report) return;
+    if (!state.report || !state.loadedViews.has(state.tab)) {
+      $('analytics-view').innerHTML = '<p class="analytics-section-note">통계를 불러오고 있습니다.</p>';
+      return;
+    }
     $('analytics-view').innerHTML =
       state.tab === 'overview'
         ? overview()
@@ -510,6 +515,7 @@
       return;
     }
     const request = ++state.request;
+    const view = state.tab;
     state.controller?.abort();
     state.controller = new AbortController();
     state.busy = true;
@@ -519,6 +525,7 @@
     $('analytics-refresh').disabled = true;
     $('analytics-export').disabled = true;
     $('analytics-error').hidden = true;
+    renderView();
     root
       .querySelectorAll('.analytics-filter-line select')
       .forEach((s) => (s.disabled = true));
@@ -531,6 +538,9 @@
       params.set('from', state.from);
       params.set('to', state.to);
     }
+    params.sort();
+    const queryKey = params.toString();
+    params.set('view', view);
     try {
       const [response, realtime] = await Promise.all([
         fetch(`/api/admin/v1/service-analytics/explore?${params}`, {
@@ -544,6 +554,7 @@
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
       ]);
+      if (request !== state.request) return;
       if (response.status === 401 || response.status === 403) {
         showLogin(response.status === 403);
         return;
@@ -552,6 +563,10 @@
         throw new Error(response.status === 400 ? 'invalid-query' : 'load');
       const data = await response.json();
       if (request !== state.request) return;
+      if (queryKey !== state.reportQuery || data.generatedAt !== state.report?.generatedAt)
+        state.loadedViews.clear();
+      state.loadedViews.add(view);
+      state.reportQuery = queryKey;
       state.report = data;
       state.realtime = realtime?.available ? realtime : null;
       state.successfulQuery = {
@@ -561,6 +576,7 @@
         filters: { ...state.filters },
         back: state.back,
         excludeBots: state.excludeBots,
+        tab: view,
       };
       Object.values(state.tables).forEach((t) => (t.page = 0));
       render();
@@ -764,7 +780,12 @@
       if (leavingBots) window.OriginBotAnalytics?.cancel();
       if (leavingBots) window.PopularToiletsAnalytics?.cancel();
       state.tab = b.dataset.tab;
-      if (leavingBots) load(); else renderView();
+      if (state.tab === 'bots' || state.tab === 'popular') renderView();
+      else if (leavingBots || state.busy || !state.loadedViews.has(state.tab)) load();
+      else {
+        if (state.successfulQuery) state.successfulQuery.tab = state.tab;
+        renderView();
+      }
     } else if (b.dataset.range) {
       if (b.dataset.range === 'custom') {
         $('analytics-custom-range').hidden = !$('analytics-custom-range')

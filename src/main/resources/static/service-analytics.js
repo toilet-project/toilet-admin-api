@@ -547,12 +547,12 @@
           credentials: 'include',
           signal: state.controller.signal,
         }),
-        fetch(`/api/admin/v1/service-analytics/realtime?excludeBots=${state.excludeBots}`, {
+        view === 'overview' ? fetch(`/api/admin/v1/service-analytics/realtime?excludeBots=${state.excludeBots}`, {
           credentials: 'include',
           signal: state.controller.signal,
         })
           .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null),
+          .catch(() => null) : Promise.resolve(null),
       ]);
       if (request !== state.request) return;
       if (response.status === 401 || response.status === 403) {
@@ -568,7 +568,7 @@
       state.loadedViews.add(view);
       state.reportQuery = queryKey;
       state.report = data;
-      state.realtime = realtime?.available ? realtime : null;
+      if (view === 'overview') state.realtime = realtime?.available ? realtime : null;
       state.successfulQuery = {
         range: state.range,
         from: state.from,

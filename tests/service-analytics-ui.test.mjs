@@ -49,7 +49,7 @@ async function workspace() {
     return elements.get(id);
   };
   const tabs = ['overview','content','acquisition','behavior','audience','quality','bots','popular'].map(tab => new Element({tab}));
-  const requests = [], rootElement = get('analytics-shell');
+  const requests = [], realtimeRequests = [], rootElement = get('analytics-shell');
   const flush = async () => { for (let i=0;i<4;i++) await new Promise(resolve => setImmediate(resolve)) };
   const script = await readFile(new URL('service-analytics.js', root), 'utf8');
   vm.runInNewContext(script, {
@@ -57,14 +57,14 @@ async function workspace() {
     window: {innerWidth:1200, addEventListener() {}, OriginBotAnalytics:{cancel(){},show(node){node.innerHTML='independent bots'}}, PopularToiletsAnalytics:{cancel(){},show(node){node.innerHTML='independent popular'}}},
     fetch: (url, options) => {
       if (url.includes('/auth/me')) return Promise.resolve({ok:true,json:async()=>({roles:['ADMIN']})});
-      if (url.includes('/realtime')) return Promise.resolve({ok:true,json:async()=>({available:false})});
+      if (url.includes('/realtime')) { realtimeRequests.push(url);return Promise.resolve({ok:true,json:async()=>({available:false})}); }
       return new Promise(resolve => requests.push({url,signal:options.signal,resolve}));
     },
     AbortController, URLSearchParams, Intl, Date, setTimeout, clearTimeout, console,
   });
   await flush();
   return {
-    requests, get, flush,
+    requests, realtimeRequests, get, flush,
     async click(dataset, id='') { const button=new Element(dataset);button.id=id;rootElement.handlers.click({target:button});await flush() },
     async respond(index, data, status=200) { requests[index].resolve({ok:status===200,status,json:async()=>data});await flush() },
     selected() { return tabs.find(t=>t.attributes['aria-current']==='page')?.dataset.tab },
@@ -88,6 +88,7 @@ test('tabs request scoped work once and reuse successfully loaded views', async 
   assert.equal(ui.get('analytics-export').disabled,false);
   await ui.click({tab:'overview'});await ui.click({tab:'content'});
   assert.equal(ui.requests.length,2);assert.equal(ui.selected(),'content');
+  assert.equal(ui.realtimeRequests.length,1); // Other tabs do not add unrelated real-time scans.
   await ui.click({tab:'acquisition'});await ui.respond(2,report('2026-10-04T12:02:00Z'));
   await ui.click({tab:'content'});assert.equal(ui.requests.length,4); // Server cache expired; old scoped data must be fetched again.
 });

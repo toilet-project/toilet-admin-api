@@ -89,7 +89,7 @@ public final class AnalyticsPreviewServer {
                     Map<String,String> filters=new HashMap<>();for(String key:List.of("device","source","channel","page","country","client","evidence","entry","navigation","browser","os","landing","unattributed"))if(query.containsKey(key))filters.put(key,query.get(key));
                     String exclude=query.getOrDefault("excludeBots","true");
                     if(!Set.of("true","false").contains(exclude)) throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST);
-                    body=json.writeValueAsBytes(service.explore(query.getOrDefault("range","7d"),query.get("from"),query.get("to"),filters,Boolean.parseBoolean(exclude)));
+                    body=json.writeValueAsBytes(service.explore(query.getOrDefault("range","7d"),query.get("from"),query.get("to"),filters,Boolean.parseBoolean(exclude),query.getOrDefault("view","all")));
                 } else if(path.equals("/api/admin/v1/service-analytics/origin-bots")) {
                     Map<String,String> query=new HashMap<>();String raw=exchange.getRequestURI().getRawQuery();
                     if(raw!=null)for(String entry:raw.split("&")){String[] parts=entry.split("=",2);query.put(URLDecoder.decode(parts[0],StandardCharsets.UTF_8),parts.length==2?URLDecoder.decode(parts[1],StandardCharsets.UTF_8):"");}
@@ -134,7 +134,7 @@ public final class AnalyticsPreviewServer {
         expiry.schedule(stop,ttl,TimeUnit.SECONDS);
         Runtime.getRuntime().addShutdownHook(new Thread(()->{server.stop(0);executor.shutdownNow();expiry.shutdownNow();}));
     }
-    private static void createSchema(JdbcTemplate jdbc) {
+    static void createSchema(JdbcTemplate jdbc) {
         jdbc.execute("""
             CREATE TABLE service_analytics_event(event_id BIGINT AUTO_INCREMENT PRIMARY KEY,
              occurred_at TIMESTAMP,occurred_date DATE,event_name VARCHAR(40),page_key VARCHAR(120),channel_key VARCHAR(40),
@@ -148,7 +148,7 @@ public final class AnalyticsPreviewServer {
         jdbc.execute("CREATE TABLE service_analytics_daily_summary(analytics_date DATE,active_users BIGINT,new_users BIGINT,sessions BIGINT,views BIGINT,engaged_sessions BIGINT,key_events BIGINT,total_engagement_seconds BIGINT,calculated_at TIMESTAMP)");
         jdbc.execute("CREATE TABLE service_analytics_daily_dimension(analytics_date DATE,dimension_type VARCHAR(30),dimension_key VARCHAR(120),dimension_label VARCHAR(120),active_users BIGINT,views BIGINT,sessions BIGINT,event_count BIGINT,key_events BIGINT,engagement_seconds BIGINT)");
     }
-    private static void seed(JdbcTemplate jdbc,Clock clock) {
+    static void seed(JdbcTemplate jdbc,Clock clock) {
         jdbc.update("INSERT INTO service_analytics_daily_summary VALUES(?,?,?,?,?,?,?,?,?)",java.sql.Date.valueOf(LocalDate.now(clock)),0,0,0,0,0,0,0,Timestamp.from(clock.instant()));
         var today=clock.instant().atZone(AnalyticsExploreQuery.SEOUL).toLocalDate();
         List<Object[]> batch=new ArrayList<>();

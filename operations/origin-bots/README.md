@@ -8,7 +8,7 @@ Cloudflare 차단 통계가 아니라 **미니 PC의 기존 Nginx access.log에 
 
 | 상태 | 의미 |
 |---|---|
-| 공식 IP 확인 | Googlebot·Naver Yeti·Bingbot 이름과 해당 기관 공식 크롤러 IP 목록이 일치 |
+| 공식 IP 확인 | Googlebot·Naver Yeti·Bingbot·Applebot 이름과 해당 기관 공식 크롤러 IP 목록이 일치 |
 | 이름만 확인 | 요청이 그 이름을 표명함. IP 검증 미설정·실패·목록 만료·오래된 로그도 이 상태 |
 | 공식 IP 불일치 | 신선한 목록과 맞지 않음. 사칭·악성 확정은 아님 |
 
@@ -19,6 +19,12 @@ Cloudflare 차단 통계가 아니라 **미니 PC의 기존 Nginx access.log에 
 Baiduspider 및 render/image/video/news UA는 `Other bot` 대신 `Baiduspider`로 묶는다. Baidu 사이트 등록과는 무관하며 **이름만 확인**한 상태다. 공식 역방향·정방향 DNS 인증은 구현하지 않았고 로그 처리 중 새 DNS 요청도 하지 않는다. 관리자는 이 이름을 공식 IP 확인으로 표시하지 않는다.
 
 배포 시 관리자 허용 목록을 먼저 반영하고 수집기를 나중에 교체해야 한다. 구형 관리자는 새 봇 이름을 거부하므로 순서를 바꾸지 않는다. 복구 시에도 새 이름이 든 내보내기를 읽을 수 있는 관리자를 유지한다. 기존 집계·cursor는 보존하며 과거 `Other bot` 건수를 임의로 다시 나누거나 로그를 재처리하지 않는다. 실제 운영 반영 여부는 [WBS #124](https://github.com/toilet-project/toilet-admin-api/issues/124)에서 확인한다.
+
+### Applebot 식별
+
+`Applebot` 이름과 [Apple 공식 CIDR 목록](https://search.developer.apple.com/applebot.json)을 대조한다. 이름만 일치하면 `이름만 확인`, 신뢰할 수 있는 실제 접속 IP가 신선한 공식 목록에 포함되면 `공식 IP 확인`으로 표시한다. Apple 소유의 전체 IP 대역을 허용하지 않으며, 목록 조회 실패·만료 시에는 이름 확인만 유지한다. `Applebot-Extended`는 별도 크롤러가 아닌 데이터 사용 제어용 이름이므로 Applebot으로 합치지 않는다.
+
+관리자 허용 목록 배포 후 수집기를 교체한다. 최초 적용 때 Apple 목록만 추가 갱신하고 기존 공식 목록·집계·cursor를 보존한다. 반영 이후 수집한 요청부터 Applebot으로 구분하며, 이미 저장된 `Other bot` 집계는 유지한다. 이름과 IP는 메모리에서만 비교하고 요청별 DNS 조회나 원문 저장은 추가하지 않는다.
 
 ## 개인정보·성능 경계
 
@@ -57,5 +63,6 @@ Baiduspider 및 render/image/video/news UA는 `Other bot` 대신 `Baiduspider`�
 - [Google 공식 검증 및 IP 목록](https://developers.google.com/crawling/docs/crawlers-fetchers/verify-google-requests)
 - [네이버 Yeti 확인 및 IP 목록](https://searchadvisor.naver.com/guide/seo-basic-firewall)
 - [Bingbot 검증](https://www.bing.com/webmasters/help/how-to-verify-bingbot-3905dc26)
+- [Applebot 식별 및 공식 IP 목록 안내](https://support.apple.com/ko-kr/119829)
 
 확인한 서버 응답 시각일 뿐, 색인 완료·학습·콘텐츠 보관을 증명하지 않는다. IP 원문은 새 분석 데이터로 영구 보관하지 않는다.

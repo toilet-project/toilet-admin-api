@@ -61,4 +61,19 @@ class OriginBotServiceTest {
             assertThat(report.toString()).doesNotContain("SHOULD_NOT_LEAK");
         }
     }
+    @Test void appleNameAndVerificationStateAreAcceptedWithoutRawFields() throws Exception {
+        for (String state : new String[]{"declared", "verified", "unmatched"}) {
+            String data = fixture.replace("Naver Yeti", "Applebot")
+                    .replace("\"verified\"", "\"" + state + "\"");
+            var report = service(data).report("today", null, null);
+            assertThat(report.status()).isEqualTo("OK");
+            assertThat(report.rows()).hasSize(1);
+            assertThat(report.rows().getFirst().bot()).isEqualTo("Applebot");
+            assertThat(report.rows().getFirst().verification()).isEqualTo(state);
+            assertThat(report.rows().getFirst().count()).isEqualTo(23);
+            assertThat(report.toString()).doesNotContain("SHOULD_NOT_LEAK");
+        }
+        assertThat(service(fixture.replace("Naver Yeti", "Other bot"))
+                .report("today", null, null).rows().getFirst().bot()).isEqualTo("Other bot");
+    }
 }

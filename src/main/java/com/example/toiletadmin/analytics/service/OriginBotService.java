@@ -19,7 +19,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** Reads an allowlisted, read-only export. Never reads access logs or queries Cloudflare. */
 @Service
 public class OriginBotService {
-    private static final Set<String> BOTS = Set.of("Googlebot", "Naver Yeti", "Bingbot", "Baiduspider", "Naver Ads-Naver",
+    private static final Set<String> BOTS = Set.of("Googlebot", "Naver Yeti", "Bingbot", "Applebot", "Baiduspider", "Naver Ads-Naver",
             "Naver Blueno", "Claude-SearchBot", "ClaudeBot", "Claude-User", "GPTBot", "OAI-SearchBot",
             "ChatGPT-User", "Meta-ExternalAgent", "Facebook Preview", "Other bot");
     private static final Set<String> PATHS = Set.of("home", "toilet_detail", "regions", "sitemap", "robots",

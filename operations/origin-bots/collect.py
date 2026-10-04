@@ -21,12 +21,14 @@ SOURCES = {
     "google": "https://developers.google.com/static/crawling/ipranges/common-crawlers.json",
     "naver": "https://searchadvisor.naver.com/doc/naverbot.json",
     "bing": "https://www.bing.com/toolbox/bingbot.json",
+    "apple": "https://search.developer.apple.com/applebot.json",
 }
 # Name and provider are separate: ordinary Google Cloud traffic is not Googlebot.
 BOTS = [
     (r"googlebot(?:-image|-video|-news)?", "Googlebot", "google"),
     (r"yeti", "Naver Yeti", "naver"),
     (r"bingbot", "Bingbot", "bing"),
+    (r"applebot", "Applebot", "apple"),
     # UA declaration only. Baidu identity requires separate forward-confirmed DNS;
     # never perform DNS lookups for each log line or reuse another provider's ranges.
     (r"baiduspider(?:-(?:render|image|video|news))?", "Baiduspider", None),

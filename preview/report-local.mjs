@@ -13,7 +13,10 @@ if(basename(sourceRoot)!=='static')throw new Error('Explicit static source requi
 const publicKeys=new Set()
 for(const file of await readdir(publicAssetsPath)){if(!file.endsWith('.js'))continue;const content=await readFile(resolve(publicAssetsPath,file),'utf8');for(const match of content.matchAll(/appkey=([a-f0-9]{32})/g))publicKeys.add(match[1])}
 if(publicKeys.size!==1)throw new Error('Exactly one public SDK key required')
-const javascriptKey=[...publicKeys][0],gatewayToken=randomBytes(32).toString('hex'),accessToken=randomBytes(32).toString('hex')
+const previousPath=process.env.REPORT_PREVIEW_REUSE_CONNECTION
+const previous=previousPath ? JSON.parse(await readFile(previousPath,'utf8')) : null
+if(previous && (dirname(resolve(previousPath))!==dirname(resolve(metadataPath)) || previous.expiresAt!==metadata.expiresAt || !(previous.port>1024&&previous.port<65536) || !/^[a-f0-9]{64}$/.test(previous.gatewayToken) || !/^[a-f0-9]{64}$/.test(previous.accessToken) || previous.localOrigin!==`http://127.0.0.1:${previous.port}`))throw new Error('Existing trial connection invalid')
+const javascriptKey=[...publicKeys][0],gatewayToken=previous?.gatewayToken || randomBytes(32).toString('hex'),accessToken=previous?.accessToken || randomBytes(32).toString('hex')
 const server=http.createServer(async(req,res)=>{
   res.setHeader('Cache-Control','private, no-store');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer')
   const fail=(status,message)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify({message}))}
@@ -49,5 +52,5 @@ const server=http.createServer(async(req,res)=>{
     res.writeHead(result.status,{'Content-Type':'application/json'});res.end(Buffer.from(await result.arrayBuffer()))
   }catch{if(!res.headersSent)fail(503,'시험 서버 연결 오류');else res.end()}
 })
-server.listen(0,'127.0.0.1',async()=>{await writeFile(outputPath,JSON.stringify({port:server.address().port,gatewayToken,accessToken,localOrigin:`http://127.0.0.1:${server.address().port}`,expiresAt:metadata.expiresAt}),{flag:'wx',mode:0o600});console.log('REPORT_REVIEW_READY isolated=true')})
+server.listen(previous?.port || 0,'127.0.0.1',async()=>{await writeFile(outputPath,JSON.stringify({port:server.address().port,gatewayToken,accessToken,localOrigin:`http://127.0.0.1:${server.address().port}`,expiresAt:metadata.expiresAt}),{flag:'wx',mode:0o600});console.log('REPORT_REVIEW_READY isolated=true')})
 setTimeout(()=>server.close(),expires-Date.now()).unref()

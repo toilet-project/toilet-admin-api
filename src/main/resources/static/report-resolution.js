@@ -115,5 +115,31 @@ globalThis.ReportResolution = (() => {
       })
     } catch (error) { if (active()) root.innerHTML = `<p class="status is-error">${esc(error.message)}</p>` }
   }
-  return {mount, hoursText, scheduleRequest, historyMarkup}
+  function proposalHoursMarkup(hours) {
+    return hoursMarkup(hours).replaceAll('id="resolution-', 'id="new-hours-')
+  }
+  function bindProposalHours() {
+    const root = document.getElementById('new-hours-editor')
+    if (!root) return
+    const bind = () => root.querySelectorAll('[data-slot]').forEach(row => {
+      row.querySelector('[data-closed]').onchange = event => row.querySelectorAll('input[type=time]').forEach(input => { input.disabled = event.target.checked })
+      row.querySelector('.resolution-remove').onclick = () => row.remove()
+    })
+    root.querySelector('#new-hours-policy').onchange = event => { root.querySelector('#new-hours-schedule').hidden = event.target.value !== 'SCHEDULED' }
+    root.querySelector('#new-hours-add-slot').onclick = () => {
+      const slots = root.querySelector('#new-hours-slots')
+      slots.insertAdjacentHTML('beforeend', slotMarkup({dayOfWeek:1},slots.children.length)); bind()
+    }
+    bind()
+  }
+  function readProposalHours() {
+    const root = document.getElementById('new-hours-editor')
+    if (!root?.querySelector) return null
+    const policy = root.querySelector('#new-hours-policy').value
+    if (!policy) return null
+    const rows = [...root.querySelectorAll('[data-slot]')].map(row => ({dayOfWeek:row.querySelector('select').value,startTime:row.querySelectorAll('input[type=time]')[0].value,endTime:row.querySelectorAll('input[type=time]')[1].value,closed:row.querySelector('[data-closed]').checked}))
+    if (policy === 'SCHEDULED' && !rows.length) throw new Error('요일별 시간대를 추가해 주세요.')
+    return scheduleRequest(policy,root.querySelector('#new-hours-holiday').value,rows)
+  }
+  return {mount, hoursText, scheduleRequest, historyMarkup, proposalHoursMarkup, bindProposalHours, readProposalHours}
 })()

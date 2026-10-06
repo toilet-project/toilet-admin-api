@@ -27,3 +27,12 @@ test('invalid count or missing name cannot reach the decision request', () => {
   assert.throws(()=>fixture([{dataset:{facilityField:'maleDisabledToiletCount'},value:'-1',checkValidity:()=>false,reportValidity(){}}]).read(),/입력/)
   assert.throws(()=>fixture([]).read(),/이름/)
 })
+test('structured proposal preserves original policy and holiday, editable hours use existing contract', () => {
+  const context = vm.createContext({})
+  vm.runInContext(readFileSync(new URL('../src/main/resources/static/report-resolution.js',import.meta.url),'utf8'),context)
+  vm.runInContext(source,context)
+  const html = context.ReportFacilityInfo.markup({reportType:'NEW_FACILITY',facilityInfo:{name:'시설',openingHours:{openingPolicy:'SCHEDULED',holidayPolicy:'CLOSED',schedules:[{dayOfWeek:1,startTime:'20:00',endTime:'02:00',crossesMidnight:true,closed:false},{dayOfWeek:7,closed:true}]}}},true)
+  assert.match(html,/new-hours-policy/); assert.match(html,/new-hours-holiday/)
+  assert.match(html,/공휴일/); assert.match(html,/익일/); assert.match(html,/일 휴무/)
+  assert.match(html,/value="SCHEDULED" selected/); assert.match(html,/value="CLOSED" selected/)
+})

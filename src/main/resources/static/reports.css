@@ -12,6 +12,7 @@
   :root[data-admin-compact] .report-review-shell .review-layout { grid-template-columns: 240px minmax(0, 1fr); }
 }
 .report-resolution { margin: 18px 0; border: 1px solid #d7e7df; border-radius: 12px; padding: 16px; background: #f8fbf9; }
+.report-resolution:empty { display:none; }
 .resolution-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .resolution-visibility { font-size:12px; color:#24734f; }
 .resolution-current,.resolution-help { font-size:12px; color:#62776d; line-height:1.5; margin:8px 0 12px; }

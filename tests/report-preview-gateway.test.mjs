@@ -20,6 +20,10 @@ test('loopback handoff uses POST and an expiring HttpOnly same-site cookie',asyn
   assert.equal(response.status,303);assert.equal(response.headers.get('Location'),site+PREFIX+'/')
   assert.match(response.headers.get('Set-Cookie'),/HttpOnly; Secure; SameSite=Lax/)
   assert.match(response.headers.get('Set-Cookie'),/Max-Age=3600/)
+  const csp=response.headers.get('Content-Security-Policy')
+  assert.match(csp,/script-src[^;]*https:\/\/t1\.kakaocdn\.net/)
+  assert.match(csp,/frame-ancestors 'none'/)
+  assert.doesNotMatch(csp,/script-src[^;]*'unsafe-inline'/)
 })
 test('review forwards only an isolated gateway key and bounded JSON, never production identity',async()=>{
   let called=0

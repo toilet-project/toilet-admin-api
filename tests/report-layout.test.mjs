@@ -17,5 +17,5 @@ test('narrow queue keeps full names and metadata wrapped and styles load last', 
   assert.match(css, /\.report-list-item > strong \{[^}]*white-space: normal;[^}]*overflow-wrap: anywhere;/)
   assert.match(css, /\.report-list-meta \{[^}]*flex-wrap: wrap;/)
   assert.match(css, /\.review-detail-column \{ min-width: 0; \}/)
-  assert.ok(html.indexOf('/reports.css?v=3') > html.indexOf('/admin-responsive.css'))
+  assert.ok(html.indexOf('/reports.css?v=') > html.indexOf('/admin-responsive.css'))
 })

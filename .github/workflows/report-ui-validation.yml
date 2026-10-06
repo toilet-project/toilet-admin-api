@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'src/main/resources/static/reports*'
+      - 'src/main/resources/static/report-*.js'
       - 'tests/report-*.test.mjs'
       - '.github/workflows/report-ui-validation.yml'
 
@@ -20,4 +21,4 @@ jobs:
         with:
           node-version: '24'
       - name: Verify report author and address rendering
-        run: node --test tests/report-address.test.mjs tests/report-author.test.mjs
+        run: node --test tests/report-*.test.mjs

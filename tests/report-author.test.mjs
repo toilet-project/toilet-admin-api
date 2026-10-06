@@ -40,6 +40,12 @@ test('older API response never invents a withdrawal state', () => {
     assert.doesNotMatch(context.reporterMarkup(name), /탈퇴한 사용자/)
   }
 })
+test('anonymous reports are explicitly labelled without inventing account information', () => {
+  const { context } = fixture()
+  assert.match(context.reporterMarkup(null, 'GUEST'), /작성자 · 비회원/)
+  assert.match(context.reporterMarkup('비회원', 'GUEST'), /비회원 접수/)
+  assert.doesNotMatch(context.reporterMarkup(null, 'GUEST'), /탈퇴/)
+})
 
 for (const status of ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']) {
   test(`detail renders safe author label and closes without writes: ${status}`, async () => {

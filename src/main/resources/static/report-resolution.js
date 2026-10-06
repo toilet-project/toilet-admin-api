@@ -5,6 +5,7 @@ globalThis.ReportResolution = (() => {
   const days = ['월', '화', '수', '목', '금', '토', '일']
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
   const time = value => value ? String(value).slice(0, 5) : ''
+  const date = value => value ? new Intl.DateTimeFormat('ko-KR', {dateStyle:'medium', timeStyle:'short', timeZone:'Asia/Seoul'}).format(new Date(/(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : value.length === 10 ? value + 'T00:00:00+09:00' : value + '+09:00')) : '-'
   function hoursText(hours, facility) {
     if (!hours || hours.openingPolicy === 'UNKNOWN') return [facility.sourceOpenTime, facility.sourceOpenTimeDetail].filter(Boolean).join(' · ') || '정보 없음'
     if (hours.openingPolicy !== 'SCHEDULED') return policies[hours.openingPolicy] || '정보 없음'
@@ -33,10 +34,12 @@ globalThis.ReportResolution = (() => {
       return { dayOfWeek: day, slotIndex: index, startTime: row.closed ? null : row.startTime, endTime: row.closed ? null : row.endTime, closed: row.closed, crossesMidnight: !row.closed && row.endTime < row.startTime }
     }) : [] }
   }
-  async function mount(report, reload) {
+  async function mount(report, reload, context) {
     const root = document.getElementById('report-resolution')
     if (!root || !report.toiletId) return
-    const active = () => root.isConnected && selectedReportId === report.id
+    // admin-shell loads page scripts as ES modules on navigation. Never rely on another script's lexical scope.
+    const active = () => root.isConnected && context.isSelected()
+    const API_BASE = context.apiBase
     root.innerHTML = '<p class="status">현재 시설 정보를 확인하고 있습니다.</p>'
     try {
       const response = await fetch(`${API_BASE}/api/admin/v1/reports/${report.id}/actions`, { credentials: 'include' })
@@ -69,10 +72,10 @@ globalThis.ReportResolution = (() => {
         } else {
           editor.innerHTML = '<p class="resolution-help">지도를 누르거나 핀을 옮겨 위치를 지정하세요.</p><div id="resolution-map" class="review-location-map"></div><div class="resolution-coordinates"><label>위도<input id="resolution-lat" type="number" step="0.0000001" min="32" max="39.5" required></label><label>경도<input id="resolution-lng" type="number" step="0.0000001" min="124" max="132" required></label></div>'
           const target = editor.querySelector('#resolution-map'), lat = editor.querySelector('#resolution-lat'), lng = editor.querySelector('#resolution-lng'), sequence = mapSequence
-          const valid = hasCoordinates(facility.latitude, facility.longitude)
+          const valid = context.hasCoordinates(facility.latitude, facility.longitude)
           if (valid) { lat.value = facility.latitude; lng.value = facility.longitude; position = { latitude: Number(lat.value), longitude: Number(lng.value) } }
           try {
-            await loadKakaoMaps(); if (!active() || !target.isConnected || sequence !== mapSequence) return
+            await context.loadMaps(); if (!active() || !target.isConnected || sequence !== mapSequence) return
             const center = new kakao.maps.LatLng(valid ? facility.latitude : 36.5, valid ? facility.longitude : 127.5)
             const map = new kakao.maps.Map(target, { center, level: valid ? 3 : 12 })
             globalThis.AdminResponsive?.watchMap(map, target)

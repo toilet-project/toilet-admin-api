@@ -27,6 +27,17 @@ test('invalid count or missing name cannot reach the decision request', () => {
   assert.throws(()=>fixture([{dataset:{facilityField:'maleDisabledToiletCount'},value:'-1',checkValidity:()=>false,reportValidity(){}}]).read(),/입력/)
   assert.throws(()=>fixture([]).read(),/이름/)
 })
+
+test('guided free text keeps line breaks and escapes textarea closing tags', () => {
+  const note = '평일 09:00~18:00\n공휴일 휴무 </textarea><script>alert(1)</script>'
+  const input = (key,value) => ({dataset:{facilityField:key},value,checkValidity:()=>true})
+  const info = fixture([input('name','시설'),input('openTimeDetail',note)])
+  const html = info.markup({reportType:'NEW_FACILITY',facilityInfo:{name:'시설',openTimeDetail:note}},true)
+  assert.match(html, /<textarea data-facility-field="openTimeDetail"[^>]+>평일 09:00~18:00\n공휴일 휴무 &lt;\/textarea&gt;/)
+  assert.doesNotMatch(html, /<script>/)
+  assert.equal(info.read().openTimeDetail,note)
+  assert.equal(info.read().openingHours,null)
+})
 test('structured proposal preserves original policy and holiday, editable hours use existing contract', () => {
   const context = vm.createContext({})
   vm.runInContext(readFileSync(new URL('../src/main/resources/static/report-resolution.js',import.meta.url),'utf8'),context)

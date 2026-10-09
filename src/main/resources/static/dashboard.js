@@ -11,6 +11,21 @@ const state = {
   reviews: {},
 }
 const homeRoot = document.querySelector('main[data-admin-page="home"]')
+const homeController = new AbortController()
+let homeActive = true
+let homeEventsBound = false
+let hostPollTimer = null
+const isHomeActive = () => homeActive && homeRoot?.isConnected
+function assertHomeActive() {
+  if (!isHomeActive()) throw new DOMException('운영 홈을 떠났습니다.', 'AbortError')
+}
+document.addEventListener('admin:before-route-change', () => {
+  el('refresh').disabled = false
+  homeActive = false
+  homeController.abort()
+  clearTimeout(hostPollTimer)
+  if (window.AdminHomeRefresh === refreshAll || window.AdminHomeRefresh === bootstrap) delete window.AdminHomeRefresh
+}, { once: true })
 let serviceHealth = null
 let hostDiskStatus = 'UNKNOWN'
 let hostRequest = null
@@ -18,7 +33,7 @@ const hostNumber = (value, digits = 1) => typeof value === 'number' && Number.is
 const hostPercent = value => typeof value === 'number' && Number.isFinite(value) ? `${hostNumber(value)}%` : '—'
 
 function renderServiceHealth() {
-  if (!homeRoot?.isConnected) return
+  if (!isHomeActive()) return
   const rows = [...(serviceHealth || [['관리자', 'UNKNOWN'], ['공개 API', 'UNKNOWN'], ['데이터베이스', 'UNKNOWN'], ['배치 수집', 'UNKNOWN']]), ['디스크', hostDiskStatus]]
   setState(el('service-overall'), worstStatus(rows.map(([, status]) => status)))
   const abnormal = rows.filter(([, status]) => status !== 'UP').map(([name]) => name)
@@ -26,7 +41,7 @@ function renderServiceHealth() {
 }
 
 function renderHomeHost(data) {
-  if (!homeRoot?.isConnected) return
+  if (!isHomeActive()) return
   const v = data.latest || {}
   const timestamp = Date.parse(data.generatedAt)
   const age = Date.now() - timestamp
@@ -61,13 +76,14 @@ function renderHomeHost(data) {
 }
 
 function loadHomeHost() {
+  if (!isHomeActive()) return Promise.resolve(false)
   if (hostRequest) return hostRequest
   hostRequest = (async () => {
     try {
       const data = await fetchJson('/api/admin/v1/operations/host?days=7', {credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(8000)})
       return renderHomeHost(data)
     } catch (error) {
-      if (!homeRoot?.isConnected) return false
+      if (!isHomeActive()) return false
       if (error instanceof AuthError) return handleAuthError(error)
       renderHomeHost({message:'미니 PC 기록을 확인하지 못했습니다.'})
       return false
@@ -77,8 +93,9 @@ function loadHomeHost() {
 }
 
 function pollHomeHost() {
-  setTimeout(() => {
-    if (!homeRoot?.isConnected) return
+  if (!isHomeActive()) return
+  hostPollTimer = setTimeout(() => {
+    if (!isHomeActive()) return
     if (!document.hidden && !el('dashboard-shell').hidden) void loadHomeHost()
     pollHomeHost()
   }, 60000)
@@ -180,20 +197,26 @@ function worstStatus(statuses) {
   return statuses.reduce((worst, current) => (rank[current] || 2) > (rank[worst] || 0) ? current : worst, 'UP')
 }
 
-async function fetchJson(url, options) {
-  const response = await fetch(url, options)
+async function fetchJson(url, options = {}) {
+  assertHomeActive()
+  const signal = options.signal ? AbortSignal.any([homeController.signal, options.signal]) : homeController.signal
+  const response = await fetch(url, { ...options, signal })
+  assertHomeActive()
   if (response.status === 401 || response.status === 403) throw new AuthError(response.status)
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
+    assertHomeActive()
     throw new Error(payload?.error?.message || payload?.message || '데이터를 불러오지 못했습니다.')
   }
-  return response.json()
+  const payload = await response.json()
+  assertHomeActive()
+  return payload
 }
 
 async function loadOperations() {
   try {
     const data = await fetchJson('/api/admin/v1/operations/status')
-    if (!homeRoot?.isConnected) return false
+    if (!isHomeActive()) return false
     setState(el('service-admin'), data.admin.status)
     setState(el('service-api'), data.publicApi.status)
     setState(el('service-db'), data.database.status)
@@ -204,8 +227,8 @@ async function loadOperations() {
     renderServiceHealth()
     return true
   } catch (error) {
+    if (!isHomeActive()) return false
     if (error instanceof AuthError) return handleAuthError(error)
-    if (!homeRoot?.isConnected) return false
     ;['service-admin', 'service-api', 'service-db', 'batch-overall'].forEach((id) => setState(el(id), 'UNKNOWN'))
     serviceHealth = null
     renderServiceHealth()
@@ -233,6 +256,7 @@ function quotaMarkup(label, metric, bytes = false) {
 async function loadCloudflare() {
   try {
     const data = await fetchJson('/api/admin/v1/cloudflare/usage')
+    if (!isHomeActive()) return false
     el('cloudflare-link').href = '/cloudflare.html'
     const selected = ['r2-a', 'workers-cpu', 'r2-b', 'd1-write']
     el('cloudflare-quotas').innerHTML = selected.map(id => {
@@ -250,6 +274,7 @@ async function loadCloudflare() {
       : `${data.message}${lastSuccess}`
     return data.available
   } catch (error) {
+    if (!isHomeActive()) return false
     el('cloudflare-note').textContent = 'Cloudflare 이용량을 확인하지 못했습니다.'
     return false
   }
@@ -273,6 +298,7 @@ async function loadServiceAnalytics() {
   const card = document.querySelector('.analytics-home-card')
   try {
     const response = await fetchJson('/api/admin/v1/service-analytics/overview')
+    if (!isHomeActive()) return false
     const data = response.data || {}
     const current = data.current || {}
     el('analytics-realtime-users').textContent = number(data.realtime?.activeUsers || 0)
@@ -299,6 +325,7 @@ async function loadServiceAnalytics() {
     el('analytics-home-note').textContent = `${response.message || '자체 분석 상태를 확인했습니다.'}${last}`
     return response.available || response.status === 'NO_DATA' || response.status === 'NOT_CONFIGURED'
   } catch (error) {
+    if (!isHomeActive()) return false
     setState(el('analytics-home-state'), 'UNKNOWN')
     card.classList.add('is-unavailable')
     el('analytics-home-note').textContent = '서비스 이용 분석 집계를 확인하지 못했습니다.'
@@ -342,6 +369,7 @@ function reviewRow(type, item) {
 }
 
 function renderReview() {
+  if (!isHomeActive()) return
   const type = state.reviewType
   const config = reviewConfig[type]
   const data = state.reviews[type]
@@ -387,6 +415,7 @@ function updateReviewPagination(data) {
 async function loadReportReviews(page = 0) {
   if (page === 0) {
     const data = await fetchJson(`${API_BASE}/api/admin/v1/reports/summary`, { credentials: 'include' })
+    assertHomeActive()
     const totalPages = Math.ceil(data.pendingCount / REVIEW_SIZE)
     const oldest = data.recentReports?.[0]?.createdAt
     el('review-count-reports').innerHTML = `${number(data.pendingCount)}<small>건</small>`
@@ -402,6 +431,7 @@ async function loadReportReviews(page = 0) {
 async function loadCoordinateReviews(page = 0) {
   const query = new URLSearchParams({ page: String(page), size: String(REVIEW_SIZE) })
   const data = await fetchJson(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates?${query}`, { credentials: 'include' })
+  assertHomeActive()
   el('review-count-coordinates').innerHTML = `${number(data.totalElements)}<small>그룹</small>`
   el('review-note-coordinates').textContent = data.items.length ? `최대 ${number(data.items[0].toiletCount)}개 시설` : '확인할 그룹 없음'
   return data
@@ -410,12 +440,14 @@ async function loadCoordinateReviews(page = 0) {
 async function loadRegionReviews(page = 0) {
   const query = new URLSearchParams({ status: 'REVIEW', page: String(page), size: String(REVIEW_SIZE) })
   const data = await fetchJson(`${API_BASE}/api/admin/v1/regions?${query}`, { credentials: 'include' })
+  assertHomeActive()
   el('review-count-regions').innerHTML = `${number(data.totalElements)}<small>건</small>`
   el('review-note-regions').textContent = data.items[0]?.checkedAt ? `가장 오래된 항목 ${formatAge(data.items[0].checkedAt)}` : '확인할 항목 없음'
   return data
 }
 
 async function loadReviewType(type, page = state.reviewPages[type]) {
+  if (!isHomeActive()) return false
   state.reviewPages[type] = Math.max(page, 0)
   if (type === state.reviewType) {
     state.reviews[type] = null
@@ -424,11 +456,13 @@ async function loadReviewType(type, page = state.reviewPages[type]) {
   try {
     const loaders = { reports: loadReportReviews, coordinates: loadCoordinateReviews, regions: loadRegionReviews }
     const data = await loaders[type](state.reviewPages[type])
+    if (!isHomeActive()) return false
     state.reviewPages[type] = data.page
     state.reviews[type] = data
     if (type === state.reviewType) renderReview()
     return true
   } catch (error) {
+    if (!isHomeActive()) return false
     if (error instanceof AuthError) return handleAuthError(error)
     state.reviews[type] = { error: error.message || '목록을 불러오지 못했습니다.' }
     if (type === state.reviewType) renderReview()
@@ -488,6 +522,7 @@ async function loadDashboard() {
   try {
     const query = new URLSearchParams(range)
     const data = await fetchJson(`/api/admin/v1/dashboard?${query}`)
+    if (!isHomeActive()) return false
     const batch = data.batch
     const runs = batch.successfulRuns + batch.failedRuns
     if (batch.totalToiletCount != null) el('home-total-toilets').textContent = number(batch.totalToiletCount)
@@ -502,6 +537,7 @@ async function loadDashboard() {
     renderRecent(data.recentExecutions || [])
     return true
   } catch (error) {
+    if (!isHomeActive()) return false
     el('period-dates').textContent = '수집 요약을 불러오지 못했습니다.'
     el('period-chart').innerHTML = '<p class="home-empty is-error">수집 이력을 확인하지 못했습니다.</p>'
     el('recent-list').innerHTML = '<tr><td colspan="4" class="home-empty is-error">수집 이력을 확인하지 못했습니다.</td></tr>'
@@ -510,6 +546,7 @@ async function loadDashboard() {
 }
 
 function showLoginPage(forbidden = false) {
+  if (!isHomeActive()) return
   el('loading-shell').hidden = true
   el('dashboard-shell').hidden = true
   el('auth-shell').hidden = false
@@ -523,18 +560,22 @@ function handleAuthError(error) {
 }
 
 async function refreshAll() {
+  if (!isHomeActive()) return
   const button = el('refresh')
   button.disabled = true
   el('home-status').textContent = '운영 데이터를 새로 확인하고 있습니다.'
-  const results = await Promise.all([loadOperations(), loadHomeHost(), loadCloudflare(), loadServiceAnalytics(), loadDashboard(), loadAllReviews()])
-  if (!el('dashboard-shell').hidden) {
-    const time = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date())
-    el('home-status').textContent = results.every(Boolean) ? `${time} 기준 최신 상태입니다.` : `${time} 기준 · 일부 항목을 확인하지 못했습니다.`
+  try {
+    const results = await Promise.all([loadOperations(), loadHomeHost(), loadCloudflare(), loadServiceAnalytics(), loadDashboard(), loadAllReviews()])
+    if (isHomeActive() && !el('dashboard-shell').hidden) {
+      const time = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date())
+      el('home-status').textContent = results.every(Boolean) ? `${time} 기준 최신 상태입니다.` : `${time} 기준 · 일부 항목을 확인하지 못했습니다.`
+    }
+  } finally {
+    if (isHomeActive()) button.disabled = false
   }
-  button.disabled = false
 }
 
-window.AdminHomeRefresh = refreshAll
+window.AdminHomeRefresh = bootstrap
 
 function bindEvents() {
   document.querySelectorAll('[data-period]').forEach((button) => button.addEventListener('click', () => {
@@ -562,7 +603,8 @@ function bindEvents() {
   })
   const menuSearch = el('menu-search')
   const menuResults = el('menu-search-results')
-  if (menuSearch && menuResults) {
+  if (menuSearch && menuResults && !menuSearch.dataset.adminSearchBound) {
+    menuSearch.dataset.adminSearchBound = 'true'
     const links = [...document.querySelectorAll('.admin-nav-link[href]')]
     const closeSearch = () => {
       menuResults.hidden = true
@@ -595,21 +637,42 @@ function bindEvents() {
 }
 
 async function bootstrap() {
+  if (!isHomeActive()) return
+  el('refresh').disabled = true
   try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })
+    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include', signal: homeController.signal })
+    if (!isHomeActive()) return
     if (response.status === 401) return showLoginPage(false)
-    if (!response.ok) return showLoginPage(true)
+    if (response.status === 403) return showLoginPage(true)
+    if (!response.ok) throw new Error('로그인 상태 조회 실패')
     const profile = await response.json()
+    if (!isHomeActive()) return
     if (!profile.roles?.includes('ADMIN')) return showLoginPage(true)
+  } catch {
+    if (!isHomeActive()) return
     el('loading-shell').hidden = true
     el('auth-shell').hidden = true
     el('dashboard-shell').hidden = false
-    bindEvents()
-    await refreshAll()
-    pollHomeHost()
-  } catch {
-    showLoginPage(false)
+    el('home-status').textContent = '로그인 상태를 확인하지 못했습니다. 잠시 후 새로고침으로 다시 확인해 주세요.'
+    el('refresh').disabled = false
+    return
   }
+  el('loading-shell').hidden = true
+  el('auth-shell').hidden = true
+  el('dashboard-shell').hidden = false
+  window.AdminHomeRefresh = refreshAll
+  try {
+    if (!homeEventsBound) {
+      bindEvents()
+      homeEventsBound = true
+    }
+    await refreshAll()
+  } catch {
+    if (!isHomeActive()) return
+    el('home-status').textContent = '운영 데이터를 확인하지 못했습니다. 새로고침으로 다시 확인해 주세요.'
+    el('refresh').disabled = false
+  }
+  pollHomeHost()
 }
 
 bootstrap()

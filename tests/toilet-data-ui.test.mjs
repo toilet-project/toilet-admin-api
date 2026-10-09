@@ -91,3 +91,74 @@ test('pre-deployment preview falls back to existing real-data reads without allo
   assert.match(source, /프리뷰 저장 차단/)
   assert.match(source, /if \(legacyPreview\) return/)
 })
+
+test('leaving toilet data removes the document search handler and ignores a detached suggestion box', () => {
+  const events = new Map(), elements = new Map()
+  const makeElement = () => ({ hidden:false, value:'', addEventListener(){}, replaceChildren(){} })
+  for (const id of ['toilet-search', 'toilet-search-clear', 'toilet-suggestions']) elements.set(id, makeElement())
+  const document = {
+    getElementById: id => elements.get(id) || null,
+    addEventListener(name, handler) {
+      if (!events.has(name)) events.set(name, new Set())
+      events.get(name).add(handler)
+    },
+    removeEventListener(name, handler) { events.get(name)?.delete(handler) },
+  }
+  const context = createContext({
+    document, URL, URLSearchParams, Intl,
+    window:{location:{href:'https://admin.example/toilets.html',search:''},clearTimeout(){}},
+  })
+  runInContext(source.replace(/bootstrap\(\)\s*$/, ''), context)
+  runInContext('bindSearch()', context)
+  const outsideClick = {target:{closest(){return null}}}
+  for (const handler of events.get('pointerdown')) handler(outsideClick)
+  assert.equal(elements.get('toilet-suggestions').hidden, true, 'Outside clicks close suggestions on the current page')
+  for (const handler of events.get('admin:before-route-change')) handler()
+  elements.clear()
+  assert.equal(events.get('pointerdown').size, 0, 'No document handler is retained after navigation')
+  assert.doesNotThrow(() => runInContext('closeSuggestions()', context))
+})
+
+for (const status of [200, 401, 403]) {
+  test(`a late toilet-page authentication response cannot change the destination (${status})`, async () => {
+    const events = new Map(), root = {isConnected:true}, authShell = {hidden:true}
+    let respond
+    const document = {
+      getElementById(id) { return id === 'toilet-shell' ? (root.isConnected ? root : null) : id === 'auth-shell' ? authShell : null },
+      addEventListener(name, handler) { events.set(name, handler) }, removeEventListener(){},
+    }
+    const context = createContext({
+      document, URL, URLSearchParams, Intl,
+      window:{location:{href:'https://admin.example/toilets.html',search:''},clearTimeout(){}},
+      fetch: () => new Promise(resolve => { respond = resolve }),
+    })
+    runInContext(source.replace(/bootstrap\(\)\s*$/, 'globalThis.bootstrapResult = bootstrap()'), context)
+    events.get('admin:before-route-change')()
+    root.isConnected = false
+    respond({status,ok:status === 200,json:async()=>({roles:['ADMIN']})})
+    await context.bootstrapResult
+    assert.equal(authShell.hidden, true, 'Stale authentication does not replace the destination with login')
+  })
+}
+
+for (const status of [401, 403]) {
+  test(`a previous toilet-page data request cannot show login after navigation (${status})`, async () => {
+    const events = new Map(), authShell = {hidden:true}
+    let respond
+    const context = createContext({
+      document:{
+        getElementById(id) { return id === 'auth-shell' ? authShell : null },
+        addEventListener(name, handler) { events.set(name, handler) }, removeEventListener(){},
+      },
+      URL, URLSearchParams, Intl,
+      window:{location:{href:'https://admin.example/toilets.html',search:''},clearTimeout(){}},
+      fetch: () => new Promise(resolve => { respond = resolve }),
+    })
+    runInContext(source.replace(/bootstrap\(\)\s*$/, ''), context)
+    const pending = runInContext('request("/api/admin/v1/toilets")', context)
+    events.get('admin:before-route-change')()
+    respond({status,ok:false,json:async()=>({message:'expired request'})})
+    await assert.rejects(pending, {status})
+    assert.equal(authShell.hidden, true)
+  })
+}

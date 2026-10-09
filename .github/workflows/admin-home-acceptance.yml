@@ -20,6 +20,8 @@ jobs:
           node-version: '22'
       - name: Verify responsive dashboard contracts
         run: node scripts/verify-admin-home.cjs
+      - name: Verify login and navigation lifecycle
+        run: node --test tests/admin-login-navigation.test.cjs
       - name: Verify Cloudflare monitoring decisions
         run: node scripts/verify-cloudflare-monitor.cjs
       - name: Set up JDK 21

@@ -1,0 +1,26 @@
+.hours-editor { border: 1px solid #d6e5dc; border-radius: 11px; overflow: hidden; background: #fff; }
+.hours-editor-controls { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding: 13px; }
+.hours-editor-controls > label { display: grid; gap: 6px; color: #63796e; font-size: 12px; font-weight: 700; }
+.hours-editor select { width: 100%; min-width: 0; height: 38px; padding: 0 9px; border: 1px solid #c8dbcf; border-radius: 8px; color: #244638; background: #fff; font: inherit; }
+.hours-editor fieldset { display: flex; align-items: center; gap: 14px; margin: 0; min-width: 0; padding: 8px 12px; border: 1px solid #c8dbcf; border-radius: 8px; }
+.hours-editor legend { padding: 0 3px; color: #63796e; font-size: 12px; font-weight: 700; }
+.hours-editor label { display: flex; align-items: center; gap: 6px; color: #294c3c; font-size: 12px; }
+.hours-editor-controls > label { display: grid; align-items: stretch; }
+.hours-editor input[type=checkbox], .hours-editor input[type=radio] { width: 15px; height: 15px; margin: 0; accent-color: #247d51; }
+.hours-editor-head,.hours-editor-day { display: grid; grid-template-columns: 80px 65px minmax(0,1fr); align-items: start; gap: 9px; padding: 10px 13px; border-top: 1px solid #e4ece7; }
+.hours-editor-head { color: #7b8d84; background: #fbfdfc; font-size: 11px; font-weight: 700; }
+.hours-editor-day > label { min-height: 34px; }
+.hours-editor-slot { display: grid; grid-template-columns: minmax(0,1fr) 14px minmax(0,1fr) 30px; align-items: center; gap: 6px; margin-bottom: 5px; }
+.hours-editor-slot input[type=time] { box-sizing: border-box; min-width: 0; width: 100%; height: 34px; padding: 0 5px; border: 1px solid #cdded3; border-radius: 7px; color: #294a3b; background: #fff; font-size: 12px; }
+.hours-editor-slot > span { color: #97a69e; text-align: center; }
+.hours-editor button { min-height: 29px; padding: 3px 8px; border: 1px solid #cdded3; border-radius: 6px; color: #36674d; background: #f8fbf9; font-size: 11px; cursor: pointer; }
+.hours-editor-slot small { grid-column: 1 / -1; color: #926022; font-size: 11px; }
+.hours-editor-slot small:empty { display: none; }
+.hours-editor :disabled { opacity: .45; cursor: default; }
+.hours-editor-help { margin: 0; padding: 12px 13px; border-top: 1px solid #dce8e0; color: #6c8176; background: #f8fbf9; font-size: 11px; line-height: 1.6; }
+@media (max-width: 620px) {
+  .hours-editor-controls { grid-template-columns: 1fr; }
+  .hours-editor-head { display: none; }
+  .hours-editor-day { grid-template-columns: 1fr 1fr; }
+  .hours-editor-times { grid-column: 1 / -1; }
+}

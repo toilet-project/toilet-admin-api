@@ -30,6 +30,7 @@ let kakaoReady = null
 let saving = false
 let legacyPreview = false
 const suggestionCache = new Map()
+let toiletPageActive = true
 
 const legacySidoNames = [
   '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시',
@@ -75,6 +76,7 @@ function updateUrl(id) {
 }
 
 function showLogin(status) {
+  if (!toiletPageActive) return
   $('loading-shell').hidden = true
   $('toilet-shell').hidden = true
   $('auth-shell').hidden = false
@@ -270,8 +272,14 @@ async function loadList(targetPage = 0) {
 }
 
 function closeSuggestions() {
-  $('toilet-suggestions').hidden = true
-  $('toilet-suggestions').replaceChildren()
+  const suggestions = $('toilet-suggestions')
+  if (!toiletPageActive || !suggestions) return
+  suggestions.hidden = true
+  suggestions.replaceChildren()
+}
+
+function closeSuggestionsOutsideSearch(event) {
+  if (toiletPageActive && !event.target.closest('.toilet-search-wrap')) closeSuggestions()
 }
 
 function suggestionKey(value) {
@@ -365,6 +373,7 @@ async function loadSuggestions() {
 }
 
 function bindSearch() {
+  if (!toiletPageActive) return
   const input = $('toilet-search')
   const schedule = ({ includeList = !composing } = {}) => {
     $('toilet-search-clear').hidden = !input.value
@@ -390,7 +399,7 @@ function bindSearch() {
     window.clearTimeout(searchTimer); window.clearTimeout(suggestionTimer); closeSuggestions(); void loadList(0)
   })
   $('toilet-search-clear').addEventListener('click', () => { input.value = ''; closeSuggestions(); schedule(); input.focus() })
-  document.addEventListener('pointerdown', event => { if (!event.target.closest('.toilet-search-wrap')) closeSuggestions() })
+  document.addEventListener('pointerdown', closeSuggestionsOutsideSearch)
 }
 
 async function loadRegions() {
@@ -402,6 +411,7 @@ async function loadRegions() {
     const batches = await Promise.all(legacySidoNames.map(name => legacyRequest(`/api/admin/v1/regions/options?keyword=${encodeURIComponent(name)}&limit=50`)))
     regions = batches.flat().map(item => item.region)
   }
+  if (!toiletPageActive) return
   const sido = $('toilet-sido')
   const unique = new Map(regions.map(item => [item.sidoCode, item.sidoName]))
   for (const [value, label] of unique) sido.add(new Option(label, value))
@@ -706,31 +716,40 @@ async function drawMap(detail) {
 }
 
 async function bootstrap() {
+  const root = $('toilet-shell')
+  if (!root?.isConnected) return
   try {
     const auth = await fetch(`${API}/api/v1/auth/me`, { credentials:'include' })
+    if (!toiletPageActive || !root.isConnected) return
     if (auth.status === 401 || auth.status === 403) return showLogin(auth.status)
     if (!auth.ok) throw new Error('관리자 인증을 확인하지 못했습니다.')
     const profile = await auth.json()
+    if (!toiletPageActive || !root.isConnected) return
     if (!profile.roles?.includes('ADMIN')) return showLogin(403)
     $('loading-shell').hidden = true
     $('auth-shell').hidden = true
     $('toilet-shell').hidden = false
     bindSearch()
     await loadRegions()
+    if (!toiletPageActive || !root.isConnected) return
     $('toilet-sido').addEventListener('change', () => { populateSigungu(); void loadList(0) })
     $('toilet-sigungu').addEventListener('change', () => void loadList(0))
     $('toilet-refresh').addEventListener('click', () => { closeSuggestions(); void loadList(page) })
     populateSigungu()
     await loadList(0)
+    if (!toiletPageActive || !root.isConnected) return
     $('toilet-shell').closest('.admin-frame')?.removeAttribute('aria-busy')
     document.querySelector('.toilet-data-workspace')?.setAttribute('aria-busy','false')
   } catch (error) {
+    if (!toiletPageActive || !root.isConnected) return
     $('toilet-status').querySelector('span').textContent = error.message
     $('toilet-status').classList.add('is-error')
   }
 }
 
 document.addEventListener('admin:before-route-change', () => {
+  toiletPageActive = false
+  document.removeEventListener('pointerdown', closeSuggestionsOutsideSearch)
   window.clearTimeout(searchTimer); window.clearTimeout(suggestionTimer)
   listAbort?.abort(); suggestionAbort?.abort()
   mapAbort?.abort()

@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs'
 import {permitted} from '../preview/report-gateway.mjs'
 const source=readFileSync(new URL('../src/main/resources/static/report-resolution.js',import.meta.url),'utf8')
 const context=vm.createContext({date:value=>value})
+vm.runInContext(readFileSync(new URL('../src/main/resources/static/opening-hours-editor.js',import.meta.url),'utf8'),context)
 vm.runInContext(source,context)
 const api=context.ReportResolution
 test('report scoped actions only, no general facility write exposure',()=>{
@@ -23,7 +24,7 @@ test('hours preserve multiple slots, holiday policy and overnight semantics',()=
   assert.throws(()=>api.scheduleRequest('SCHEDULED','UNKNOWN',[{dayOfWeek:1,startTime:'09:00',endTime:'09:00'}]))
 })
 test('current hours prefer confirmed schedule to public raw source',()=>{
-  assert.equal(api.hoursText({openingPolicy:'ALWAYS'},{sourceOpenTime:'09:00~18:00'}),'24시간')
+  assert.equal(api.hoursText({openingPolicy:'ALWAYS',open24h:true},{sourceOpenTime:'09:00~18:00'}),'24시간')
   assert.equal(api.hoursText(null,{sourceOpenTime:'09:00~18:00'}),'09:00~18:00')
 })
 test('history escapes user input and shows before/after with related report',()=>{

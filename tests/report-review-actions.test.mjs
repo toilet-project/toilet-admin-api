@@ -36,3 +36,11 @@ test('provider failure preserves the selected report and coordinates and restore
   assert.equal(vm.runInContext('selectedReportId',f.context),7);assert.equal(vm.runInContext('locationConfirmation.latitude',f.context),36.3)
   assert.equal(f.detail.innerHTML,'original');assert.ok(f.buttons.every(b=>!b.disabled));assert.match(f.errors[0],/&lt;provider unavailable&gt;/)
 })
+
+test('validation failure and cancellation preserve unavailable weekday buttons',async()=>{
+  for (const confirm of [false,true]) {
+    const f=fixture({confirm,ok:false}); f.buttons[1].disabled=true
+    await f.context.reviewReport({id:7,reportType:'NEW_FACILITY'},'approve')
+    assert.equal(f.buttons[0].disabled,false); assert.equal(f.buttons[1].disabled,true)
+  }
+})

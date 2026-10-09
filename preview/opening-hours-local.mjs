@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../src/main/resources/static/', import.meta.url))
 const samplePath = fileURLToPath(new URL('./opening-hours-sample.json', import.meta.url))
-const assets = new Set(['opening-hours.html','opening-hours.css','opening-hours.js','dashboard.css','admin-shell.css','admin-shell.js','admin-session.css'])
+const assets = new Set(['opening-hours-editor.js','opening-hours-editor.css','opening-hours.html','opening-hours.css','opening-hours.js','dashboard.css','admin-shell.css','admin-shell.js','admin-session.css'])
 for (const file of ['brand.css','favicon.ico','brand/hangul-point-v1/lockup-ko.svg','brand/hangul-point-v1/favicon.svg','brand/hangul-point-v1/favicon-32.png','brand/hangul-point-v1/apple-touch-icon.png']) assets.add(file)
 const types = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.svg':'image/svg+xml', '.png':'image/png', '.ico':'image/x-icon' }
 const headers = { 'Cache-Control':'no-store', 'X-Robots-Tag':'noindex, nofollow', 'X-Content-Type-Options':'nosniff', 'Referrer-Policy':'no-referrer', 'Content-Security-Policy':"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'" }

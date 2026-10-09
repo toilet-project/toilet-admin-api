@@ -124,52 +124,15 @@ function detailMarkup(detail) {
     <section class="opening-hours-members"><header><div><small>AFFECTED FACILITIES</small><h3>이 유형을 사용하는 화장실</h3></div><span>최대 30개 표본</span></header><ul>${facilities}</ul></section>
     <form id="opening-hours-form" class="opening-hours-form">
       <header class="opening-hours-form-head"><h3>유형 일괄 확정</h3><span>개별 확정값은 유지하고 적용 대상만 갱신합니다.</span></header>
-      <div class="opening-hours-controls">
-        <label class="opening-hours-field">운영 정책<select id="opening-policy"><option value="ALWAYS">상시 운영</option><option value="SCHEDULED">요일별 운영</option><option value="IRREGULAR">불규칙</option><option value="CLOSED">미개방</option></select></label>
-        <div class="opening-hours-field">24시간 운영<div class="opening-hours-radio"><label><input type="radio" name="open24h" value="true"/>예</label><label><input type="radio" name="open24h" value="false"/>아니오</label></div></div>
-        <label class="opening-hours-field">공휴일 운영<select id="holiday-policy"><option value="UNKNOWN">확인 필요</option><option value="OPEN">운영</option><option value="CLOSED">휴무</option></select></label>
-      </div>
-      <section class="opening-hours-schedule"><div class="opening-hours-schedule-head"><span>요일</span><span>휴무</span><span>시작</span><span></span><span>종료</span></div><div id="opening-hours-days"></div></section>
+      <div id="opening-hours-editor">${globalThis.OpeningHoursEditor.markup(confirmedValue(detail), {id:"opening-review"})}</div>
       <footer class="opening-hours-actions"><p id="opening-hours-save-status">요일별 운영인 경우 실제 운영하는 요일과 시간을 선택해 주세요.</p><button id="opening-hours-save" type="submit">${Number(item.targetCount).toLocaleString()}개 시설에 적용</button></footer>
     </form>
     ${historyMarkup(detail)}`
 }
 
-function renderDays(schedules = []) {
-  const target = $('opening-hours-days'); target.replaceChildren()
-  for (let index = 0; index < 7; index += 1) {
-    const day = index + 1, slot = schedules.find(value => value.dayOfWeek === day)
-    const row = document.createElement('div'); row.className = 'opening-hours-day'; row.dataset.day = String(day)
-    row.innerHTML = `<label><input class="day-enabled" type="checkbox" ${slot ? 'checked' : ''}/> ${DAY_NAMES[index]}요일</label><label class="closed"><input class="day-closed" type="checkbox" ${slot?.closed ? 'checked' : ''}/> 휴무</label><input class="day-start" type="time" value="${escapeHtml(slot?.startTime || '09:00')}"/><i>–</i><input class="day-end" type="time" value="${escapeHtml(slot?.endTime || '18:00')}"/>`
-    target.append(row)
-    row.querySelectorAll('input').forEach(input => input.addEventListener('change', syncFormState))
-  }
-}
-
-function syncFormState() {
-  const policy = $('opening-policy').value
-  const open24h = document.querySelector('[name="open24h"]:checked')?.value === 'true'
-  if (open24h && policy !== 'ALWAYS') $('opening-policy').value = 'ALWAYS'
-  const scheduleEnabled = $('opening-policy').value === 'SCHEDULED' && !open24h
-  document.querySelectorAll('.opening-hours-day').forEach(row => {
-    const enabled = row.querySelector('.day-enabled'); const closed = row.querySelector('.day-closed')
-    enabled.disabled = !scheduleEnabled
-    closed.disabled = !scheduleEnabled || !enabled.checked
-    row.querySelectorAll('input[type="time"]').forEach(input => { input.disabled = !scheduleEnabled || !enabled.checked || closed.checked })
-  })
-}
-
-function mountForm(detail) {
-  const value = confirmedValue(detail)
-  $('opening-policy').value = ['ALWAYS','SCHEDULED','IRREGULAR','CLOSED'].includes(value.openingPolicy) ? value.openingPolicy : 'SCHEDULED'
-  const open24h = value.open24h === true
-  document.querySelector(`[name="open24h"][value="${open24h}"]`).checked = true
-  $('holiday-policy').value = ['OPEN','CLOSED','UNKNOWN'].includes(value.holidayPolicy) ? value.holidayPolicy : 'UNKNOWN'
-  renderDays(value.schedules || [])
-  $('opening-policy').addEventListener('change', () => { if (['IRREGULAR','CLOSED'].includes($('opening-policy').value)) document.querySelector('[name="open24h"][value="false"]').checked = true; syncFormState() })
-  document.querySelectorAll('[name="open24h"]').forEach(input => input.addEventListener('change', syncFormState))
+function mountForm() {
+  globalThis.OpeningHoursEditor.bind(document.querySelector('#opening-hours-editor .hours-editor'))
   $('opening-hours-form').addEventListener('submit', event => { event.preventDefault(); void saveDetail() })
-  syncFormState()
 }
 
 async function loadDetail(patternKey) {
@@ -185,21 +148,11 @@ async function loadDetail(patternKey) {
   } catch (error) { if (sequence === detailSequence) $('opening-hours-detail').innerHTML = `<p class="opening-hours-error">${escapeHtml(error.message)}</p>` }
 }
 
-function schedulesFromForm() {
-  if ($('opening-policy').value !== 'SCHEDULED' || document.querySelector('[name="open24h"]:checked')?.value === 'true') return []
-  return [...document.querySelectorAll('.opening-hours-day')].filter(row => row.querySelector('.day-enabled').checked).map(row => {
-    const closed = row.querySelector('.day-closed').checked
-    const startTime = closed ? null : row.querySelector('.day-start').value
-    const endTime = closed ? null : row.querySelector('.day-end').value
-    return { dayOfWeek:Number(row.dataset.day), slotIndex:0, startTime, endTime, crossesMidnight:!closed && endTime <= startTime, closed }
-  })
-}
-
 async function saveDetail() {
   if (!currentDetail || saving) return
-  const schedules = schedulesFromForm(), policy = $('opening-policy').value
-  if (policy === 'SCHEDULED' && !schedules.length) { $('opening-hours-save-status').textContent = '요일별 운영에는 하나 이상의 운영 요일이 필요합니다.'; return }
-  const body = { openingPolicy:policy, open24h:document.querySelector('[name="open24h"]:checked')?.value === 'true', holidayPolicy:$('holiday-policy').value, schedules }
+  let body
+  try { body = globalThis.OpeningHoursEditor.read(document.querySelector('#opening-hours-editor .hours-editor')) }
+  catch (error) { $('opening-hours-save-status').textContent = error.message; return }
   saving = true; $('opening-hours-save').disabled = true; $('opening-hours-save-status').textContent = '확정값을 저장하는 중입니다.'
   try {
     const result = await request(`/api/admin/v1/opening-hours/patterns/${currentDetail.pattern.patternKey}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })

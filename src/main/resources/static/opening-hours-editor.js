@@ -13,7 +13,7 @@ globalThis.OpeningHoursEditor = (() => {
     return `<div class="hours-editor" data-allow-unknown="${allowUnknown}"><div class="hours-editor-controls"><label>운영 정책<select data-policy>${options({'':'미확인',...policies},policy)}</select></label><fieldset><legend>24시간 운영</legend><label><input type="radio" name="${esc(id)}-24h" data-open24h value="true"${hours?.open24h === true ? ' checked' : ''}>예</label><label><input type="radio" name="${esc(id)}-24h" data-open24h value="false"${hours?.open24h === true ? '' : ' checked'}>아니오</label></fieldset><label>공휴일 운영<select data-holiday>${options({UNKNOWN:'확인 필요',OPEN:'운영',CLOSED:'휴무'},hours?.holidayPolicy || 'UNKNOWN')}</select></label></div><div class="hours-editor-schedule"><div class="hours-editor-head"><span>요일</span><span>휴무</span><span>시작 · 종료</span></div>${days.map((name,index) => {
       const day = index + 1, slots = (hours?.schedules || []).filter(slot => slot.dayOfWeek === day).sort((a,b) => a.slotIndex - b.slotIndex)
       return `<div class="hours-editor-day" data-day="${day}"><label><input type="checkbox" data-enabled${slots.length ? ' checked' : ''}>${name}요일</label><label><input type="checkbox" data-closed${slots.some(slot => slot.closed) ? ' checked' : ''}>휴무</label><div class="hours-editor-times"><div data-slots>${(slots.filter(slot => !slot.closed).length ? slots.filter(slot => !slot.closed) : [{}]).map((slot,i) => slotMarkup(slot,day,i)).join('')}</div><button type="button" data-add>${name}요일 시간대 추가</button></div></div>`
-    }).join('')}</div><p class="hours-editor-help">요일별 운영은 확인한 요일만 선택하세요. 선택하지 않은 요일은 미확인으로 남습니다. 종료가 시작보다 이르면 익일 종료입니다.</p></div>`
+    }).join('')}</div><p class="hours-editor-help">요일별 운영은 확인한 요일만 선택하세요. 선택한 요일의 빈 첫 시간대에는 09:00~18:00이 입력됩니다. 선택하지 않은 요일은 미확인으로 남습니다. 종료가 시작보다 이르면 익일 종료입니다.</p></div>`
   }
   function sync(root) {
     const policy = root.querySelector('[data-policy]').value
@@ -40,6 +40,16 @@ globalThis.OpeningHoursEditor = (() => {
     root.onchange = event => {
       if (event.target.matches('[data-policy]') && event.target.value !== 'ALWAYS') root.querySelector('[data-open24h][value="false"]').checked = true
       if (event.target.matches('[data-open24h]') && event.target.value === 'true') root.querySelector('[data-policy]').value = 'ALWAYS'
+      if (event.target.matches('[data-enabled], [data-closed]') && root.querySelector('[data-policy]').value === 'SCHEDULED') {
+        const row = event.target.closest('[data-day]'), slots = row.querySelectorAll('[data-hours-slot]')
+        if (row.querySelector('[data-enabled]').checked && !row.querySelector('[data-closed]').checked && slots.length === 1) {
+          const start = slots[0].querySelector('[data-start]'), end = slots[0].querySelector('[data-end]')
+          if (!start.value && !end.value) {
+            start.value = '09:00'
+            end.value = '18:00'
+          }
+        }
+      }
       sync(root)
     }
     root.onclick = event => {

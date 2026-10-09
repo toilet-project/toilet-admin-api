@@ -12,16 +12,26 @@ class OpeningHoursStaticAssetTest {
         String home = resource("/static/index.html");
         String script = resource("/static/opening-hours.js");
         String shell = resource("/static/admin-shell.js");
+        String reports = resource("/static/reports.html");
+        String editor = resource("/static/opening-hours-editor.js");
+        String editorStyles = resource("/static/opening-hours-editor.css");
 
         assertThat(html)
                 .contains("개방시간 유형 검토")
-                .contains("공공데이터 원문");
+                .contains("공공데이터 원문")
+                .contains("/opening-hours-editor.js")
+                .contains("/opening-hours-editor.css");
+        assertThat(reports)
+                .contains("/opening-hours-editor.js")
+                .contains("/opening-hours-editor.css");
+        assertThat(editor).contains("data-day", "startTime", "endTime", "holidayPolicy");
+        assertThat(editorStyles).contains(".hours-editor");
         assertThat(script)
                 .contains("/api/admin/v1/opening-hours/patterns")
                 .contains("protectedCount")
                 .contains("일괄 적용 대상")
-                .contains("opening-hours-days")
-                .contains("schedulesFromForm")
+                .contains("OpeningHoursEditor.markup")
+                .contains("OpeningHoursEditor.read")
                 .contains("method:'PUT'");
         assertThat(shell)
                 .contains("'/opening-hours.html','개방시간 검토'")

@@ -38,6 +38,21 @@ class CollectorTest(unittest.TestCase):
         self.assertNotEqual(c.identify("NotGooglebot/1.0")[0], "Googlebot")
         self.assertIsNone(c.identify("Mozilla/5.0 Chrome/123 Safari/123")[0])
 
+    def test_ahrefs_names_are_exact_tokens_and_declared_only(self):
+        for name in ("AhrefsBot", "AhrefsSiteAudit"):
+            for ua in (name + "/7.0", name.upper() + "/7.0",
+                       "Mozilla/5.0 (compatible; " + name + "/7.0; +http://ahrefs.com/robot/)"):
+                self.assertEqual(c.identify(ua), (name, None))
+            for ua in ("Not" + name + "/7.0", name + "Fake/7.0", name + "-fake/7.0"):
+                self.assertNotEqual(c.identify(ua)[0], name)
+        self.log.write_bytes(line(ua="AhrefsBot/7.0") + line(ua="AhrefsSiteAudit/6.1"))
+        self.run_log(); self.run_log()
+        data = c.export(self.db, NOW, {})
+        self.assertEqual(sum(r['count'] for r in data['rows']), 2)
+        self.assertEqual({r['bot'] for r in data['rows']}, {"AhrefsBot", "AhrefsSiteAudit"})
+        self.assertEqual({r['verification'] for r in data['rows']}, {"declared"})
+        self.assertNotIn('AhrefsBot/7.0', json.dumps(data))
+
     def test_verification_requires_fresh_list_and_trusted_real_ip(self):
         self.assertEqual(self.verifier.check("naver","203.0.113.4",NOW),"verified")
         self.assertEqual(self.verifier.check("naver","198.51.100.4",NOW),"unmatched")

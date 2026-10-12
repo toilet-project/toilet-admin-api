@@ -45,6 +45,10 @@ BOTS = [
 ]
 BOTS = [(re.compile(r"(?:^|[\s;(])" + token + r"(?=[/\s;)]|$)", re.I), name, provider)
         for token, name, provider in BOTS]
+# Official UA tokens, not identity verification. Keep existing names first.
+ADDITIONAL_BOTS = [(re.compile(r"(?:^|[\s;(])" + token + r"(?=[/\s;)]|$)", re.I), name, None)
+                   for token, name in [(r"ahrefsbot", "AhrefsBot"),
+                                       (r"ahrefssiteaudit", "AhrefsSiteAudit")]]
 LINE = re.compile(r'^([^ ]+) \S+ \S+ \[([^\]]+)\] "((?:[^"\\]|\\.)*)" (\d{3}) (?:\d+|-) "(?:[^"\\]|\\.)*" "((?:[^"\\]|\\.)*)"(?: .*)?$')
 STATUSES = {"verified", "declared", "unmatched"}
 PATHS = {"home", "toilet_detail", "regions", "sitemap", "robots", "toilets_api",
@@ -76,8 +80,8 @@ def route_key(request):
     return "other"
 
 
-def identify(ua):
-    for pattern, name, provider in BOTS:
+def identify(ua, *, additional=True):
+    for pattern, name, provider in BOTS + (ADDITIONAL_BOTS if additional else []):
         if pattern.search(ua): return name, provider
     if re.search(r"bot|crawler|spider|headless|preview", ua, re.I):
         return "Other bot", None

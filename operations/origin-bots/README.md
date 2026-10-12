@@ -18,13 +18,47 @@ Cloudflare 차단 통계가 아니라 **미니 PC의 기존 Nginx access.log에 
 
 Baiduspider 및 render/image/video/news UA는 `Other bot` 대신 `Baiduspider`로 묶는다. Baidu 사이트 등록과는 무관하며 **이름만 확인**한 상태다. 공식 역방향·정방향 DNS 인증은 구현하지 않았고 로그 처리 중 새 DNS 요청도 하지 않는다. 관리자는 이 이름을 공식 IP 확인으로 표시하지 않는다.
 
-배포 시 관리자 허용 목록을 먼저 반영하고 수집기를 나중에 교체해야 한다. 구형 관리자는 새 봇 이름을 거부하므로 순서를 바꾸지 않는다. 복구 시에도 새 이름이 든 내보내기를 읽을 수 있는 관리자를 유지한다. 기존 집계·cursor는 보존하며 과거 `Other bot` 건수를 임의로 다시 나누거나 로그를 재처리하지 않는다. 실제 운영 반영 여부는 [WBS #124](https://github.com/toilet-project/toilet-admin-api/issues/124)에서 확인한다.
+배포 시 관리자 허용 목록을 먼저 반영하고 수집기를 나중에 교체해야 한다. 구형 관리자는 새 봇 이름을 거부하므로 순서를 바꾸지 않는다. 복구 시에도 새 이름이 든 내보내기를 읽을 수 있는 관리자를 유지한다. 기존 집계·cursor는 보존한다. 과거 이름 변경은 아래의 원본 대조 절차로만 진행한다. 실제 운영 반영 여부는 [WBS #124](https://github.com/toilet-project/toilet-admin-api/issues/124)에서 확인한다.
 
 ### Applebot 식별
 
 `Applebot` 이름과 [Apple 공식 CIDR 목록](https://search.developer.apple.com/applebot.json)을 대조한다. 이름만 일치하면 `이름만 확인`, 신뢰할 수 있는 실제 접속 IP가 신선한 공식 목록에 포함되면 `공식 IP 확인`으로 표시한다. Apple 소유의 전체 IP 대역을 허용하지 않으며, 목록 조회 실패·만료 시에는 이름 확인만 유지한다. `Applebot-Extended`는 별도 크롤러가 아닌 데이터 사용 제어용 이름이므로 Applebot으로 합치지 않는다.
 
-관리자 허용 목록 배포 후 수집기를 교체한다. 최초 적용 때 Apple 목록만 추가 갱신하고 기존 공식 목록·집계·cursor를 보존한다. 반영 이후 수집한 요청부터 Applebot으로 구분하며, 이미 저장된 `Other bot` 집계는 유지한다. 이름과 IP는 메모리에서만 비교하고 요청별 DNS 조회나 원문 저장은 추가하지 않는다.
+관리자 허용 목록 배포 후 수집기를 교체한다. 최초 적용 때 Apple 목록만 추가 갱신하고 기존 공식 목록·집계·cursor를 보존한다. 이름과 IP는 메모리에서만 비교하고 요청별 DNS 조회나 원문 저장은 추가하지 않는다.
+
+### Ahrefs 이름과 과거 Other bot 재분류
+
+[Ahrefs 공식 UA 안내](https://ahrefs.com/robot)의 `AhrefsBot`·`AhrefsSiteAudit`를 개별 이름으로 표시한다. 이름 앞뒤 경계를 검사해 `NotAhrefsBot` 같은 다른 토큰을 합치지 않는다. 공식 IP 검증은 추가하지 않으며 관리자도 두 이름을 항상 **이름만 확인**으로 표시한다.
+
+`reclassify.py plan`은 운영 SQLite를 읽기 전용으로 복사하고, 보관된 Nginx 로그 중 **이미 cursor가 소비한 바이트만** 대조한다. 시간·경로 유형·응답군별 기존 Other bot의 건수와 최초·마지막 시각이 모두 일치하는 구간만 이름별로 나눈다. 오류 건수·식별 상태·다른 봇·전체 요청 수·cursor·기존 메타데이터는 유지한다. 누락되거나 맞지 않는 구간은 추정하지 않고 남긴다. 이미 처리한 구간을 다시 실행해도 중복 이동하지 않는다. 이전에 봇으로 집계하지 않은 UA는 과거 합계에 새로 더하지 않는다.
+
+- 소급 범위는 기존 집계의 최근 35일과 실제 보존 로그가 겹치는 구간이다. 원본 없는 기록은 복원할 수 없다. 현재 도구는 새로 추가한 Ahrefs 이름만 분리한다.
+- 계획·사본에는 허용된 집계만 저장한다. IP·UA·정확한 URL·쿼리는 저장하지 않는다. 요청 차단 정책, Workers 설정, 사람의 방문 통계, MySQL은 변경하지 않는다.
+- 읽기 전용 계획은 운영 중에도 만들 수 있다. 운영 적용 때는 별도 승인 후 관리자 배포를 확인하고 timer를 중지해 진행 중 수집이 끝나기를 기다린 뒤 **계획을 다시 생성**한다. 정지 상태에서 원본 수집기와 내보내기도 별도 백업한다.
+- `apply --apply-approved`는 수집기와 같은 잠금을 잡고 계획·현재 상태가 조금이라도 달라지면 중단한다. 사전 SQLite 백업 후 한 트랜잭션으로 집계만 반영한다. 새 수집기를 설치한 뒤 timer를 재개하고 관리자 조회·새 요청 증가·중복 없음·부분 기록 해제를 확인한다. 정지 중 들어온 요청은 남은 로그에서 이어서 수집한다.
+- DB 반영 후 JSON 쓰기에 실패하면 SQLite 백업과 계획을 보존한다. 승인된 새 수집기를 실행해 내보내기를 재생성하고 검증한다. 임의로 재적용하거나 cursor를 초기화하지 않는다. 복구가 필요하면 timer 정지·잠금 하에 이전 DB/cursor와 수집기를 함께 복원한 뒤 보존 로그를 이어 읽는다. 새 이름을 읽을 수 있는 관리자 버전은 유지한다.
+
+```sh
+python3 reclassify.py plan --database "$STATE/aggregates.sqlite" --log /var/log/nginx/access.log --output "$PLAN"
+# 별도 운영 승인 및 timer 정지 후 새로 만든 계획에만 실행
+python3 reclassify.py apply --database "$STATE/aggregates.sqlite" --output "$PLAN" --export "$EXPORT" --apply-approved
+```
+
+검수용 `OriginBotPreviewServer`는 테스트 클래스패스에서만 실행하며, 실제 관리자 판독기와 화면 코드로 재분류 집계 사본을 조회한다. 운영 DB 연결·쓰기·원문 로그 공개는 없다. 공개 연결이 승인되면 `preview.geupddong.com`의 기존 관리자 인증 프리뷰 게이트웨이를 경로 분리해 사용하고 관리자 권한·임시 만료·비공개 캐시 금지를 유지한다. 내부 프리뷰 검증을 공개 연결 완료로 표시하지 않는다.
+
+### AhrefsBot 향후 접근 차단
+
+2026-10-11 사용자 요청으로 Cloudflare의 `Block AhrefsBot - public web and API` 사용자 지정 WAF 규칙을 활성화했다. 별도 규칙이며 기존 AI 봇 차단 규칙은 수정하지 않았다.
+
+```text
+(http.host in {"geupddong.com" "www.geupddong.com" "api.geupddong.com"} and lower(http.user_agent) contains "ahrefsbot")
+```
+
+동작은 `Block`이다. 공개 웹·API에서 AhrefsBot UA를 대소문자 구분 없이 거절한다. IP·ASN 전체 차단이나 전체 봇 차단은 하지 않는다. AhrefsSiteAudit는 이 조건에 포함되지 않는다. 규칙은 Cloudflare 설정이므로 관리자·웹 코드 배포로 사라지지 않는다. 복구가 필요하면 이 규칙만 비활성화한다.
+
+실제 읽기 요청으로 AhrefsBot의 웹·API 403, 일반 브라우저와 Googlebot·Bingbot·Yeti·Applebot·AhrefsSiteAudit의 robots.txt 200을 확인했다. UA를 바꾼 시험은 조건 적용 확인이며 해당 업체의 실제 신원 인증을 뜻하지 않는다. UA를 숨기거나 바꾼 요청은 이 규칙만으로 막을 수 없다.
+
+앞으로 Cloudflare에서 차단한 요청은 원본 Nginx 집계에 도달하지 않으므로 이 화면에서 증가하지 않는다. 차단 추이는 Cloudflare 보안 이벤트의 해당 규칙에서 확인한다. 과거 이름 분류·소급 집계 반영은 별도 배포 작업이다.
 
 ## 개인정보·성능 경계
 

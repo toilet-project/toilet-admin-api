@@ -1,3 +1,4 @@
+const authPageRoot = document.getElementById('reports-shell')
 const el = (id) => document.getElementById(id)
 const API_BASE = 'https://api.geupddong.com'
 const PAGE_SIZE = 20
@@ -51,8 +52,26 @@ async function reviewReport(report, action) {
     buttonStates.forEach(([button, disabled]) => { button.disabled = disabled })
   }
 }
-function showLoginPage(title, description) { el('loading-shell').hidden = true; el('reports-shell').hidden = true; el('auth-shell').hidden = false; el('auth-title').textContent = title; el('auth-description').textContent = description }
+function showLoginPage(status) {
+  AdminAuth.reject(status, authPageRoot)
+}
 function filters() { return { keyword: el('report-search').value.trim(), status: el('report-status-filter').value, from: el('report-from').value, to: el('report-to').value, sort: el('report-sort').value } }
-async function loadReports(page = 0) { const status = el('report-list-status'); status.className = 'status'; status.textContent = '제보를 불러오는 중입니다.'; try { const query = new URLSearchParams({ ...filters(), page: String(Math.max(page, 0)), size: String(PAGE_SIZE) }); const response = await fetch(`${API_BASE}/api/admin/v1/reports/search?${query}`, { credentials: 'include' }); if (!response.ok) { if (response.status === 401) return showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.'); if (response.status === 403) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.'); throw new Error('제보 목록을 불러오지 못했습니다.') } const data = await response.json(); reports = data.items; currentPage = data.page; totalPages = data.totalPages; totalReports = data.totalElements; renderReports(); status.textContent = totalReports ? `${reportStatusLabel(filters().status) || '전체'} 제보 ${totalReports}건 · ${currentPage + 1}페이지` : '표시할 제보가 없습니다.'; const requested = selectedReportId ?? selectedIdFromUrl(); if (requested) await selectReport(requested) } catch (error) { reports = []; totalReports = totalPages = 0; renderReports(); status.className = 'status is-error'; status.textContent = error.message ?? '제보 목록을 불러오지 못했습니다.' } }
-async function bootstrap() { try { const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' }); if (response.status === 401) return showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.'); if (!response.ok) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.'); const profile = await response.json(); if (!profile.roles?.includes('ADMIN')) return showLoginPage('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.'); el('loading-shell').hidden = true; el('reports-shell').hidden = false; el('report-search').addEventListener('input', () => { window.clearTimeout(searchTimer); searchTimer = window.setTimeout(() => void loadReports(0), 250) }); ['report-status-filter', 'report-from', 'report-to', 'report-sort'].forEach((id) => el(id).addEventListener('change', () => void loadReports(0))); el('report-refresh').addEventListener('click', () => void loadReports(0)); await loadReports() } catch { showLoginPage('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.') } }
+async function loadReports(page = 0) { const status = el('report-list-status'); status.className = 'status'; status.textContent = '제보를 불러오는 중입니다.'; try { const query = new URLSearchParams({ ...filters(), page: String(Math.max(page, 0)), size: String(PAGE_SIZE) }); const response = await fetch(`${API_BASE}/api/admin/v1/reports/search?${query}`, { credentials: 'include' }); if (!response.ok) { if (response.status === 401) return showLoginPage(401); if (response.status === 403) return showLoginPage(403); throw new Error('제보 목록을 불러오지 못했습니다.') } const data = await response.json(); reports = data.items; currentPage = data.page; totalPages = data.totalPages; totalReports = data.totalElements; renderReports(); status.textContent = totalReports ? `${reportStatusLabel(filters().status) || '전체'} 제보 ${totalReports}건 · ${currentPage + 1}페이지` : '표시할 제보가 없습니다.'; const requested = selectedReportId ?? selectedIdFromUrl(); if (requested) await selectReport(requested) } catch (error) { reports = []; totalReports = totalPages = 0; renderReports(); status.className = 'status is-error'; status.textContent = error.message ?? '제보 목록을 불러오지 못했습니다.' } }
+async function bootstrap() {
+  try {
+    if (!await AdminAuth.start(authPageRoot)) return
+    el('report-search').addEventListener('input', () => {
+      window.clearTimeout(searchTimer)
+      searchTimer = window.setTimeout(() => void loadReports(0), 250)
+    })
+    for (const id of ['report-status-filter', 'report-from', 'report-to', 'report-sort']) {
+      el(id).addEventListener('change', () => void loadReports(0))
+    }
+    el('report-refresh').addEventListener('click', () => void loadReports(0))
+    await loadReports()
+  } catch {
+    if (!authPageRoot.isConnected) return
+    el('report-list-status').textContent = '화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.'
+  }
+}
 bootstrap()

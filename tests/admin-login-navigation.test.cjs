@@ -3,13 +3,14 @@ const path = require('node:path')
 const vm = require('node:vm')
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
+const { installAuth } = require('./helpers/admin-auth.cjs')
 
 const staticRoot = path.resolve(__dirname, '../src/main/resources/static')
 const html = fs.readFileSync(path.join(staticRoot, 'index.html'), 'utf8')
 const source = fs.readFileSync(path.join(staticRoot, 'dashboard.js'), 'utf8')
 const model = fs.readFileSync(path.join(staticRoot, 'admin-home-model.js'), 'utf8')
 const homeMarkup = html.slice(html.indexOf('<main class="dashboard-shell home-shell"'), html.lastIndexOf('</main>'))
-const allIds = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1])
+const allIds = ['auth-retry', ...[...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1])]
 const homeIds = [...homeMarkup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1])
 const destinationHtml = fs.readFileSync(path.join(staticRoot, 'toilets.html'), 'utf8')
 const destinationMarkup = destinationHtml.slice(destinationHtml.indexOf('<main id="toilet-shell"'), destinationHtml.lastIndexOf('</main>'))
@@ -91,6 +92,7 @@ async function workspace({delayedPath, delayJson = false, delayedStatus = 200, a
       } }
     },
   })
+  installAuth(context)
   vm.runInContext(model, context, {filename: 'admin-home-model.js'})
   assert(/\bbootstrap\(\)\s*$/.test(source))
   vm.runInContext(source.replace(/\bbootstrap\(\)\s*$/, 'globalThis.bootstrapResult = bootstrap()'), context, {filename: 'dashboard.js'})
@@ -141,7 +143,7 @@ for (const delayedPath of homeEndpoints) {
     assert.equal(view.elements.get('auth-shell').hidden, true)
     view.navigate()
     assert.equal(view.elements.get('refresh').disabled, false, 'The shared refresh button remains usable on the destination')
-    assert(view.requests.every(request => request.signal?.aborted), 'All home requests are cancelled')
+    assert(view.requests.filter(request => request.pathname !== '/api/v1/auth/me').every(request => request.signal?.aborted), 'All home requests are cancelled')
     view.release()
     await view.finished()
     assert.equal(view.elements.get('auth-shell').hidden, true)
@@ -176,6 +178,15 @@ test('retry after an authentication connection failure rechecks the profile and 
   assert.equal(view.requests.filter(request => request.pathname === '/api/v1/auth/me').length, 2)
 })
 
+test('a data-service failure keeps the verified session and reports a page error', async () => {
+  const view = await workspace({delayedPath: '/api/admin/v1/dashboard', delayedStatus: 503})
+  view.release()
+  await view.finished()
+  assert.equal(view.context.AdminAuth.getState().status, 'authenticated')
+  assert.equal(view.elements.get('auth-shell').hidden, true)
+  assert.equal(view.elements.get('dashboard-shell').hidden, false)
+})
+
 test('navigation also ignores a response whose JSON parsing completes late', async () => {
   const view = await workspace({delayedPath: homeEndpoints[0], delayJson: true})
   view.navigate()
@@ -202,9 +213,11 @@ for (const options of [{authStatus: 503}, {authError: new TypeError('Network una
   test(`authentication connection failure keeps retry available without requesting a second login (${options.authStatus || 'network'})`, async () => {
     const view = await workspace(options)
     await view.finished()
-    assert.equal(view.elements.get('auth-shell').hidden, true)
-    assert.equal(view.elements.get('dashboard-shell').hidden, false)
-    assert.match(view.elements.get('home-status').textContent, /로그인 상태.*확인.*새로고침/)
+    assert.equal(view.elements.get('auth-shell').hidden, false)
+    assert.equal(view.elements.get('dashboard-shell').hidden, true)
+    assert.equal(view.context.AdminAuth.getState().status, 'unavailable')
+    assert.equal(view.elements.get('auth-retry').hidden, false)
+    assert.match(view.elements.get('auth-title').textContent, /로그인 상태.*확인하지 못했습니다/)
     assert.equal(view.elements.get('refresh').disabled, false)
     assert.equal(typeof view.context.window.AdminHomeRefresh, 'function')
     assert.equal(view.requests.length, 1, 'Home data is not fetched before ADMIN authentication')

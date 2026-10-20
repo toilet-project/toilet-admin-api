@@ -40,7 +40,7 @@ const server=http.createServer(async(req,res)=>{
     if(assets.has(path.slice(1))){
       const file=path.slice(1),extension=extname(file);let content=await readFile(resolve(sourceRoot,file))
       if(extension==='.html')content=content.toString().replace(/<script src="\/admin-session\.js[^\"]*"><\/script>/g,'').replaceAll('href="/',`href="${PREFIX}/`).replaceAll('src="/',`src="${PREFIX}/`).replace('<body class="admin-page">','<body class="admin-page"><div style="padding:10px;text-align:center;background:#fff3cc;color:#634a00">시험 관리자 · 실제 공개 시설 / 별도 시험 제보 · 시설 조치도 시험 DB에만 반영됩니다.</div>')
-      if(extension==='.js')content=content.toString().replaceAll("'https://api.geupddong.com'",`'${PREFIX}'`).replaceAll("fetch('/api/admin/v1/map-config')",`fetch('${PREFIX}/api/admin/v1/map-config')`).replaceAll('href="/reports.html"',`href="${PREFIX}/reports.html"`)
+      if(extension==='.js')content=content.toString().replaceAll("https://api.geupddong.com",PREFIX).replaceAll("fetch('/api/admin/v1/map-config')",`fetch('${PREFIX}/api/admin/v1/map-config')`).replaceAll('href="/reports.html"',`href="${PREFIX}/reports.html"`)
       if(file==='admin-shell.js')content=content.toString().replaceAll('href="${href}"','href="/admin-reports/reports.html"')
       if(extension==='.css')content=content.toString().replaceAll("url('/brand/",`url('${PREFIX}/brand/`)
       const type={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png'}[extension]

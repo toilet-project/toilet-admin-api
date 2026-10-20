@@ -50,9 +50,7 @@
   frame.querySelector('a[href="/data-quality.html"]')?.insertAdjacentHTML('afterend', nav('duplicate-names','/duplicate-names.html','중복 이름 품질 관리','scan'))
   main.parentNode.insertBefore(frame, main)
   frame.querySelector('.admin-workspace').append(main)
-  const syncVisibility = () => { frame.hidden = main.hidden }
-  new MutationObserver(syncVisibility).observe(main, { attributes: true, attributeFilter: ['hidden'] })
-  syncVisibility()
+  // Authentication owns frame visibility; the shell only owns layout and navigation.
 
   const input = frame.querySelector('.admin-search input')
   const results = frame.querySelector('.admin-search-results')
@@ -89,7 +87,6 @@
   routeNames.add('/api-usage')
   pageStyleNames.add('api-usage.css')
   pageStyleNames.add('duplicate-names.css')
-  let visibilityObserver = null
 
   const normalizedRoute = (pathname) => {
     const withoutPreview = pathname.replace(/^\/preview(?=\/|$)/, '') || rootRoute
@@ -100,14 +97,6 @@
   const isInternalRoute = (url) => url.origin === window.location.origin && routeNames.has(normalizedRoute(url.pathname))
   const routeKey = (url) => `${url.origin}${url.pathname}`
   const assetName = (pathname) => pathname.slice(pathname.lastIndexOf(rootRoute) + 1)
-
-  const observeVisibility = (target) => {
-    visibilityObserver?.disconnect()
-    const sync = () => { frame.hidden = target.hidden }
-    visibilityObserver = new MutationObserver(sync)
-    visibilityObserver.observe(target, { attributes: true, attributeFilter: ['hidden'] })
-    sync()
-  }
 
   const ensureIconAliases = () => {
     const sprite = frame.querySelector('.admin-icon-sprite')
@@ -172,7 +161,7 @@
 
   const pageScripts = (nextDocument, destination) => [...nextDocument.querySelectorAll('script[src]')]
     .map(script => new URL(script.getAttribute('src'), destination))
-    .filter(url => !['admin-shell.js', 'admin-session.js', 'admin-responsive.js', 'responsive-bridge.js', 'admin-preview-runtime.js'].includes(assetName(url.pathname)))
+    .filter(url => !['admin-auth.js', 'admin-shell.js', 'admin-session.js', 'admin-responsive.js', 'responsive-bridge.js', 'admin-preview-runtime.js'].includes(assetName(url.pathname)))
 
   const executePageScripts = async (nextDocument, destination, sequence) => {
     for (const original of pageScripts(nextDocument, destination)) {
@@ -236,7 +225,6 @@
       main.replaceWith(nextMain)
       main = nextMain
       syncChrome(destination, nextMain, nextDocument)
-      observeVisibility(nextMain)
       ensureIconAliases()
       removeOldStyles()
       window.scrollTo({ top: 0, behavior: 'instant' })
@@ -271,7 +259,6 @@
     if (pageStyleNames.has(assetName(new URL(link.href).pathname))) link.dataset.adminRouteStyle = 'true'
   })
   ensureIconAliases()
-  observeVisibility(main)
   window.AdminNavigation = Object.freeze({ go })
   frame.dataset.adminNavigation = 'ready'
 })()

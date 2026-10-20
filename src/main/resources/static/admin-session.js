@@ -1,5 +1,4 @@
 (() => {
-  const API_BASE = 'https://api.geupddong.com'
   const actions = document.querySelector('.admin-topbar-actions')
   if (!actions || actions.querySelector('.admin-session-controls')) return
 
@@ -21,7 +20,6 @@
   const logoutButton = controls.querySelector('[data-session-logout]')
   let expiresAt = null
   let messageTimer = 0
-  let expiryRedirectStarted = false
 
   function showMessage(message) {
     let target = document.querySelector('.admin-session-message')
@@ -40,17 +38,8 @@
   function setExpiry(value) {
     const parsed = new Date(value)
     expiresAt = Number.isNaN(parsed.getTime()) ? null : parsed.getTime()
-    expiryRedirectStarted = false
     controls.hidden = false
     render()
-  }
-
-  function redirectToLogin() {
-    if (expiryRedirectStarted) return
-    expiryRedirectStarted = true
-    extendButton.disabled = true
-    extendButton.textContent = '세션 만료'
-    window.setTimeout(() => window.location.reload(), 150)
   }
 
   function render() {
@@ -66,34 +55,25 @@
     controls.classList.toggle('is-expired', seconds === 0)
     if (seconds === 0) {
       remaining.textContent = '만료'
-      redirectToLogin()
     }
   }
 
-  async function profile() {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })
-    if (!response.ok) return false
-    const data = await response.json()
-    if (!data.roles?.includes('ADMIN')) return false
-    setExpiry(data.accessTokenExpiresAt)
-    return true
-  }
+  AdminAuth.subscribe(({ status, profile }) => {
+    controls.hidden = status !== 'authenticated'
+    if (status === 'authenticated') setExpiry(profile.accessTokenExpiresAt)
+    else expiresAt = null
+  })
 
   extendButton.addEventListener('click', async () => {
-    if (expiresAt == null || expiresAt <= Date.now()) {
-      redirectToLogin()
-      return
-    }
     extendButton.disabled = true
     extendButton.textContent = '연장 중…'
     try {
-      const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, { method: 'POST', credentials: 'include' })
-      if (!response.ok || !await profile()) throw new Error('refresh failed')
+      if (!await AdminAuth.refresh()) throw new Error('refresh failed')
       extendButton.textContent = '연장 완료'
-      showMessage('로그인 시간이 30분으로 연장됐습니다.')
+      showMessage('로그인 시간이 연장됐습니다.')
     } catch {
       extendButton.textContent = '연장 실패'
-      showMessage('로그인 연장에 실패했습니다. 다시 로그인해 주세요.')
+      showMessage('로그인 연장에 실패했습니다. 연결 상태를 확인하고 다시 시도해 주세요.')
     } finally {
       window.setTimeout(() => { extendButton.textContent = '로그인 연장'; extendButton.disabled = false }, 1200)
     }
@@ -103,13 +83,13 @@
     logoutButton.disabled = true
     logoutButton.textContent = '로그아웃 중…'
     try {
-      await fetch(`${API_BASE}/api/v1/auth/logout`, { method: 'POST', credentials: 'include' })
+      await AdminAuth.logout()
     } finally {
-      window.location.assign('/')
+      logoutButton.disabled = false
+      logoutButton.textContent = '로그아웃'
     }
   })
 
   window.setInterval(render, 1000)
   document.addEventListener('visibilitychange', () => { if (!document.hidden) render() })
-  void profile().catch(() => {})
 })()

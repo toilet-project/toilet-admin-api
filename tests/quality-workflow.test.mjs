@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {createContext, runInContext} from 'node:vm'
 import test from 'node:test'
+import { installAuth } from './helpers/admin-auth.cjs'
 
 const root = new URL('../src/main/resources/static/', import.meta.url)
 const qualitySource = readFileSync(new URL('data-quality.js', root), 'utf8')
@@ -281,6 +282,11 @@ test('a working row is not duplicated when it remains in the server page at a ne
 
 test('authentication loss clears working rows and invalidates late list responses',async()=>{
   const h=regionFixture();h.server.items=[row(1)];h.server.totalElements=1;h.server.totalPages=1
+  const { auth } = installAuth(h.context)
+  const originalFetch = h.context.fetch
+  h.context.fetch = async () => response({roles:['ADMIN']})
+  await auth.start(h.node('region-shell'))
+  h.context.fetch = originalFetch
   await h.context.loadList();await h.context.loadDetail(1)
   let resolveOld;h.server.listReply=()=>new Promise(resolve=>{resolveOld=resolve})
   const pending=h.context.loadList();h.context.showLogin(401)

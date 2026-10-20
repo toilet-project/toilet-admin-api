@@ -620,11 +620,7 @@
     button.title = state.excludeBots ? '끄면 보관 중인 봇 분석 이벤트도 포함합니다.' : '켜면 봇으로 분류된 분석 이벤트를 제외합니다.';
   }
   function showLogin(forbidden) {
-    root.hidden = true;
-    $('auth-shell').hidden = false;
-    $('auth-description').textContent = forbidden
-      ? '관리자 권한이 필요합니다.'
-      : '승인된 관리자 계정으로 로그인해 주세요.';
+    AdminAuth.reject(forbidden ? 403 : 401, root);
   }
   function applyFilter(type, value) {
     if (state.busy) return;
@@ -894,12 +890,5 @@
   }).format(new Date());
   $('analytics-from').max = today;
   $('analytics-to').max = today;
-  fetch('https://api.geupddong.com/api/v1/auth/me', { credentials: 'include' })
-    .then(async (r) => {
-      if (!r.ok) return showLogin(r.status === 403);
-      const p = await r.json();
-      if (!p.roles?.includes('ADMIN')) return showLogin(true);
-      load();
-    })
-    .catch(() => showLogin(false));
+  void AdminAuth.start(root).then(profile => { if (profile) return load(); });
 })();

@@ -4,7 +4,7 @@ export const AUTH_URL = 'https://api.geupddong.com/__api-usage-preview-auth'
 const SESSION = '__Secure-ApiUsagePreview'
 const STATE = '__Secure-ApiUsagePreviewState'
 const encoder = new TextEncoder()
-const assets = new Set(['api-usage.html', 'api-usage.js', 'api-usage-math.js', 'api-usage.css', 'dashboard.css', 'admin-shell.js', 'admin-shell.css', 'admin-session.css', 'brand.css', 'brand/hangul-point-v1/lockup-ko.svg', 'brand/hangul-point-v1/favicon.svg'])
+const assets = new Set(['admin-auth.js', 'admin-auth.css', 'api-usage.html', 'api-usage.js', 'api-usage-math.js', 'api-usage.css', 'dashboard.css', 'admin-shell.js', 'admin-shell.css', 'admin-session.css', 'brand.css', 'brand/hangul-point-v1/lockup-ko.svg', 'brand/hangul-point-v1/favicon.svg'])
 const endpoints = new Set(['/preview-auth', '/api/admin/v1/api-usage', '/api/admin/v1/api-usage/estimate', '/api/admin/v1/api-usage/history'])
 const headers = { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.geupddong.com; frame-ancestors 'none'; form-action 'self'; base-uri 'none'" }
 const reply = (status, message) => new Response(JSON.stringify({ message }), { status, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' } })
@@ -128,7 +128,8 @@ export function createHandler(fetcher = fetch, now = () => Date.now()) {
       if (type.startsWith('image/')) return new Response(upstream.body, { status: upstream.status, headers: { ...headers, 'Content-Type': type } })
       let body = await upstream.text()
       if (type.includes('text/html')) body = body.replaceAll('href="/', `href="${PREFIX}/`).replaceAll('src="/', `src="${PREFIX}/`)
-      if (target === '/api-usage.js') body = body.replaceAll('/api/admin/v1/api-usage', PREFIX + '/api/admin/v1/api-usage').replaceAll('/api/v1/auth/me', PREFIX + '/preview-auth')
+      if (target === '/api-usage.js') body = body.replaceAll('/api/admin/v1/api-usage', PREFIX + '/api/admin/v1/api-usage')
+        .replace('AdminAuth.start(main)', `AdminAuth.start(main, {profileUrl: '${PREFIX}/preview-auth'})`)
       if (target === '/admin-shell.js') body = body.replaceAll("'/api-usage.html'", "'"+PREFIX+"/api-usage.html'").replaceAll('src="/brand/', 'src="'+PREFIX+'/brand/')
       return new Response(body, { status: upstream.status, headers: { ...headers, 'Content-Type': type } })
     } catch { return reply(503, '프리뷰 인증 또는 연결이 지연됩니다. 잠시 후 다시 시도해 주세요.') }

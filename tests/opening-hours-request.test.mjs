@@ -14,7 +14,7 @@ for (const [payload, message] of [
   test(`저장 실패 사유를 전달한다: ${message}`, async () => {
     const context = createContext({
       location: { hostname: 'admin.geupddong.com', pathname: '/opening-hours.html' },
-      document: { addEventListener() {} },
+      document: { getElementById() { return null }, addEventListener() {} },
       fetch: async () => ({ ok: false, status: 400, json: async () => payload }),
     })
     runInContext(source, context)

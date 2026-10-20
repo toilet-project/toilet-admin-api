@@ -1,3 +1,4 @@
+const authPageRoot = document.getElementById('change-review-shell')
 const LOCAL_DUPLICATE_PREVIEW = location.hostname === '127.0.0.1' && location.port === '8796'
 const DUPLICATE_PREVIEW_ROOT = location.hostname === 'preview.geupddong.com' && location.pathname.startsWith('/admin-duplicates/') ? '/admin-duplicates' : ''
 const ISOLATED_DUPLICATE_PREVIEW = LOCAL_DUPLICATE_PREVIEW || !!DUPLICATE_PREVIEW_ROOT
@@ -371,29 +372,18 @@ async function mountMap(detail, sequence) {
   }
 }
 
-function showLogin(status) {
-  const title = $('auth-title')
-  const description = $('auth-description')
-  if (title) title.textContent = status === 403 ? '관리자 권한이 필요합니다' : '관리자 로그인'
-  if (description) description.textContent = status === 403 ? '관리자 권한이 있는 계정으로 다시 로그인해 주세요.' : '승인된 관리자 계정으로 로그인해 주세요.'
-  $('auth-shell').hidden = false
-  $('change-review-shell').hidden = true
-}
-
 async function start() {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials:ISOLATED_DUPLICATE_PREVIEW?'omit':'include' })
-    if (response.status === 401) return showLogin(401)
-    if (!response.ok) return showLogin(403)
-    const profile = await response.json()
-    if (!profile.roles?.includes('ADMIN')) return showLogin(403)
+    if (!await AdminAuth.start(authPageRoot, { profileUrl: `${API_BASE}/api/v1/auth/me`, credentials: ISOLATED_DUPLICATE_PREVIEW ? 'omit' : 'include' })) return;
     $('change-keyword').addEventListener('input', () => { window.clearTimeout(searchTimer); searchTimer = window.setTimeout(() => void loadList(0), 260) })
     $('change-status').addEventListener('change', () => void loadList(0))
     $('change-period').addEventListener('change', () => void loadList(0))
     $('change-refresh').addEventListener('click', () => { void loadList(currentPage); if (selectedId) void loadDetail(selectedId) })
     await loadList()
   } catch {
-    showLogin(401)
+    if (!authPageRoot.isConnected) return
+    const status = document.getElementById('change-list-status')
+    if (status) status.textContent = '화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.'
   }
 }
 

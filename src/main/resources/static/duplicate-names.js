@@ -276,7 +276,7 @@
   $('dn-clear-selection').onclick=()=>{if(saving)return;representative=null;selected.clear();renderRows()}
   if(localPreview)$('dn-map-form').onsubmit=async event=>{event.preventDefault();try{await post('/preview/map-config',{javascriptKey:$('dn-map-key').value.trim()});$('dn-map-key').value='';mapsReady=null;$('dn-map-status').textContent='기존 JavaScript 지도 설정을 연결했습니다.';$('dn-map-settings').open=false;if(detailId)await detail()}catch(e){$('dn-map-status').textContent=e.message}}
   async function start(){try{if(isolatedPreview){const meta=await request('/preview/status');$('dn-preview').hidden=false;$('dn-preview').textContent=meta.realApi?`실제 API·배치 코드 + 별도 MySQL · 공개 시설 ${meta.facilityCount.toLocaleString()}개 사본 · 지역 검증 자료 ${meta.regionSourceDate||'미연결'} 기준 · 시험 관리자 · 운영 DB 변경 없음`:`실제 공개 시설 정보 기반 · ${meta.sourceDate} 수집본 · 가상 관리자 / 시험 저장만 가능 · 운영 DB 연결 없음`;$('dn-map-settings').hidden=!localPreview}
-    const me=await request('/api/v1/auth/me');if(!me.roles?.includes('ADMIN'))throw new Error('관리자 권한이 필요합니다.');$('dn-cleanup-open').hidden=isolatedPreview;await groups()
+    if(!await AdminAuth.start(document.querySelector('main[data-admin-page]'),{profileUrl:base+'/api/v1/auth/me',credentials:isolatedPreview?'omit':'include'}))return;$('dn-cleanup-open').hidden=isolatedPreview;await groups()
   }catch(e){message(e.message)}}
   void start()
 })();

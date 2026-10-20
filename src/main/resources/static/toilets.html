@@ -1,6 +1,7 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-admin-auth="checking">
 <head>
+  <link rel="stylesheet" href="/admin-auth.css?v=1" />
   <script src="/admin-responsive.js?v=3"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,9 +15,10 @@
   <link rel="stylesheet" href="/admin-responsive.css?v=3" />
 </head>
 <body class="admin-page toilet-data-page">
-<main id="loading-shell" class="page-loading" aria-live="polite" hidden><span class="loading-spinner" aria-hidden="true"></span><p>불러오는 중...</p></main>
+<noscript><p>관리자 페이지를 사용하려면 JavaScript를 켜 주세요.</p></noscript>
+<main id="loading-shell" class="page-loading" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>로그인 상태 확인 중...</p></main>
 <main id="auth-shell" class="auth-shell" hidden><section class="login-card"><span class="admin-login-brand" role="img" aria-label="급똥">급똥</span><p class="eyebrow">GEUPDDONG ADMIN</p><h1 id="auth-title">관리자 로그인</h1><p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p><div class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div></section></main>
-<main id="toilet-shell" class="dashboard-shell toilet-data-shell" data-admin-page="toilets" data-admin-title="화장실 데이터">
+<main id="toilet-shell" class="dashboard-shell toilet-data-shell" data-admin-page="toilets" data-admin-title="화장실 데이터" hidden>
   <header class="page-header admin-header-tools toilet-data-header"><div><p class="eyebrow">DATA CATALOG</p><h1>화장실 데이터</h1><p>운영 화장실을 검색하고 지도 위치와 서비스 정보를 한 화면에서 확인·수정합니다.</p></div><a class="secondary-link" href="https://geupddong.com/" target="_blank" rel="noreferrer">사용자 지도 열기</a></header>
   <section class="panel toilet-data-workspace" aria-busy="true">
     <div class="toilet-search-area">
@@ -43,6 +45,6 @@
     </div>
   </section>
 </main>
-<script src="/admin-shell.js?v=13"></script><script src="/admin-session.js?v=2"></script><script src="/toilets.js?v=2"></script>
+<script src="/admin-auth.js?v=1"></script><script src="/admin-shell.js?v=14"></script><script src="/admin-session.js?v=3"></script><script src="/toilets.js?v=3"></script>
 </body>
 </html>

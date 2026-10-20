@@ -1,5 +1,4 @@
 (() => {
-  const API_BASE = 'https://api.geupddong.com'
   const main = document.querySelector('#workspace-shell')
   const page = main?.dataset.adminPage
   const byId = (id) => document.getElementById(id)
@@ -9,13 +8,6 @@
   const monthDay = (value) => value ? new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' }).format(parseKoreanDate(value)) : '—'
   const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date())
 
-  function showLogin(title, description) {
-    byId('loading-shell').hidden = true
-    main.hidden = true
-    byId('auth-shell').hidden = false
-    byId('auth-title').textContent = title
-    byId('auth-description').textContent = description
-  }
 
   async function json(url) {
     const response = await fetch(url, { credentials: 'include' })
@@ -59,18 +51,13 @@
 
   async function bootstrap() {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })
-      if (response.status === 401) return showLogin('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
-      if (!response.ok) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.')
-      const profile = await response.json()
-      if (!profile.roles?.includes('ADMIN')) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.')
-      byId('loading-shell').hidden = true
-      main.hidden = false
+      if (!await AdminAuth.start(main)) return
       if (page === 'toilets') await loadToilets()
       if (page === 'operations') await loadOperations()
       if (page === 'cloudflare') await loadCloudflare()
     } catch {
-      showLogin('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
+      if (!main.isConnected) return
+      setText('workspace-status', '화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.')
     }
   }
 

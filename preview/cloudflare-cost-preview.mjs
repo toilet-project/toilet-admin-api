@@ -43,11 +43,11 @@ http.createServer(async (req,res) => {
     const file = path.resolve(assets, '.' + decodeURIComponent(name))
     if (!file.startsWith(assets + path.sep) || !mime[path.extname(file)]) {res.writeHead(404).end();return}
     let body = await fs.readFile(file)
-    if(name==='/api-usage.js')body=body.toString().replace('https://api.geupddong.com/api/v1/auth/me','/preview/auth')
+    if(name==='/api-usage.js')body=body.toString().replace('AdminAuth.start(main)', "AdminAuth.start(main, {profileUrl:'/preview/auth'})")
     if (name.endsWith('.html')) {
       body = body.toString().replace(/<script src="\/admin-session[^>]*><\/script>/g,'')
         .replace(/<script src="\/workspace-pages[^>]*><\/script>/g,
-          '<script>CloudflareMonitorView.start();document.querySelector(".cf-intro").textContent="로컬 검토 · 실제 Cloudflare 읽기 전용 스냅샷. 운영 서버·배치·원본 봇 연결은 운영 화면에서 확인합니다."</script>')
+          '<script>AdminAuth.start(document.querySelector("main[data-admin-page]"),{profileUrl:"/preview/auth"}).then(profile=>{if(profile)CloudflareMonitorView.start()});document.querySelector(".cf-intro").textContent="로컬 검토 · 실제 Cloudflare 읽기 전용 스냅샷. 운영 서버·배치·원본 봇 연결은 운영 화면에서 확인합니다."</script>')
     }
     res.setHeader('Content-Type',mime[path.extname(file)])
     res.setHeader('Cache-Control','no-store')

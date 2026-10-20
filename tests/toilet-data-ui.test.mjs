@@ -10,7 +10,7 @@ const css = readFileSync(new URL('toilets.css', root), 'utf8')
 
 function pureContext() {
   const trimmed = source.replace(/document\.addEventListener\('admin:before-route-change'[\s\S]*?bootstrap\(\)\s*$/, '')
-  const context = createContext({ URL, URLSearchParams, window:{ location:{ href:'https://admin.example/toilets.html', search:'' }, history:{ replaceState(){} } }, console })
+  const context = createContext({ document:{getElementById(){return null}}, URL, URLSearchParams, window:{ location:{ href:'https://admin.example/toilets.html', search:'' }, history:{ replaceState(){} } }, console })
   runInContext(trimmed, context)
   return expression => runInContext(expression, context)
 }
@@ -130,6 +130,7 @@ for (const status of [200, 401, 403]) {
     const context = createContext({
       document, URL, URLSearchParams, Intl,
       window:{location:{href:'https://admin.example/toilets.html',search:''},clearTimeout(){}},
+      AdminAuth: { start: () => new Promise(resolve => { respond = reply => resolve(reply.ok ? {roles:['ADMIN']} : null) }) },
       fetch: () => new Promise(resolve => { respond = resolve }),
     })
     runInContext(source.replace(/bootstrap\(\)\s*$/, 'globalThis.bootstrapResult = bootstrap()'), context)

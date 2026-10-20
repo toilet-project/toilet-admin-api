@@ -36,24 +36,27 @@ const changeReviewScript = read('src/main/resources/static/public-data-changes.j
 const toiletHtml = read('src/main/resources/static/toilets.html')
 const adminPages = [
   'batch-syncs.html', 'cloudflare.html', 'data-quality.html', 'features.html',
-  'members.html', 'notifications.html', 'operations.html', 'permissions.html',
+  'opening-hours.html', 'service-analytics.html', 'api-usage.html', 'duplicate-names.html', 'members.html', 'notifications.html', 'operations.html', 'permissions.html',
   'public-data-changes.html', 'regions.html', 'reports.html', 'toilets.html',
 ]
 
 for (const page of adminPages) {
   const pageHtml = read(`src/main/resources/static/${page}`)
   const loader = pageHtml.match(/<main id="loading-shell"[^>]*>/)?.[0] || ''
-  const workspace = pageHtml.match(/<main id="[^"]+"[^>]*data-admin-page="[^"]+"[^>]*>/)?.[0] || ''
-  assert.match(loader, /\bhidden\b/, `${page} must not render a full-page loader while authentication is pending`)
-  assert.doesNotMatch(workspace, /\bhidden\b/, `${page} must render its static workspace before data arrives`)
+  const workspace = pageHtml.match(/<main[^>]*data-admin-page="[^"]+"[^>]*>/)?.[0] || ''
+  assert.doesNotMatch(loader, /\bhidden\b/, `${page} shows neutral loading while authentication is pending`)
+  assert.match(workspace, /\bhidden\b/, `${page} must hide protected content before authentication`)
+  assert.match(pageHtml, /data-admin-auth="checking"/)
+  assert.ok(pageHtml.indexOf('/admin-auth.css') < pageHtml.indexOf('</head>'))
+  assert.ok(pageHtml.indexOf('/admin-auth.js') < pageHtml.indexOf('/admin-shell.js'))
 }
 
-assert.match(html.match(/<main id="loading-shell"[^>]*>/)?.[0] || '', /\bhidden\b/)
-assert.doesNotMatch(html.match(/<div id="dashboard-shell"[^>]*>/)?.[0] || '', /\bhidden\b/)
+assert.doesNotMatch(html.match(/<main id="loading-shell"[^>]*>/)?.[0] || '', /\bhidden\b/)
+assert.match(html.match(/<div id="dashboard-shell"[^>]*>/)?.[0] || '', /\bhidden\b/)
 assert.doesNotMatch(css, /@view-transition/)
 assert.doesNotMatch(sharedCss, /@view-transition/)
 assert.match(html, /data-admin-page="home" data-admin-title="운영 홈"/)
-assert.ok(html.indexOf('/admin-shell.js?v=6') < html.indexOf('/admin-session.js?v=2'))
+assert.ok(html.indexOf('/admin-auth.js') < html.indexOf('/admin-shell.js') && html.indexOf('/admin-shell.js') < html.indexOf('/admin-session.js'))
 assert.match(sharedScript, /window\.AdminNavigation = Object\.freeze\(\{ go \}\)/)
 assert.match(sharedScript, /main\.replaceWith\(nextMain\)/)
 assert.match(sharedScript, /window\.history\.pushState\(\{ adminRoute: true \}/)

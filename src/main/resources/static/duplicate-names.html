@@ -1,6 +1,7 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-admin-auth="checking">
 <head>
+  <link rel="stylesheet" href="/admin-auth.css?v=1" />
   <script src="/admin-responsive.js?v=3"></script>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>급똥 관리자 | 중복 이름 품질 관리</title>
@@ -10,7 +11,17 @@
   <link rel="stylesheet" href="/admin-responsive.css?v=3" />
 </head>
 <body class="admin-page quality-page duplicate-name-page">
-<main class="dashboard-shell quality-shell duplicate-name-shell" data-admin-page="duplicate-names" data-admin-title="중복 이름 품질 관리">
+<noscript><p>관리자 페이지를 사용하려면 JavaScript를 켜 주세요.</p></noscript>
+<main id="loading-shell" class="page-loading" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><p>로그인 상태 확인 중...</p></main>
+<main id="auth-shell" class="auth-shell" hidden>
+    <section class="login-card">
+      <span class="admin-login-brand" role="img" aria-label="급똥">급똥</span><p class="eyebrow">GEUPDDONG ADMIN</p>
+      <h1 id="auth-title">관리자 로그인</h1>
+      <p id="auth-description">승인된 관리자 계정으로 로그인해 주세요.</p>
+      <div id="auth-actions" class="login-actions"><a href="https://api.geupddong.com/api/v1/auth/login/google?returnTo=admin">Google로 로그인</a><a class="kakao-login" href="https://api.geupddong.com/api/v1/auth/login/kakao?returnTo=admin">Kakao로 로그인</a></div>
+    </section>
+  </main>
+<main class="dashboard-shell quality-shell duplicate-name-shell" data-admin-page="duplicate-names" data-admin-title="중복 이름 품질 관리" hidden>
 <header class="page-header quality-page-header"><div><p class="eyebrow">DATA QUALITY</p><h1>중복 이름 품질 관리</h1><p>같은 이름의 화장실을 비교하고 대표 시설과 숨길 항목을 선택합니다.</p></div><a href="/public-data-changes.html" class="secondary-link">공공데이터 변경 검토</a></header>
 <section class="panel quality-workspace dn-workspace">
 <p id="dn-preview" class="dn-preview" hidden></p>
@@ -42,5 +53,5 @@
 </section>
 <dialog id="dn-confirm"><form method="dialog"><h2>선택한 항목만 숨길까요?</h2><p id="dn-confirm-message"></p><p>사용자 지도·검색·사이트맵과 관리자 기본 목록에서 제외됩니다. 원본·리뷰·제보·처리 이력은 삭제하지 않습니다.</p><div class="dn-dialog-actions"><button value="cancel">취소</button><button value="confirm" class="dn-primary">숨김 확정</button></div></form></dialog>
 <dialog id="dn-cleanup-dialog"><form method="dialog"><h2>동일 이름·좌표 자동 정리</h2><p id="dn-cleanup-summary">정리 대상을 확인하고 있습니다.</p><p>현재 표시 중인 화장실만 비교합니다. 이미 숨긴 항목은 제외하고, 기존 대표 연결과 처리 이력은 유지합니다.</p><div class="dn-dialog-actions"><button value="cancel">취소</button><button id="dn-cleanup-confirm" value="confirm" class="dn-primary">정리 시작</button></div></form></dialog>
-</main><script src="/admin-shell.js?v=13"></script><script src="/duplicate-names.js?v=4"></script>
+</main><script src="/admin-auth.js?v=1"></script><script src="/admin-shell.js?v=14"></script><script src="/duplicate-names.js?v=5"></script>
 </body></html>

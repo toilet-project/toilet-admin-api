@@ -1,3 +1,4 @@
+const authPageRoot = document.getElementById('region-shell')
 const $ = (id) => document.getElementById(id)
 const API = 'https://api.geupddong.com'
 const labels = { VERIFIED:'확정', MISMATCH:'지역 불일치', ADDRESS_UNVERIFIED:'주소 불확실', REVERSE_FAILED:'역조회 실패', NO_COORDINATE:'좌표 없음', STALE:'재판정 대기', UNASSESSED:'최초 판정 대기' }
@@ -28,12 +29,9 @@ let listData = null, displayedItems = [], workingRow = null
 const initialToiletId = Number(new URLSearchParams(window.location.search).get('toiletId'))
 
 function showLogin(status) {
-  $('loading-shell').hidden = true
-  $('region-shell').hidden = true
+  if (!AdminAuth.reject(status, authPageRoot)) return
   $('region-list').replaceChildren()
   $('region-detail').replaceChildren()
-  $('auth-shell').hidden = false
-  $('auth-title').textContent = status === 403 ? '관리자 권한이 필요합니다' : '관리자 로그인'
   selected = null
   listData = null; displayedItems = []; workingRow = null
   ++listSequence
@@ -526,14 +524,15 @@ function mountFilter() {
 
 async function start() {
   try {
-    const profile = await request('/api/v1/auth/me')
-    if (!profile.roles?.includes('ADMIN')) { showLogin(403); return }
-    $('loading-shell').hidden = true
-    $('region-shell').hidden = false
+    if (!await AdminAuth.start(authPageRoot)) return
     mountFilter()
     $('region-refresh').addEventListener('click', () => { if (saving) return; void loadList(page); if (selected != null) void loadDetail(selected) })
     await loadList()
     if (Number.isSafeInteger(initialToiletId) && initialToiletId > 0) await loadDetail(initialToiletId)
-  } catch { showLogin(401) }
+  } catch {
+    if (!authPageRoot.isConnected) return
+    const status = document.getElementById('region-status')
+    if (status) status.textContent = '화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.'
+  }
 }
 void start()

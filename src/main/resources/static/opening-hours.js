@@ -1,3 +1,4 @@
+const authPageRoot = document.getElementById('opening-hours-shell')
 const $ = (id) => document.getElementById(id)
 const PREVIEW_PREFIX = location.hostname === 'preview.geupddong.com' && location.pathname.startsWith('/opening-hours-preview/') ? '/opening-hours-preview' : ''
 const ISOLATED_PREVIEW = Boolean(PREVIEW_PREFIX) || location.hostname === '127.0.0.1' || location.hostname === 'localhost' || location.hostname.endsWith('.trycloudflare.com')
@@ -10,11 +11,7 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, char => ({
 let page = 0, selectedKey = null, currentDetail = null, listSequence = 0, detailSequence = 0, searchTimer = null, saving = false
 
 function showLogin(status) {
-  $('loading-shell').hidden = true
-  $('opening-hours-shell').hidden = true
-  $('auth-shell').hidden = false
-  $('auth-title').textContent = status === 403 ? '관리자 권한이 필요합니다' : '관리자 로그인'
-  $('auth-description').textContent = status === 403 ? '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.' : '승인된 관리자 계정으로 로그인해 주세요.'
+  AdminAuth.reject(status, authPageRoot)
 }
 
 async function request(path, options = {}) {
@@ -164,17 +161,15 @@ async function saveDetail() {
 
 async function bootstrap() {
   try {
-    if (!ISOLATED_PREVIEW) {
-      const auth = await fetch(`${API}/api/v1/auth/me`, { credentials:'include' })
-      if (auth.status === 401 || auth.status === 403) return showLogin(auth.status)
-      if (!auth.ok) throw new Error('관리자 인증을 확인하지 못했습니다.')
-      const profile = await auth.json(); if (!profile.roles?.includes('ADMIN')) return showLogin(403)
-    }
-    $('loading-shell').hidden = true; $('opening-hours-shell').hidden = false
+    if (!await AdminAuth.start(authPageRoot, { profileUrl: `${API}/api/v1/auth/me`, credentials: ISOLATED_PREVIEW ? 'omit' : 'include' })) return
     $('opening-hours-filter').addEventListener('change', () => void loadList(0))
     $('opening-hours-keyword').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => void loadList(0), 220) })
     await loadList(0)
-  } catch { showLogin(401) }
+  } catch {
+    if (!authPageRoot.isConnected) return
+    const status = document.getElementById('opening-hours-status')
+    if (status) status.textContent = '화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.'
+  }
 }
 
 document.addEventListener('admin:before-route-change', () => { ++listSequence; ++detailSequence; clearTimeout(searchTimer) }, { once:true })

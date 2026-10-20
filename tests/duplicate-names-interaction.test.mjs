@@ -22,6 +22,7 @@ function harness({holdFacilities=false,failWorkWrite=false,failReload=false,maps
   const buttons=type=>renderedGroups.map((g,index)=>{const b=node(type+'-'+index);b.dataset[type==='group'?'index':'workHide']=String(index);return b})
   const pageButtons=()=>[...node('dn-pagination').innerHTML.matchAll(/<button[^>]*data-page="(-?\d+)"([^>]*)>/g)].map(([,target,attributes],index)=>{const b=node('page-'+index);b.dataset.page=target;b.disabled=attributes.includes('disabled');return b})
   runInNewContext(source,{
+    AdminAuth:{start:async()=>({roles:['ADMIN']})},
     document:{getElementById:node,createElement:()=>node('created-'+nodes.size),querySelector:()=>detail,querySelectorAll:selector=>selector==='.dn-group'?buttons('group'):selector==='[data-detail]'?[detail]:selector==='[data-work-hide]'?buttons('work'):selector==='.dn-page-button'?pageButtons():[]},
     window:{kakao:maps?{maps}:undefined},
     location:{hostname:'example.test',port:'',search:''},URLSearchParams,Set,setTimeout,clearTimeout,

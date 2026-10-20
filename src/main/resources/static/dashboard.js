@@ -547,11 +547,7 @@ async function loadDashboard() {
 
 function showLoginPage(forbidden = false) {
   if (!isHomeActive()) return
-  el('loading-shell').hidden = true
-  el('dashboard-shell').hidden = true
-  el('auth-shell').hidden = false
-  el('auth-title').textContent = forbidden ? '관리자 권한이 필요합니다' : '관리자 로그인'
-  el('auth-description').textContent = forbidden ? '다른 관리자 계정으로 로그인하거나 관리자 권한 설정을 확인해 주세요.' : '승인된 관리자 계정으로 로그인해 주세요.'
+  AdminAuth.reject(forbidden ? 403 : 401, homeRoot)
 }
 
 function handleAuthError(error) {
@@ -639,27 +635,10 @@ function bindEvents() {
 async function bootstrap() {
   if (!isHomeActive()) return
   el('refresh').disabled = true
-  try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include', signal: homeController.signal })
-    if (!isHomeActive()) return
-    if (response.status === 401) return showLoginPage(false)
-    if (response.status === 403) return showLoginPage(true)
-    if (!response.ok) throw new Error('로그인 상태 조회 실패')
-    const profile = await response.json()
-    if (!isHomeActive()) return
-    if (!profile.roles?.includes('ADMIN')) return showLoginPage(true)
-  } catch {
-    if (!isHomeActive()) return
-    el('loading-shell').hidden = true
-    el('auth-shell').hidden = true
-    el('dashboard-shell').hidden = false
-    el('home-status').textContent = '로그인 상태를 확인하지 못했습니다. 잠시 후 새로고침으로 다시 확인해 주세요.'
-    el('refresh').disabled = false
+  if (!await AdminAuth.start(homeRoot) || !isHomeActive()) {
+    if (isHomeActive()) el('refresh').disabled = false
     return
   }
-  el('loading-shell').hidden = true
-  el('auth-shell').hidden = true
-  el('dashboard-shell').hidden = false
   window.AdminHomeRefresh = refreshAll
   try {
     if (!homeEventsBound) {

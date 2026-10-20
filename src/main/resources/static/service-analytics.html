@@ -1,6 +1,7 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-admin-auth="checking">
   <head>
+  <link rel="stylesheet" href="/admin-auth.css?v=1" />
   <script src="/admin-responsive.js?v=3"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -13,9 +14,10 @@
   <link rel="stylesheet" href="/admin-responsive.css?v=3" />
 </head>
   <body class="admin-page analytics-page">
-    <main id="loading-shell" class="page-loading" hidden>
+<noscript><p>관리자 페이지를 사용하려면 JavaScript를 켜 주세요.</p></noscript>
+    <main id="loading-shell" class="page-loading" >
       <span class="loading-spinner"></span>
-      <p>불러오는 중...</p>
+      <p>로그인 상태 확인 중...</p>
     </main>
     <main id="auth-shell" class="auth-shell" hidden>
       <section class="login-card">
@@ -39,7 +41,7 @@
       class="dashboard-shell analytics-shell"
       data-admin-page="analytics"
       data-admin-title="서비스 이용 분석"
-    >
+     hidden>
       <header class="page-header admin-header-tools analytics-page-header">
         <div>
           <p class="eyebrow">SERVICE INSIGHTS</p>
@@ -151,10 +153,10 @@
         </p>
       </details>
     </main>
-    <script src="/admin-shell.js?v=13"></script>
-    <script src="/admin-session.js?v=2"></script>
+    <script src="/admin-auth.js?v=1"></script><script src="/admin-shell.js?v=14"></script>
+    <script src="/admin-session.js?v=3"></script>
     <script src="/origin-bots.js?v=1"></script>
     <script src="/popular-toilets.js?v=1"></script>
-    <script src="/service-analytics.js?v=9"></script>
+    <script src="/service-analytics.js?v=10"></script>
   </body>
 </html>

@@ -1,3 +1,4 @@
+const authPageRoot = document.getElementById('members-shell')
 const el = (id) => document.getElementById(id)
 const API_BASE = 'https://api.geupddong.com'
 const PAGE_SIZE = 20
@@ -6,14 +7,6 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character
 const parseKoreanDate = (value) => new Date(/(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}+09:00`)
 const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' }).format(parseKoreanDate(value)) : '-'
 const statusLabel = (status) => ({ ACTIVE: '활성', SUSPENDED: '정지', WITHDRAWN: '탈퇴' })[status] || status
-
-function showLogin(title, description) {
-  el('loading-shell').hidden = true
-  el('members-shell').hidden = true
-  el('auth-shell').hidden = false
-  el('auth-title').textContent = title
-  el('auth-description').textContent = description
-}
 
 function renderPagination() {
   const target = el('member-pagination')
@@ -71,19 +64,16 @@ async function loadMembers(page = 0) {
 
 async function bootstrap() {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })
-    if (response.status === 401) return showLogin('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
-    if (!response.ok) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 권한을 확인해 주세요.')
-    const profile = await response.json()
-    if (!profile.roles?.includes('ADMIN')) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 권한을 확인해 주세요.')
-    el('loading-shell').hidden = true
-    el('members-shell').hidden = false
+    if (!await AdminAuth.start(authPageRoot)) return;
     el('member-keyword').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => void loadMembers(0), 250) })
     el('member-status').addEventListener('change', () => void loadMembers(0))
     el('member-refresh').addEventListener('click', () => void loadMembers(0))
     await loadMembers()
   } catch {
-    showLogin('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
+    if (authPageRoot?.isConnected) {
+      const status = document.getElementById('member-status-text')
+      if (status) { status.hidden = false; status.textContent = '화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.' }
+    }
   }
 }
 

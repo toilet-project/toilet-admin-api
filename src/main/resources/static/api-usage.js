@@ -197,27 +197,18 @@
       output.innerHTML = `${result.period === 'day' ? '이 하루의' : '이 한 달의'} 예상 비용<strong>${result.cost == null ? '요금 확인 필요' : money(result.cost,result.currency)}</strong><small>무료 적용 ${number(result.freeApplied)} · 초과 ${number(result.overage)} · 세금·추가 크레딧 제외</small>`
     } catch (error) { if (sequence === estimateSequence && error.name !== 'AbortError') output.textContent = '요금을 계산하지 못했습니다. 사용량을 다시 입력해 주세요.' }
   }
-  function showLogin(message) {
-    main.hidden = true
-    const loading = document.getElementById('loading-shell'), auth = document.getElementById('auth-shell')
-    if (loading) loading.hidden = true
-    if (auth) auth.hidden = false
-    const description = document.getElementById('auth-description')
-    if (description) description.textContent = message
-  }
   async function bootstrap() {
     try {
-      const profile = await json('https://api.geupddong.com/api/v1/auth/me')
-      if (events.signal.aborted) return
-      if (!profile.roles?.includes('ADMIN')) return showLogin('관리자 권한이 있는 계정으로 로그인해 주세요.')
-      const loading = document.getElementById('loading-shell'), auth = document.getElementById('auth-shell')
-      if (loading) loading.hidden = true
-      if (auth) auth.hidden = true
+      if (!await AdminAuth.start(main) || events.signal.aborted) return
       authorized = true
-      main.hidden = false
       await load()
       if (!events.signal.aborted) timer = setInterval(()=>{ if (!document.hidden) void load() },300000)
-    } catch (error) { if (error.name !== 'AbortError') showLogin('로그인 상태를 확인할 수 없습니다. 다시 로그인해 주세요.') }
+    } catch (error) {
+      if (error.name === 'AbortError' || !main.isConnected) return
+      const status = byId('au-status')
+      status.hidden = false
+      status.textContent = '화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.'
+    }
   }
   main.addEventListener('click',event=>{
     const button = event.target.closest('[data-detail]')

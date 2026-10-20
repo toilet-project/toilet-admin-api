@@ -1,3 +1,4 @@
+const authPageRoot = document.getElementById('toilet-shell')
 const $ = id => document.getElementById(id)
 const API = 'https://api.geupddong.com'
 const PAGE_SIZE = 10
@@ -77,11 +78,7 @@ function updateUrl(id) {
 
 function showLogin(status) {
   if (!toiletPageActive) return
-  $('loading-shell').hidden = true
-  $('toilet-shell').hidden = true
-  $('auth-shell').hidden = false
-  $('auth-title').textContent = status === 403 ? '관리자 권한이 필요합니다' : '관리자 로그인'
-  $('auth-description').textContent = status === 403 ? '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.' : '승인된 관리자 계정으로 로그인해 주세요.'
+  AdminAuth.reject(status, authPageRoot)
 }
 
 async function request(path, options = {}) {
@@ -719,16 +716,7 @@ async function bootstrap() {
   const root = $('toilet-shell')
   if (!root?.isConnected) return
   try {
-    const auth = await fetch(`${API}/api/v1/auth/me`, { credentials:'include' })
-    if (!toiletPageActive || !root.isConnected) return
-    if (auth.status === 401 || auth.status === 403) return showLogin(auth.status)
-    if (!auth.ok) throw new Error('관리자 인증을 확인하지 못했습니다.')
-    const profile = await auth.json()
-    if (!toiletPageActive || !root.isConnected) return
-    if (!profile.roles?.includes('ADMIN')) return showLogin(403)
-    $('loading-shell').hidden = true
-    $('auth-shell').hidden = true
-    $('toilet-shell').hidden = false
+    if (!await AdminAuth.start(authPageRoot) || !toiletPageActive || !root.isConnected) return
     bindSearch()
     await loadRegions()
     if (!toiletPageActive || !root.isConnected) return

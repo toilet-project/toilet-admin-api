@@ -53,6 +53,7 @@ async function workspace() {
   const flush = async () => { for (let i=0;i<4;i++) await new Promise(resolve => setImmediate(resolve)) };
   const script = await readFile(new URL('service-analytics.js', root), 'utf8');
   vm.runInNewContext(script, {
+    AdminAuth:{start:async()=>({roles:['ADMIN']})},
     document: {getElementById: get, addEventListener() {}, querySelectorAll: selector => selector.includes('data-tab') ? tabs : []},
     window: {innerWidth:1200, addEventListener() {}, OriginBotAnalytics:{cancel(){},show(node){node.innerHTML='independent bots'}}, PopularToiletsAnalytics:{cancel(){},show(node){node.innerHTML='independent popular'}}},
     fetch: (url, options) => {

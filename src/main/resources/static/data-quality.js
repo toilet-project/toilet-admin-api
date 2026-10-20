@@ -1,3 +1,4 @@
+const authPageRoot = document.getElementById('quality-shell')
 const el = (id) => document.getElementById(id)
 const QUALITY_PREVIEW = location.hostname === 'preview.geupddong.com' && location.pathname.startsWith('/admin-duplicates/')
 const API_BASE = QUALITY_PREVIEW ? '/admin-duplicates' : 'https://api.geupddong.com'
@@ -48,12 +49,8 @@ function resetCoordinateEditor() {
   document.querySelectorAll('.quality-toilet.is-editing').forEach((item) => item.classList.remove('is-editing'))
 }
 
-function showLogin(title, description) {
-  el('loading-shell').hidden = true
-  el('quality-shell').hidden = true
-  el('auth-shell').hidden = false
-  el('auth-title').textContent = title
-  el('auth-description').textContent = description
+function showLogin(status) {
+  AdminAuth.reject(status, authPageRoot)
 }
 
 function renderPagination() {
@@ -881,8 +878,8 @@ async function loadGroups(targetPage = 0, clearDetail = false) {
     const response = await fetch(`${API_BASE}/api/admin/v1/data-quality/duplicate-coordinates?${query}`, { credentials: 'include', signal: controller.signal })
     if (sequence !== groupListSequence) return
     if (!response.ok) {
-      if (response.status === 401) return showLogin('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
-      if (response.status === 403) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.')
+      if (response.status === 401) return showLogin(401)
+      if (response.status === 403) return showLogin(403)
       throw new Error('중복 좌표 목록을 불러오지 못했습니다.')
     }
     const data = await response.json()
@@ -935,13 +932,7 @@ function bindQualitySearch() {
 
 async function bootstrap() {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, { credentials: 'include' })
-    if (response.status === 401) return showLogin('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
-    if (!response.ok) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.')
-    const profile = await response.json()
-    if (!profile.roles?.includes('ADMIN')) return showLogin('관리자 권한이 필요합니다', '다른 관리자 계정으로 로그인하거나 관리자 권한을 확인해 주세요.')
-    el('loading-shell').hidden = true
-    el('quality-shell').hidden = false
+    if (!await AdminAuth.start(authPageRoot)) return;
     if (QUALITY_PREVIEW) {
       const notice=document.createElement('p')
       notice.className='coordinate-preview-notice'
@@ -954,7 +945,10 @@ async function bootstrap() {
     await loadGroups()
     if (initialGroupKey) await selectGroup(initialGroupKey)
   } catch {
-    showLogin('관리자 로그인', '승인된 관리자 계정으로 로그인해 주세요.')
+    if (authPageRoot?.isConnected) {
+      const status = document.getElementById('quality-status-text')
+      if (status) { status.hidden = false; status.textContent = '화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.' }
+    }
   }
 }
 

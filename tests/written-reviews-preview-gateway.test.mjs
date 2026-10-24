@@ -58,6 +58,7 @@ test('anonymous, wrong host, expired preview, non-admin and all writes cannot re
   assert.equal((await handle(new Request(url), { ...env, PREVIEW_EXPIRES_AT: '9999' })).status, 410)
   assert.equal((await handle(new Request(url), { ...env, PREVIEW_EXPIRES_AT: '8000000' })).status, 410)
   assert.equal((await handle(new Request(url, { method: 'POST' }), env)).status, 405)
+  assert.equal((await handle(new Request(site + '/api/admin/v1/reviews/17', { method: 'DELETE' }), env)).status, 405)
   assert.equal((await handle(new Request(url.replace('preview.geupddong.com', 'attacker.invalid')), env)).status, 404)
   assert.equal((await handle(new Request(AUTH_URL + '?state=' + 'c'.repeat(64)), env)).status, 401)
   assert.equal(calls.length, 0)
@@ -150,6 +151,7 @@ test('HTML inserts early read-only runtime, strips operational session controls 
   assert.match(body, /src="\/admin-written-reviews\/written-reviews.js"/)
   assert.equal(body.includes('운영 실데이터'), true)
   assert.equal(body.includes('원문 복사본을 저장하지 않습니다'), true)
+  assert.equal(body.includes('프리뷰에서는 리뷰를 삭제할 수 없습니다'), true)
 })
 test('runtime forwards relative review reads and identity only; operational writes and unrelated APIs are blocked', async () => {
   const { handle } = setup()
@@ -158,6 +160,9 @@ test('runtime forwards relative review reads and identity only; operational writ
   const calls = []
   const window = { fetch: async (...args) => { calls.push(args); return Response.json({ ok: true }) } }
   vm.runInNewContext(await response.text(), { window, location: { href: site + '/?tab=reviews', origin: 'https://preview.geupddong.com' }, document: { addEventListener() {} }, URL, Request, Response })
+  assert.equal(window.AdminWrittenReviewsPreview.readOnly, true)
+  assert.equal(window.AdminWrittenReviewsPreview.moderationAllowed, false)
+  assert.equal(Object.isFrozen(window.AdminWrittenReviewsPreview), true)
   await window.fetch('/api/admin/v1/reviews?size=20')
   assert.equal(String(calls[0][0]), site + '/api/admin/v1/reviews?size=20')
   await window.fetch('https://api.geupddong.com/api/v1/auth/me')
@@ -165,6 +170,7 @@ test('runtime forwards relative review reads and identity only; operational writ
   await window.fetch('https://api.geupddong.com/api/admin/v1/reviews/17')
   assert.equal(String(calls[2][0]), site + '/api/admin/v1/reviews/17')
   assert.equal((await window.fetch('https://api.geupddong.com/api/v1/auth/refresh', { method: 'POST' })).status, 405)
+  assert.equal((await window.fetch('https://api.geupddong.com/api/admin/v1/reviews/17', { method: 'DELETE', body: JSON.stringify({ reason: 'synthetic' }) })).status, 405)
   assert.equal((await window.fetch('/api/admin/v1/service-analytics/explore')).status, 503)
   assert.equal((await window.fetch('https://attacker.invalid/reviews')).status, 503)
   assert.equal(calls.length, 3)

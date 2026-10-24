@@ -68,6 +68,7 @@ function allowedPath(path) {
 // This wrapper also blocks incidental calls from other analytics tabs. It never
 // substitutes privileged credentials or opens an operational write connection.
 const runtime = `(() => {
+  window.AdminWrittenReviewsPreview = Object.freeze({readOnly:true, moderationAllowed:false});
   const prefix = '${PREFIX}', original = window.fetch.bind(window);
   window.fetch = (input, init = {}) => {
     const target = new URL(input instanceof Request ? input.url : String(input), location.href);
@@ -165,7 +166,7 @@ export function createHandler(fetcher = fetch, now = () => Date.now()) {
       if (type.includes('text/html')) body = body.replace(/<script src="\/admin-session\.js[^\"]*"><\/script>/g, '')
         .replaceAll('href="/', `href="${PREFIX}/`).replaceAll('src="/', `src="${PREFIX}/`)
         .replace('<head>', `<head><script src="${PREFIX}/preview-runtime.js"></script>`)
-        .replace(/(<body\b[^>]*>)/, `$1<aside role="note" style="margin:0;padding:12px 20px;background:#fff4d6;color:#624918;font:13px/1.6 system-ui;text-align:center">운영 실데이터 · 작성 리뷰 읽기 전용 프리뷰 · ${new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(expiry))} KST 만료 · 조회할 때마다 실제 리뷰를 확인하며 원문 복사본을 저장하지 않습니다.</aside>`)
+        .replace(/(<body\b[^>]*>)/, `$1<aside role="note" style="margin:0;padding:12px 20px;background:#fff4d6;color:#624918;font:13px/1.6 system-ui;text-align:center">운영 실데이터 · 작성 리뷰 읽기 전용 프리뷰 · ${new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(expiry))} KST 만료 · 조회할 때마다 실제 리뷰를 확인하며 원문 복사본을 저장하지 않습니다. 프리뷰에서는 리뷰를 삭제할 수 없습니다.</aside>`)
       if (target.endsWith('.css')) body = body.replaceAll("url('/", `url('${PREFIX}/`).replaceAll('url("/', `url("${PREFIX}/`)
       if (target === '/admin-shell.js') body = body.replaceAll("'/service-analytics.html'", `'${PREFIX}/service-analytics.html?tab=reviews'`)
       return new Response(body, { status: upstream.status, headers: { ...headers, 'Content-Type': type } })

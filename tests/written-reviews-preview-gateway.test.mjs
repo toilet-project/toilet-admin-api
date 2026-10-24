@@ -84,7 +84,8 @@ test('wrong state/origin, ciphertext corruption and expired exchange fail withou
   calls.length = 0
   assert.equal((await handle(callback(ticket, state, 'https://attacker.invalid'), env)).status, 403)
   assert.equal((await handle(callback(ticket, 'd'.repeat(64)), env)).status, 403)
-  assert.equal((await handle(callback('x' + ticket.slice(1), state), env)).status, 403)
+  const corrupted = (ticket[0] === 'x' ? 'y' : 'x') + ticket.slice(1)
+  assert.equal((await handle(callback(corrupted, state), env)).status, 403)
   assert.equal((await handle(callback(ticket, ''), env)).status, 403)
   clock.time = 71000
   assert.equal((await handle(callback(ticket, state), env)).status, 403)

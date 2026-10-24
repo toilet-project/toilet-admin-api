@@ -1,6 +1,9 @@
 (() => {
   const root = document.getElementById('analytics-shell');
   if (!root) return;
+  window.ServiceAnalyticsWorkspace?.dispose?.();
+  let disposed = false;
+  const alive = () => !disposed && root.isConnected;
   const $ = (id) => document.getElementById(id);
   const esc = (value) =>
     String(value ?? '').replace(
@@ -148,7 +151,7 @@
     range: '7d',
     from: '',
     to: '',
-    tab: 'overview',
+    tab: new URLSearchParams(window.location?.search || '').get('tab') === 'reviews' ? 'reviews' : 'overview',
     filters: {},
     tables: {},
     report: null,
@@ -378,9 +381,12 @@
     return `<article class="analytics-panel analytics-entry-clues" data-table="clues"><header><div><h2>미확인 유입 살펴보기</h2><p>같은 환경과 첫 화면을 묶은 합계 · 유형을 누르면 이용 행동까지 확인</p></div><button type="button" class="analytics-link" data-filter="unattributed" data-value="true">미확인 방문만 보기</button></header>${summary}<p class="analytics-section-note">${clues.evidenceAvailable ? '새로고침·뒤로가기·열린 탭 재시작은 첫 진입 기록이 있는 방문에만 표시합니다.' : '새로운 진입 방식 수집을 준비 중입니다. 아래에는 기존 기록으로 확인할 수 있는 단서를 표시합니다.'} 주소 직접 입력·즐겨찾기·출처를 숨긴 링크는 서로 구별할 수 없습니다.</p><div class="analytics-table-controls"><input data-search="clues" aria-label="미확인 유입 단서 검색" placeholder="브라우저, 기기, 첫 화면, 단서 찾기" value="${esc(pref.search)}"></div><div class="analytics-table-wrap"><table><thead><tr><th>접속 환경 · 첫 화면</th><th>출처 단서 · 진입 방식</th><th>세션</th><th>조회</th><th>상세 열기 / 검색</th></tr></thead><tbody>${rows.slice(page*10,page*10+10).map(row=>`<tr><td><button type="button" class="analytics-link" data-clue="${row.index}">${esc(row.browser)} · ${esc(row.os)}</button><small>${esc(label('device',row.device))} · ${esc(label('client',row.client))}</small><small>${esc(label('landing',row.landing))}</small></td><td>${esc(label('entry',row.entry))}<small>${esc(label('navigation',row.navigation))}</small></td><td>${num(row.sessions)}</td><td>${num(row.views)}</td><td>${num(row.withDetail)} / ${num(row.withSearch)}<small>이용한 세션 수 · 중복 가능</small></td></tr>`).join('') || '<tr><td colspan="5">이 조건에 해당하는 미확인 방문이 없습니다.</td></tr>'}</tbody></table></div><footer class="analytics-table-footer"><span>${num(rows.length)}개 유형${clues.truncated?' · 상위 100개, 기간·필터를 좁혀 확인':''} · 개인 식별정보 없음</span><div><button data-page="clues" data-value="${page-1}" ${page===0?'disabled':''}>이전</button><span>${page+1} / ${Math.max(1,Math.ceil(rows.length/10))}</span><button data-page="clues" data-value="${page+1}" ${(page+1)*10>=rows.length?'disabled':''}>다음</button></div></footer></article>`;
   }
   function renderView() {
+    if (!alive()) return;
     hidePoint();
     const popular = state.tab === 'popular';
-    const bots = state.tab === 'bots' || popular;
+    const reviews = state.tab === 'reviews';
+    const bots = state.tab === 'bots' || popular || reviews;
+    root.querySelector('.analytics-controls').hidden = reviews;
     $('analytics-updated-at').hidden = bots;
     $('analytics-kpis').hidden = bots;
     root.querySelector('.analytics-filter-line').hidden = bots;
@@ -390,7 +396,11 @@
     $('analytics-exclude-bots').hidden = bots;
     $('analytics-bot-note').hidden = bots;
     $('analytics-export').disabled = bots || state.busy || !state.report || !state.loadedViews.has(state.tab);
-    document.querySelectorAll('.analytics-tabs [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === state.tab ? 'page' : 'false'));
+    document.querySelectorAll('.analytics-tabs [data-tab]').forEach(b => {
+      const selected = b.dataset.tab === state.tab;
+      if (reviews && selected && b.getAttribute?.('aria-current') !== 'page') b.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      b.setAttribute('aria-current', selected ? 'page' : 'false');
+    });
     if (bots) {
       // Independent tabs must not be reset by a late global-summary response.
       state.request++;
@@ -402,12 +412,14 @@
       $('analytics-view').setAttribute('aria-busy', 'false');
       const query = {range: state.range};
       if (state.range === 'custom') { query.from=state.from; query.to=state.to; }
-      if (popular) { window.OriginBotAnalytics?.cancel(); window.PopularToiletsAnalytics?.show($('analytics-view'), query); }
-      else { window.PopularToiletsAnalytics?.cancel(); window.OriginBotAnalytics?.show($('analytics-view'), query); }
+      if (reviews) { window.OriginBotAnalytics?.cancel(); window.PopularToiletsAnalytics?.cancel(); window.WrittenReviewsAnalytics?.show($('analytics-view')); }
+      else if (popular) { window.WrittenReviewsAnalytics?.cancel(); window.OriginBotAnalytics?.cancel(); window.PopularToiletsAnalytics?.show($('analytics-view'), query); }
+      else { window.WrittenReviewsAnalytics?.cancel(); window.PopularToiletsAnalytics?.cancel(); window.OriginBotAnalytics?.show($('analytics-view'), query); }
       return;
     }
     window.OriginBotAnalytics?.cancel();
     window.PopularToiletsAnalytics?.cancel();
+    window.WrittenReviewsAnalytics?.cancel();
     if (!state.report || !state.loadedViews.has(state.tab)) {
       $('analytics-view').innerHTML = '<p class="analytics-section-note">통계를 불러오고 있습니다.</p>';
       return;
@@ -434,6 +446,7 @@
       );
   }
   function render() {
+    if (!alive()) return;
     const r = state.report,
       c = r.current,
       p = r.previous,
@@ -507,8 +520,9 @@
     renderView();
   }
   async function load() {
+    if (!alive()) return;
     hidePoint();
-    if (state.tab === 'bots' || state.tab === 'popular') {
+    if (state.tab === 'bots' || state.tab === 'popular' || state.tab === 'reviews') {
       document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.range === state.range)));
       $('analytics-custom-range').hidden = state.range !== 'custom';
       renderView();
@@ -554,7 +568,7 @@
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null) : Promise.resolve(null),
       ]);
-      if (request !== state.request) return;
+      if (request !== state.request || !alive()) return;
       if (response.status === 401 || response.status === 403) {
         showLogin(response.status === 403);
         return;
@@ -562,7 +576,7 @@
       if (!response.ok)
         throw new Error(response.status === 400 ? 'invalid-query' : 'load');
       const data = await response.json();
-      if (request !== state.request) return;
+      if (request !== state.request || !alive()) return;
       if (queryKey !== state.reportQuery || data.generatedAt !== state.report?.generatedAt)
         state.loadedViews.clear();
       state.loadedViews.add(view);
@@ -581,7 +595,7 @@
       Object.values(state.tables).forEach((t) => (t.page = 0));
       render();
     } catch (error) {
-      if (error.name === 'AbortError' || request !== state.request) return;
+      if (error.name === 'AbortError' || request !== state.request || !alive()) return;
       if (state.successfulQuery) {
         Object.assign(state, {
           ...state.successfulQuery,
@@ -598,13 +612,13 @@
             ' 새로고침으로 다시 시도해 주세요.';
       $('analytics-error').hidden = false;
     } finally {
-      if (request === state.request) {
+      if (request === state.request && alive()) {
         state.busy = false;
         syncBotToggle();
         root.classList.remove('is-loading');
         $('analytics-view').setAttribute('aria-busy', 'false');
         $('analytics-refresh').disabled = false;
-        $('analytics-export').disabled = state.tab === 'bots' || state.tab === 'popular' || !state.report;
+        $('analytics-export').disabled = state.tab === 'bots' || state.tab === 'popular' || state.tab === 'reviews' || !state.report;
         root
           .querySelectorAll('.analytics-filter-line select')
           .forEach(
@@ -614,12 +628,14 @@
     }
   }
   function syncBotToggle() {
+    if (!alive()) return;
     const button = $('analytics-exclude-bots');
     button.setAttribute('aria-checked', String(state.excludeBots));
     button.disabled = state.busy || !state.report?.botFilter?.toggleAvailable;
     button.title = state.excludeBots ? '끄면 보관 중인 봇 분석 이벤트도 포함합니다.' : '켜면 봇으로 분류된 분석 이벤트를 제외합니다.';
   }
   function showLogin(forbidden) {
+    if (!alive()) return;
     AdminAuth.reject(forbidden ? 403 : 401, root);
   }
   function applyFilter(type, value) {
@@ -629,6 +645,7 @@
     load();
   }
   function hidePoint() {
+    if (!alive()) return;
     const tooltip = $('analytics-chart-tooltip');
     if (tooltip) tooltip.hidden = true;
     root.querySelectorAll('.is-active-point').forEach((node) => node.classList.remove('is-active-point'));
@@ -772,11 +789,17 @@
       return;
     }
     if (b.dataset.tab) {
-      const leavingBots = (state.tab === 'bots' || state.tab === 'popular') && b.dataset.tab !== state.tab;
+      const leavingBots = (state.tab === 'bots' || state.tab === 'popular' || state.tab === 'reviews') && b.dataset.tab !== state.tab;
       if (leavingBots) window.OriginBotAnalytics?.cancel();
       if (leavingBots) window.PopularToiletsAnalytics?.cancel();
+      if (leavingBots) window.WrittenReviewsAnalytics?.cancel();
       state.tab = b.dataset.tab;
-      if (state.tab === 'bots' || state.tab === 'popular') renderView();
+      if (window.location && window.history?.replaceState) {
+        const params = new URLSearchParams(window.location.search);
+        if (state.tab === 'reviews') params.set('tab', 'reviews'); else params.delete('tab');
+        window.history.replaceState(null, '', `${window.location.pathname}${params.size ? '?' + params : ''}${window.location.hash}`);
+      }
+      if (state.tab === 'bots' || state.tab === 'popular' || state.tab === 'reviews') renderView();
       else if (leavingBots || state.busy || !state.loadedViews.has(state.tab)) load();
       else {
         if (state.successfulQuery) state.successfulQuery.tab = state.tab;
@@ -871,10 +894,11 @@
       selectDay(e.target.dataset.day);
     }
   });
-  document.addEventListener('pointerdown', (e) => {
+  const pointerDown = (e) => {
     touchInput = e.pointerType === 'touch';
     if (!e.target.closest('[data-point]')) hidePoint();
-  });
+  };
+  document.addEventListener('pointerdown', pointerDown);
   window.addEventListener('scroll', hidePoint, { capture: true, passive: true });
   window.addEventListener('resize', hidePoint, { passive: true });
   $('analytics-custom-range').addEventListener('submit', (e) => {
@@ -890,5 +914,21 @@
   }).format(new Date());
   $('analytics-from').max = today;
   $('analytics-to').max = today;
-  void AdminAuth.start(root).then(profile => { if (profile) return load(); });
+  function dispose() {
+    if (disposed) return;
+    hidePoint();
+    disposed = true;
+    ++state.request;
+    state.controller?.abort();
+    window.OriginBotAnalytics?.cancel();
+    window.PopularToiletsAnalytics?.cancel();
+    window.WrittenReviewsAnalytics?.cancel();
+    document.removeEventListener('admin:before-route-change', dispose);
+    document.removeEventListener('pointerdown', pointerDown);
+    window.removeEventListener('scroll', hidePoint, true);
+    window.removeEventListener('resize', hidePoint);
+  }
+  document.addEventListener('admin:before-route-change', dispose);
+  window.ServiceAnalyticsWorkspace = { dispose };
+  void AdminAuth.start(root).then(profile => { if (profile && alive()) return load(); });
 })();

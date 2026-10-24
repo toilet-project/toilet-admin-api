@@ -27,12 +27,12 @@
     </section>
     <section class="panel security-panel">
       <div class="panel-title"><div><h2>권한·운영 감사 로그</h2><p>역할 변경과 제보 승인·반려 이력을 기간·행위·관리자별로 조회합니다.</p></div></div>
-      <div class="security-toolbar audit-toolbar"><label><span>기간</span><input id="audit-from" type="date" /><span>~</span><input id="audit-to" type="date" /></label><select id="audit-action" aria-label="감사 행위"><option value="">전체 행위</option><option value="ROLE_GRANTED">권한 부여</option><option value="ROLE_REVOKED">권한 회수</option><option value="REPORT_APPROVED">제보 승인</option><option value="REPORT_REJECTED">제보 반려</option></select><input id="audit-actor" type="number" min="1" placeholder="관리자 ID" aria-label="행위 관리자 ID" /><select id="audit-target" aria-label="대상 유형"><option value="">전체 대상</option><option value="USER">사용자</option><option value="TOILET_REPORT">제보</option></select><select id="audit-sort" aria-label="정렬"><option value="NEWEST">최신 순</option><option value="OLDEST">오래된 순</option></select><button id="audit-refresh" class="secondary-button" type="button">조회</button></div>
+      <div class="security-toolbar audit-toolbar"><label><span>기간</span><input id="audit-from" type="date" /><span>~</span><input id="audit-to" type="date" /></label><select id="audit-action" aria-label="감사 행위"><option value="">전체 행위</option><option value="ROLE_GRANTED">권한 부여</option><option value="ROLE_REVOKED">권한 회수</option><option value="REPORT_APPROVED">제보 승인</option><option value="REPORT_REJECTED">제보 반려</option><option value="REVIEW_DELETED">리뷰 삭제</option></select><input id="audit-actor" type="number" min="1" placeholder="관리자 ID" aria-label="행위 관리자 ID" /><select id="audit-target" aria-label="대상 유형"><option value="">전체 대상</option><option value="USER">사용자</option><option value="TOILET_REPORT">제보</option><option value="TOILET_REVIEW">리뷰</option></select><select id="audit-sort" aria-label="정렬"><option value="NEWEST">최신 순</option><option value="OLDEST">오래된 순</option></select><button id="audit-refresh" class="secondary-button" type="button">조회</button></div>
       <p id="audit-status-text" class="status" role="status">감사 로그를 불러오는 중입니다.</p>
       <div class="table-wrap"><table><thead><tr><th>일시</th><th>행위자</th><th>행위</th><th>대상</th><th>상세</th></tr></thead><tbody id="audit-list"></tbody></table></div>
       <nav id="audit-pagination" class="report-pagination" aria-label="감사 로그 페이지 이동"></nav>
     </section>
   </main>
-  <script src="/admin-auth.js?v=1"></script><script src="/admin-shell.js?v=14"></script><script src="/admin-session.js?v=3"></script><script src="/permissions.js?v=2"></script>
+  <script src="/admin-auth.js?v=1"></script><script src="/admin-shell.js?v=14"></script><script src="/admin-session.js?v=3"></script><script src="/permissions.js?v=3"></script>
 </body>
 </html>

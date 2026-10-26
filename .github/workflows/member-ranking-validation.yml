@@ -1,0 +1,35 @@
+name: Member ranking validation
+on:
+  pull_request:
+    paths:
+      - 'src/main/resources/static/members*'
+      - 'src/main/resources/static/member-ranking*'
+      - 'src/main/resources/static/growth/**'
+      - 'src/main/resources/static/admin-shell.js'
+      - 'preview/*experience-ranking*'
+      - 'tests/*ranking*'
+      - '.github/workflows/member-ranking-validation.yml'
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  members:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify authentication, navigation and read-only preview
+        run: node --test tests/admin-auth.test.cjs tests/admin-login-navigation.test.cjs tests/experience-ranking-preview-gateway.test.mjs
+      - name: Install isolated browser test runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/member-browser" --ignore-scripts --no-audit --no-fund --package-lock=false playwright@1.62.1
+          node "$RUNNER_TEMP/member-browser/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Verify member ranking on desktop and mobile
+        env:
+          PLAYWRIGHT_MODULE: ${{ runner.temp }}/member-browser/node_modules/playwright
+          PLAYWRIGHT_CHANNEL: chromium
+        run: node tests/member-ranking-browser.cjs

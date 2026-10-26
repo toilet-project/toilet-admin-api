@@ -87,6 +87,7 @@
   routeNames.add('/api-usage')
   pageStyleNames.add('api-usage.css')
   pageStyleNames.add('duplicate-names.css')
+  pageStyleNames.add('members.css')
 
   const normalizedRoute = (pathname) => {
     const withoutPreview = pathname.replace(/^\/preview(?=\/|$)/, '') || rootRoute

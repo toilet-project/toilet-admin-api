@@ -27,7 +27,7 @@
   }
   function error(target,kind){
     const region=target.querySelector(kind==='distribution'?'.member-ranking-distribution':'.member-rank-results');
-    region.innerHTML=`<div class="member-rank-error" role="alert">${kind==='distribution'?'등급별 분포':'경험치 랭킹'}를 불러오지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요. <button type="button" ${kind==='distribution'?'data-ranking-distribution-retry':'data-ranking-retry'}>다시 시도</button></div>`;
+    region.innerHTML=`<div class="member-rank-error" role="alert">${kind==='distribution'?'등급별 분포':'경험치 랭킹'} 정보를 불러오지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요. <button type="button" ${kind==='distribution'?'data-ranking-distribution-retry':'data-ranking-retry'}>다시 시도</button></div>`;
   }
   async function loadDistribution(){
     const target=host;if(!target?.isConnected)return;const token=++distributionEpoch;distributionController?.abort();distributionController=new AbortController();const controller=distributionController;

@@ -80,6 +80,8 @@
     evidence: { REQUEST_UA: '접속 요청에서 확인', LOG_UA: '기존 로그 대조로 보완', UNCLASSIFIED: '미분류·기록 없음' },
     entry: { UTM: '공유·홍보 링크 표시', REFERRER: '이전 사이트 전달', INTERNAL: '서비스 내부 이동', NO_REFERRER: '이전 사이트 정보 없음', INVALID_REFERRER: '이전 사이트 정보 해석 실패', UNRECORDED: '과거 기록 · 사유 미수집' },
     navigation: { NAVIGATE: '일반 페이지 진입', RELOAD: '새로고침', HISTORY: '뒤로·앞으로 가기', PRERENDER: '미리 열린 화면', CONTINUATION: '열린 탭에서 세션 재시작', UNKNOWN: '진입 방식 미기록' },
+    review: { BOT_SIGNAL: '기존 자동화 표시', LEGACY_OR_MIXED: '과거·혼합 기록 · 판단 보류', NO_PAGE_VIEW: '페이지 조회 기록 없음', OBSERVED_ACTIVITY: '기능 이용·화면 활성 기록', APP_CONTEXT: '앱 환경 확인 · 기능 이용 없음', REENTRY: '재진입 확인 · 기능 이용 없음', PASSIVE_SINGLE_VIEW: '출처 없는 단일 조회 · 활성 시간 없음', TIMED_SINGLE_VIEW: '출처 없는 단일 조회 · 활성 시간만 기록', OTHER_UNFLAGGED: '그 밖의 미확정 세션' },
+    traffic: { BOT: 'BOT · 자동화 신호', UNFLAGGED: 'UNFLAGGED · 미탐지', LEGACY: 'LEGACY · 과거 미분류', MIXED: '혼합 기록' },
     unattributed: { true: '출처 미확인 방문만' },
     device: { mobile: '모바일', desktop: '데스크톱', tablet: '태블릿' },
     country: {
@@ -366,19 +368,21 @@
       c = r.current;
     return `<div class="analytics-two-column">${panel('확인해야 할 집계', `<dl class="analytics-quality-list"><div><dt>알 수 없는 페이지 조회</dt><dd>${r.detailed ? `${num(q.unknownPageViews)}건 · ${pct(q.unknownPageViews, c.views)}` : '상세 기간에서 확인'}</dd></div><div><dt>직접 접속·출처 확인 불가</dt><dd>${r.detailed ? `${num(q.unattributedSessions)}세션 · ${pct(q.unattributedSessions, c.sessions)}` : '상세 기간에서 확인'}</dd></div><div><dt>내부 출처로 기록된 유입</dt><dd>${r.detailed ? `${num(q.internalSessions)}세션` : '—'}</dd></div><div><dt>같은 세션의 반복 시작 이벤트</dt><dd>${r.detailed ? `${num(q.duplicateStarts)}건` : '—'}</dd></div></dl><p>이 값만으로 봇이나 오류를 확정하지 않습니다. 과거 원본 기록은 새 집계 방식으로 자동 복원되지 않습니다.</p>`)}${panel('집계 범위와 갱신', `<dl class="analytics-quality-list"><div><dt>현재 조회 방식</dt><dd>${r.detailed ? '보관 중인 이벤트 상세 집계' : '일별 집계'}</dd></div><div><dt>조회 기준 시각</dt><dd>${esc(r.cutoff.replace('T', ' ').slice(0, 16))} KST</dd></div><div><dt>마지막 일별 집계</dt><dd>${dateTime(q.lastCalculatedAt)}</dd></div><div><dt>마지막 수집 이벤트</dt><dd>${dateTime(q.lastEventAt)}</dd></div><div><dt>원본 보관</dt><dd>35일 · 조회 결과 최대 1분 캐시</dd></div></dl><p>${esc(r.comparisonNote)}</p>`)}</div>${panel('지표 해석', `<ul class="analytics-note-list">${r.notices.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`)}`;
   }
+  function clueCollection() { return state.report.entryClues?.review?.rows ?? state.report.entryClues?.rows ?? []; }
+  function clueTruncated() { return state.report.entryClues?.review?.truncated ?? state.report.entryClues?.truncated ?? false; }
   function clueRows() {
     const search=(state.tables.clues?.search || '').toLowerCase();
-    return (state.report.entryClues?.rows || []).map((row,index)=>({...row,index})).filter(row=>
-      [row.os,row.browser,...['device','landing','client','entry','navigation'].map(type=>label(type,row[type]))].join(' ').toLowerCase().includes(search));
+    const review=state.report.entryClues?.review ? state.tables.clues?.review || '' : '';
+    return clueCollection().map((row,index)=>({...row,index})).filter(row=>
+      (!review || row.review===review) && [row.os,row.browser,...['device','landing','client','entry','navigation','review','source','channel','traffic'].map(type=>label(type,row[type]))].join(' ').toLowerCase().includes(search));
   }
   function entryClues() {
     const r=state.report, clues=r.entryClues;
-    if (!clues?.available) return panel('미확인 유입 살펴보기','<p class="analytics-empty">같은 환경·첫 화면별 단서는 최근 35일 상세 조회에서 제공됩니다.</p>');
-    const unknown=r.quality.unattributedSessions;
-    const app=(r.dimensions.source || []).filter(row=>row.key.startsWith('unattributed:')).reduce((sum,row)=>sum+row.metrics.sessions,0);
-    const summary=`<div class="analytics-entry-summary"><div><span>출처 기록 있음</span><strong>${num(Math.max(0,r.current.sessions-unknown))}<small>세션</small></strong></div><div><span>앱 단서 확인 · 출처 미확인</span><strong>${num(app)}<small>세션</small></strong></div><div><span>그 밖의 출처 미확인</span><strong>${num(Math.max(0,unknown-app))}<small>세션 · ${pct(Math.max(0,unknown-app),r.current.sessions)}</small></strong></div></div>`;
+    if (!clues?.available) return panel('세션별 접속 단서 분류','<p class="analytics-empty">세션별 단서는 최근 35일 상세 조회에서 제공됩니다.</p>');
+    const review=clues.review;
+    const summary=review?`<div class="analytics-entry-summary">${review.categories.map(category=>`<div><span>${esc(label('review',category.key))}</span><strong>${num(category.sessions)}<small>세션 · ${pct(category.sessions,review.totalSessions)}</small></strong></div>`).join('')}</div><p class="analytics-section-note">선택 조건의 시작 세션 ${num(review.totalSessions)}개 전체를 분류했습니다. 아래 상위 유형 표는 ${num(review.displayedSessions)}개 세션(${pct(review.displayedSessions,review.totalSessions)})을 포함합니다. 시작 기록 없이 남은 이벤트 ${num(review.eventsWithoutStart)}건은 분류 합계에서 제외합니다.</p>`:'<p class="analytics-section-note">기존 출처 미확인 표만 제공하는 응답입니다. 전체 세션 분류 합계는 아직 제공되지 않습니다.</p>';
     const rows=clueRows(), pref=state.tables.clues || {search:'',page:0}, page=Math.min(pref.page,Math.max(0,Math.ceil(rows.length/10)-1));
-    return `<article class="analytics-panel analytics-entry-clues" data-table="clues"><header><div><h2>미확인 유입 살펴보기</h2><p>같은 환경과 첫 화면을 묶은 합계 · 유형을 누르면 이용 행동까지 확인</p></div><button type="button" class="analytics-link" data-filter="unattributed" data-value="true">미확인 방문만 보기</button></header>${summary}<p class="analytics-section-note">${clues.evidenceAvailable ? '새로고침·뒤로가기·열린 탭 재시작은 첫 진입 기록이 있는 방문에만 표시합니다.' : '새로운 진입 방식 수집을 준비 중입니다. 아래에는 기존 기록으로 확인할 수 있는 단서를 표시합니다.'} 주소 직접 입력·즐겨찾기·출처를 숨긴 링크는 서로 구별할 수 없습니다.</p><div class="analytics-table-controls"><input data-search="clues" aria-label="미확인 유입 단서 검색" placeholder="브라우저, 기기, 첫 화면, 단서 찾기" value="${esc(pref.search)}"></div><div class="analytics-table-wrap"><table><thead><tr><th>접속 환경 · 첫 화면</th><th>출처 단서 · 진입 방식</th><th>세션</th><th>조회</th><th>상세 열기 / 검색</th></tr></thead><tbody>${rows.slice(page*10,page*10+10).map(row=>`<tr><td><button type="button" class="analytics-link" data-clue="${row.index}">${esc(row.browser)} · ${esc(row.os)}</button><small>${esc(label('device',row.device))} · ${esc(label('client',row.client))}</small><small>${esc(label('landing',row.landing))}</small></td><td>${esc(label('entry',row.entry))}<small>${esc(label('navigation',row.navigation))}</small></td><td>${num(row.sessions)}</td><td>${num(row.views)}</td><td>${num(row.withDetail)} / ${num(row.withSearch)}<small>이용한 세션 수 · 중복 가능</small></td></tr>`).join('') || '<tr><td colspan="5">이 조건에 해당하는 미확인 방문이 없습니다.</td></tr>'}</tbody></table></div><footer class="analytics-table-footer"><span>${num(rows.length)}개 유형${clues.truncated?' · 상위 100개, 기간·필터를 좁혀 확인':''} · 개인 식별정보 없음</span><div><button data-page="clues" data-value="${page-1}" ${page===0?'disabled':''}>이전</button><span>${page+1} / ${Math.max(1,Math.ceil(rows.length/10))}</span><button data-page="clues" data-value="${page+1}" ${(page+1)*10>=rows.length?'disabled':''}>다음</button></div></footer></article>`;
+    return `<article class="analytics-panel analytics-entry-clues" data-table="clues"><header><div><h2>${review?'세션별 접속 단서 분류':'미확인 유입 살펴보기'}</h2><p>선택 조건 안의 이벤트를 세션별로 확인한 뒤 같은 유형끼리 묶습니다.</p></div><button type="button" class="analytics-link" data-filter="unattributed" data-value="true">미확인 방문만 보기</button></header>${summary}<p class="analytics-section-note">출처 없는 단일 조회는 자동화 의심 후보를 검토하는 단서입니다. 활성 시간만 기록된 방문도 별도로 보여주며, 어느 유형도 사람·봇 확정이나 자동 제외를 뜻하지 않습니다. 기존 BOT·UNFLAGGED 분류와 원본 집계는 유지합니다. 앱·재진입은 기능 이용이 없는 경우에 따로 구분합니다. ${clues.evidenceAvailable ? '진입 방식은 첫 시작 기록 기준입니다.' : '진입 방식 미수집 기록은 확인할 수 없습니다.'} 첫 화면은 경로 유형이며 같은 실제 URL이라는 뜻은 아닙니다.</p><div class="analytics-table-controls"><select data-clue-review aria-label="표의 세션 단서 분류" ${review?'':'disabled'}><option value="">모든 분류 · 상위 유형 표</option>${Object.entries(labels.review).map(([key,value])=>`<option value="${key}" ${pref.review===key?'selected':''}>${esc(value)}</option>`).join('')}</select><input data-search="clues" aria-label="세션 접속 단서 검색" placeholder="브라우저, 기기, 첫 화면, 단서 찾기" value="${esc(pref.search)}"></div><p class="analytics-section-note">분류 선택·검색과 CSV는 현재 반환된 상위 100개 유형에 적용합니다. 환경 버튼은 같은 접속 환경·출처로 전체 분석을 좁히며, 분류 조건 자체를 다른 그래프에 적용하지 않습니다.</p><div class="analytics-table-wrap"><table><thead><tr><th>관찰 분류 · 기존 표시</th><th>접속 환경 · 첫 화면</th><th>출처 단서 · 진입 방식</th><th>세션</th><th>조회</th><th>상세 열기 / 검색 · 활성 시간</th></tr></thead><tbody>${rows.slice(page*10,page*10+10).map(row=>`<tr><td>${esc(label('review',row.review))}<small>${esc(label('traffic',row.traffic))}</small></td><td><button type="button" class="analytics-link" data-clue="${row.index}">${esc(row.browser)} · ${esc(row.os)}</button><small>${esc(label('device',row.device))} · ${esc(label('client',row.client))}</small><small>${esc(label('landing',row.landing))}</small></td><td>${esc(label('source',row.source))}<small>${esc(label('entry',row.entry))} · ${esc(label('navigation',row.navigation))}</small></td><td>${num(row.sessions)}</td><td>${num(row.views)}</td><td>${num(row.withDetail)} / ${num(row.withSearch)}<small>이용한 세션 수 · ${time(row.engagementSeconds)}</small></td></tr>`).join('') || '<tr><td colspan="6">반환된 상위 유형 중 이 조건에 해당하는 세션이 없습니다. 전체 분류 합계와 표의 포함 범위를 함께 확인하세요.</td></tr>'}</tbody></table></div><footer class="analytics-table-footer"><span>${num(rows.length)}개 유형${clueTruncated()?' · 상위 100개, 기간·필터를 좁혀 확인':''} · 개인 식별정보 없음</span><div><button data-page="clues" data-value="${page-1}" ${page===0?'disabled':''}>이전</button><span>${page+1} / ${Math.max(1,Math.ceil(rows.length/10))}</span><button data-page="clues" data-value="${page+1}" ${(page+1)*10>=rows.length?'disabled':''}>다음</button></div></footer></article>`;
   }
   function renderView() {
     if (!alive()) return;
@@ -761,8 +765,15 @@
       );
     }
     if (state.tab === 'acquisition' && state.report.entryClues?.available) {
-      rows.push([],['미확인 유입 단서','운영체제','브라우저','첫 화면','접속 환경','출처 확인 근거','진입 방식','세션','조회','상세를 연 세션','검색한 세션']);
-      for (const row of clueRows()) rows.push([label('device',row.device),row.os,row.browser,label('landing',row.landing),label('client',row.client),label('entry',row.entry),label('navigation',row.navigation),row.sessions,row.views,row.withDetail,row.withSearch]);
+      const clues=state.report.entryClues;
+      if (clues.review) {
+        rows.push([],['세션별 관찰 분류 합계 · 선택 조건 전체','세션']);
+        clues.review.categories.forEach(category=>rows.push([label('review',category.key),category.sessions]));
+        rows.push(['전체 시작 세션',clues.review.totalSessions],['반환된 상위 유형의 세션',clues.review.displayedSessions],['시작 기록 없는 이벤트',clues.review.eventsWithoutStart]);
+      }
+      rows.push(['표 포함 범위',clueTruncated()?'상위 100개 유형 · 전체 아님':'반환된 전체 유형'],['표 분류 필터',label('review',state.tables.clues?.review || '')],['표 검색',state.tables.clues?.search || '']);
+      rows.push([],['세션 관찰 분류','기존 트래픽 표시','기기','운영체제','브라우저','첫 화면 유형','접속 환경','출처','채널','출처 확인 근거','진입 방식','세션','조회','상세를 연 세션','검색한 세션','활성 시간 합계(초)']);
+      for (const row of clueRows()) rows.push([label('review',row.review),label('traffic',row.traffic),label('device',row.device),row.os,row.browser,label('landing',row.landing),label('client',row.client),label('source',row.source),label('channel',row.channel),label('entry',row.entry),label('navigation',row.navigation),row.sessions,row.views,row.withDetail,row.withSearch,row.engagementSeconds]);
     }
     const cell = (v) => {
         let s = String(v ?? '');
@@ -815,10 +826,12 @@
       state.back = null;
       load();
     } else if (b.dataset.clue !== undefined && !state.busy) {
-      const row=state.report.entryClues?.rows[Number(b.dataset.clue)];
+      const row=clueCollection()[Number(b.dataset.clue)];
       if (!row) return;
       for (const type of ['device','os','browser','landing','client','entry','navigation']) state.filters[type]=row[type];
-      state.filters.unattributed='true';
+      delete state.filters.source; delete state.filters.channel; delete state.filters.unattributed;
+      if (!row.source || (['none','unknown'].includes(row.source) && ['Direct','Unassigned'].includes(row.channel))) state.filters.unattributed='true';
+      else if (row.source) state.filters.source=row.source;
       load();
     } else if (b.dataset.filter) applyFilter(b.dataset.filter, b.dataset.value);
     else if (b.dataset.remove) applyFilter(b.dataset.remove, '');
@@ -843,6 +856,12 @@
     else if (b.id === 'analytics-export') exportCsv();
   });
   root.addEventListener('change', (e) => {
+    if (e.target.hasAttribute('data-clue-review')) {
+      state.tables.clues ??= { search: '', page: 0 };
+      state.tables.clues.review=e.target.value;
+      state.tables.clues.page=0;
+      renderView();
+    }
     if (e.target.id.startsWith('filter-'))
       applyFilter(e.target.id.slice(7), e.target.value);
     if (e.target.dataset.sort) {

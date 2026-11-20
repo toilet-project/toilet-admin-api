@@ -7,6 +7,7 @@ import com.example.toiletadmin.analytics.service.AnalyticsDateRange;
 import com.example.toiletadmin.analytics.service.ServiceAnalyticsService;
 import com.example.toiletadmin.analytics.service.AnalyticsExploreService;
 import com.example.toiletadmin.analytics.service.OriginBotService;
+import com.example.toiletadmin.analytics.service.AutomationStatisticsService;
 import com.example.toiletadmin.analytics.dto.AnalyticsExploreResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,6 +27,15 @@ public class ServiceAnalyticsController {
     private final ServiceAnalyticsService service;
     private final AnalyticsExploreService explorer;
     private final OriginBotService originBots;
+    private final AutomationStatisticsService automationStatistics;
+
+    @GetMapping("/automation-statistics")
+    public ResponseEntity<AutomationStatisticsService.Report> automationStatistics(
+            @RequestParam(defaultValue="7d") String range,
+            @RequestParam(required=false) String from,
+            @RequestParam(required=false) String to) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(automationStatistics.report(range,from,to));
+    }
 
     @GetMapping("/origin-bots")
     public ResponseEntity<OriginBotService.Report> originBots(

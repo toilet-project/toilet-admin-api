@@ -3,6 +3,9 @@
 .analytics-entry-summary span { display:block; color:#64796c; font-size:12px; }
 .analytics-entry-summary strong { display:flex; flex-wrap:wrap; align-items:baseline; gap:7px; margin-top:7px; font-size:25px; color:#22593d; }
 .analytics-entry-summary small { font-size:11px; font-weight:400; color:#6c7d73; }
+.analytics-entry-clues .analytics-table-controls { flex-wrap:wrap; }
+.analytics-entry-clues .analytics-table-controls select { max-width:100%; }
+.analytics-entry-clues .analytics-table-controls input { flex-basis:180px; }
 .analytics-entry-clues td:first-child { min-width:210px; }
 .analytics-entry-clues td:nth-child(2) { min-width:185px; }
 .analytics-entry-dimensions { margin-top:16px; }

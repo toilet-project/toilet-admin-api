@@ -12,9 +12,18 @@ public record AnalyticsExploreResponse(
         Map<String, List<Row>> previousDimensions, List<Flow> flows,
         Quality quality, List<String> notices, Map<String, String> filters, BotFilter botFilter, EntryClues entryClues) {
 
-    public record EntryClues(boolean available, boolean evidenceAvailable, boolean truncated, List<EntryClue> rows) { }
+    public record EntryClues(boolean available, boolean evidenceAvailable, boolean truncated, List<EntryClue> rows,
+                             SessionReview review) {
+        public EntryClues(boolean available,boolean evidenceAvailable,boolean truncated,List<EntryClue> rows) {
+            this(available,evidenceAvailable,truncated,rows,null);
+        }
+    }
+    public record SessionReview(long totalSessions,long displayedSessions,long eventsWithoutStart,List<ReviewCount> categories,
+                                boolean truncated,List<EntryClue> rows) { }
+    public record ReviewCount(String key,long sessions) { }
     public record EntryClue(String device,String os,String browser,String landing,String client,String entry,String navigation,
-                            long sessions,long views,long withDetail,long withSearch,long engagementSeconds) { }
+                            long sessions,long views,long withDetail,long withSearch,long engagementSeconds,
+                            String review,String source,String channel,String traffic) { }
 
     public record BotFilter(boolean excludeBots, boolean schemaAvailable, boolean toggleAvailable,
                             long botEvents, long unflaggedEvents, long legacyEvents, String note) { }

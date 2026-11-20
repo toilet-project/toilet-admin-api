@@ -157,20 +157,60 @@ public class AnalyticsExploreRepository {
                 && ServiceAnalyticsRepository.columnAvailable(jdbc,"entry_navigation");
     }
 
-    /** Anonymous cohorts only: never return session/visitor hashes or an individual visit trail. */
+    private static final List<String> REVIEW_KEYS=List.of("BOT_SIGNAL","LEGACY_OR_MIXED","NO_PAGE_VIEW",
+            "OBSERVED_ACTIVITY","APP_CONTEXT","REENTRY","PASSIVE_SINGLE_VIEW","TIMED_SINGLE_VIEW","OTHER_UNFLAGGED");
+    private record ClueResult(String collection,EntryClue row,long total,long orphanEvents,List<ReviewCount> categories) { }
+    /** Observations, not human/bot identity inference. Totals cover every started session before the row cap. */
     public EntryClues entryClues(AnalyticsExploreQuery q) {
         Where w=where(q);
+        String traffic=q.botClassificationAvailable()?"traffic_class":"'LEGACY'";
+        String categoryTotals=REVIEW_KEYS.stream().map(key->"COALESCE(SUM(CASE WHEN review_key='"+key+"' THEN sessions ELSE 0 END),0) AS "+key).collect(java.util.stream.Collectors.joining(","));
         String sql="WITH filtered AS (SELECT event_id,occurred_date,session_hash,event_name,page_key,source_key,channel_key,device_type,os_family,browser_family,engagement_seconds,"
-                +column("client",q)+" AS client,"+column("entry",q)+" AS entry,"+column("navigation",q)+" AS navigation FROM service_analytics_event"+w.sql()+"),"
-                +" starts AS (SELECT *,ROW_NUMBER() OVER(PARTITION BY occurred_date,session_hash ORDER BY event_id) AS seq FROM filtered WHERE event_name='session_start' AND source_key IN ('none','unknown') AND channel_key IN ('Direct','Unassigned')),"
-                +" activity AS (SELECT occurred_date,session_hash,SUM(CASE WHEN event_name='page_view' THEN 1 ELSE 0 END) AS views,"
-                +"MAX(CASE WHEN event_name='toilet_detail_open' THEN 1 ELSE 0 END) AS detail,MAX(CASE WHEN event_name IN ('toilet_search','nearby_search') THEN 1 ELSE 0 END) AS search_used,SUM(engagement_seconds) AS engagement FROM filtered GROUP BY occurred_date,session_hash)"
-                +" SELECT s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation,COUNT(*) AS sessions,SUM(a.views) AS views,SUM(a.detail) AS details,SUM(a.search_used) AS searches,SUM(a.engagement) AS engagement"
-                +" FROM starts s JOIN activity a ON a.occurred_date=s.occurred_date AND a.session_hash=s.session_hash WHERE s.seq=1"
-                +" GROUP BY s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation"
-                +" ORDER BY sessions DESC,s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation LIMIT 101";
-        List<EntryClue> rows=query(sql,w.args(),(rs,n)->new EntryClue(rs.getString("device_type"),rs.getString("os_family"),rs.getString("browser_family"),rs.getString("page_key"),rs.getString("client"),rs.getString("entry"),rs.getString("navigation"),rs.getLong("sessions"),rs.getLong("views"),rs.getLong("details"),rs.getLong("searches"),rs.getLong("engagement")));
-        return new EntryClues(true,q.entryEvidenceAvailable(),rows.size()>100,rows.stream().limit(100).toList());
+                +column("client",q)+" AS client,"+column("evidence",q)+" AS evidence,"+column("entry",q)+" AS entry,"+column("navigation",q)+" AS navigation,"+traffic+" AS traffic FROM service_analytics_event"+w.sql()+"),"
+                +" starts AS (SELECT *,ROW_NUMBER() OVER(PARTITION BY occurred_date,session_hash ORDER BY event_id) AS seq FROM filtered WHERE event_name='session_start'),"
+                +" legacy_starts AS (SELECT *,ROW_NUMBER() OVER(PARTITION BY occurred_date,session_hash ORDER BY event_id) AS seq FROM filtered WHERE event_name='session_start' AND source_key IN ('none','unknown') AND channel_key IN ('Direct','Unassigned')),"
+                +" activity AS (SELECT occurred_date,session_hash,COUNT(*) AS events,SUM(CASE WHEN event_name='session_start' THEN 1 ELSE 0 END) AS starts,"
+                +"SUM(CASE WHEN event_name='page_view' THEN 1 ELSE 0 END) AS views,"
+                +"MAX(CASE WHEN event_name='toilet_detail_open' THEN 1 ELSE 0 END) AS detail,MAX(CASE WHEN event_name IN ('toilet_search','nearby_search') THEN 1 ELSE 0 END) AS search_used,"
+                +"MAX(CASE WHEN event_name NOT IN ('session_start','page_view','engagement') THEN 1 ELSE 0 END) AS used,COALESCE(SUM(engagement_seconds),0) AS engagement,"
+                +"MAX(CASE WHEN traffic='BOT' THEN 1 ELSE 0 END) AS bot,MAX(CASE WHEN traffic='UNFLAGGED' THEN 1 ELSE 0 END) AS unflagged,"
+                +"MAX(CASE WHEN traffic NOT IN ('BOT','UNFLAGGED') THEN 1 ELSE 0 END) AS legacy FROM filtered GROUP BY occurred_date,session_hash),"
+                +" reviewed AS (SELECT s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation,s.source_key,s.channel_key,a.views,a.detail,a.search_used,a.engagement,"
+                +"CASE WHEN a.bot+a.unflagged+a.legacy>1 THEN 'MIXED' WHEN a.bot=1 THEN 'BOT' WHEN a.unflagged=1 THEN 'UNFLAGGED' ELSE 'LEGACY' END AS traffic,"
+                +"CASE WHEN a.legacy=1 OR a.bot+a.unflagged>1 THEN 'LEGACY_OR_MIXED' WHEN a.bot=1 THEN 'BOT_SIGNAL' "
+                +"WHEN a.views=0 THEN 'NO_PAGE_VIEW' WHEN a.used=1 THEN 'OBSERVED_ACTIVITY' "
+                +"WHEN s.evidence IN ('REQUEST_UA','LOG_UA') AND s.client IN ('KAKAOTALK','LINE','NAVER_APP','INSTAGRAM','FACEBOOK','GOOGLE_APP','ANDROID_WEBVIEW','IOS_WEBVIEW') THEN 'APP_CONTEXT' "
+                +"WHEN s.navigation IN ('RELOAD','HISTORY','CONTINUATION') THEN 'REENTRY' "
+                +"WHEN a.views=1 AND s.source_key IN ('none','unknown') AND s.channel_key IN ('Direct','Unassigned') THEN CASE WHEN a.engagement=0 THEN 'PASSIVE_SINGLE_VIEW' ELSE 'TIMED_SINGLE_VIEW' END "
+                +"WHEN a.engagement>0 THEN 'OBSERVED_ACTIVITY' ELSE 'OTHER_UNFLAGGED' END AS review_key "
+                +"FROM starts s JOIN activity a ON a.occurred_date=s.occurred_date AND a.session_hash=s.session_hash WHERE s.seq=1),"
+                +" cohorts AS (SELECT device_type,os_family,browser_family,page_key,client,entry,navigation,source_key,channel_key,traffic,review_key,COUNT(*) AS sessions,"
+                +"SUM(views) AS views,SUM(detail) AS details,SUM(search_used) AS searches,SUM(engagement) AS engagement FROM reviewed "
+                +"GROUP BY device_type,os_family,browser_family,page_key,client,entry,navigation,source_key,channel_key,traffic,review_key),"
+                // Preserve the original unknown-source rows, grouping and independent cap for already-open clients.
+                +" legacy_cohorts AS (SELECT s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation,"
+                +"NULL AS source_key,NULL AS channel_key,NULL AS traffic,NULL AS review_key,COUNT(*) AS sessions,"
+                +"SUM(a.views) AS views,SUM(a.detail) AS details,SUM(a.search_used) AS searches,SUM(a.engagement) AS engagement "
+                +"FROM legacy_starts s JOIN activity a ON a.occurred_date=s.occurred_date AND a.session_hash=s.session_hash WHERE s.seq=1 "
+                +"GROUP BY s.device_type,s.os_family,s.browser_family,s.page_key,s.client,s.entry,s.navigation),"
+                +" ranked AS (SELECT 'review' AS collection,c.*,ROW_NUMBER() OVER(ORDER BY sessions DESC,device_type,os_family,browser_family,page_key,client,entry,navigation,source_key,channel_key,traffic,review_key) AS rank_position FROM cohorts c "
+                +"UNION ALL SELECT 'legacy' AS collection,l.*,ROW_NUMBER() OVER(ORDER BY sessions DESC,device_type,os_family,browser_family,page_key,client,entry,navigation) AS rank_position FROM legacy_cohorts l),"
+                +" totals AS (SELECT COALESCE(SUM(sessions),0) AS total_sessions,"+categoryTotals+" FROM cohorts),"
+                +" orphan AS (SELECT COALESCE(SUM(events),0) AS orphan_events FROM activity WHERE starts=0) "
+                +"SELECT c.*,t.*,o.orphan_events FROM totals t CROSS JOIN orphan o LEFT JOIN ranked c ON c.rank_position<=101 "
+                +"ORDER BY c.collection,c.rank_position";
+        List<ClueResult> result=query(sql,w.args(),(rs,n)->{
+            List<ReviewCount> categories=new ArrayList<>();
+            for(String key:REVIEW_KEYS) categories.add(new ReviewCount(key,rs.getLong(key)));
+            EntryClue row=rs.getString("collection")==null?null:new EntryClue(rs.getString("device_type"),rs.getString("os_family"),rs.getString("browser_family"),rs.getString("page_key"),rs.getString("client"),rs.getString("entry"),rs.getString("navigation"),rs.getLong("sessions"),rs.getLong("views"),rs.getLong("details"),rs.getLong("searches"),rs.getLong("engagement"),rs.getString("review_key"),rs.getString("source_key"),rs.getString("channel_key"),rs.getString("traffic"));
+            return new ClueResult(rs.getString("collection"),row,rs.getLong("total_sessions"),rs.getLong("orphan_events"),List.copyOf(categories));
+        });
+        List<EntryClue> legacy=result.stream().filter(r->"legacy".equals(r.collection())).map(ClueResult::row).toList();
+        List<EntryClue> all=result.stream().filter(r->"review".equals(r.collection())).map(ClueResult::row).toList();
+        List<EntryClue> rows=all.stream().limit(100).toList();
+        ClueResult totals=result.getFirst();
+        return new EntryClues(true,q.entryEvidenceAvailable(),legacy.size()>100,legacy.stream().limit(100).toList(),
+                new SessionReview(totals.total(),rows.stream().mapToLong(EntryClue::sessions).sum(),totals.orphanEvents(),totals.categories(),all.size()>100,rows));
     }
     public boolean botClassificationAvailable() {
         return ServiceAnalyticsRepository.botClassificationAvailable(jdbc);

@@ -11,6 +11,7 @@ on:
       - 'preview/analytics-gateway.mjs'
       - 'preview/*written-reviews*'
       - 'operations/origin-bots/**'
+      - 'operations/analytics-classifier/**'
       - '.github/workflows/analytics-validation.yml'
   push:
     branches: [main]
@@ -33,8 +34,9 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew test --tests '*analytics*' --no-daemon --max-workers=1
-          node --test tests/service-analytics-ui.test.mjs tests/analytics-preview-gateway.test.mjs tests/written-reviews*.test.mjs
+          node --test tests/service-analytics-ui.test.mjs tests/analytics-preview-gateway.test.mjs tests/origin-bot-statistics-analytics.test.mjs tests/written-reviews*.test.mjs
           python3 -B -m unittest discover -s operations/origin-bots -p 'test*.py'
+          python3 -B -m unittest discover -s operations/analytics-classifier -p 'test_*.py'
       - name: Install isolated browser test runtime
         run: |
           npm install --prefix "$RUNNER_TEMP/review-browser" --ignore-scripts --no-audit --no-fund --package-lock=false playwright@1.62.1

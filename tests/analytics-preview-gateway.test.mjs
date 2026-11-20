@@ -51,6 +51,7 @@ test('anonymous API, expired preview, non-admin and writes never reach private s
   const { handle, calls, state } = setup()
   assert.equal((await handle(new Request(url), env)).status, 401)
   assert.equal((await handle(new Request(site + '/api/admin/v1/service-analytics/origin-bots'), env)).status, 401)
+  assert.equal((await handle(new Request(site + '/api/admin/v1/service-analytics/automation-statistics'), env)).status, 401)
   assert.equal((await handle(new Request(url), { ...env, PREVIEW_EXPIRES_AT: '9999' })).status, 410)
   assert.equal((await handle(new Request(url, { method: 'POST' }), env)).status, 405)
   assert.equal((await handle(new Request(AUTH_URL + '?state=' + 'c'.repeat(64)), env)).status, 401)
@@ -58,6 +59,17 @@ test('anonymous API, expired preview, non-admin and writes never reach private s
   state.roles = ['USER']
   assert.equal((await handle(new Request(AUTH_URL + '?state=' + 'c'.repeat(64), { headers: { Cookie: 'geupddong_access=' + token } }), env)).status, 403)
   assert.equal(calls.length, 1)
+})
+test('automation statistics uses the same admin boundary and remains read-only',async()=>{
+  const {handle,calls,state}=setup(),session=await connect(handle)
+  const endpoint=site+'/api/admin/v1/service-analytics/automation-statistics?range=7d'
+  calls.length=0
+  assert.equal((await handle(new Request(endpoint,{headers:{Cookie:sessionCookie(session)}}),env)).status,200)
+  assert.equal(calls[1][0],env.PREVIEW_ORIGIN+'/api/admin/v1/service-analytics/automation-statistics?range=7d')
+  assert.equal((await handle(new Request(endpoint,{method:'POST',headers:{Cookie:sessionCookie(session)}}),env)).status,405)
+  state.roles=['USER'];calls.length=0
+  assert.equal((await handle(new Request(endpoint,{headers:{Cookie:sessionCookie(session)}}),env)).status,403)
+  assert.equal(calls.length,1)
 })
 test('host-only encrypted session connects via state-bound POST and backend never receives user token', async () => {
   const { handle, calls } = setup()

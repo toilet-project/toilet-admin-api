@@ -17,7 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** Test classpath only: aggregate SQL over a disposable H2 snapshot. Never loads production configuration. */
 public final class AnalyticsPreviewServer {
     private static final Set<String> ASSETS=Set.of("service-analytics.html","service-analytics.js","service-analytics.css","origin-bots.js","popular-toilets.js",
-            "admin-responsive.js","admin-responsive.css","dashboard.css","admin-shell.css","admin-shell.js","admin-session.css","brand.css","favicon.ico",
+            "admin-responsive.js","admin-responsive.css","dashboard.css","admin-shell.css","admin-shell.js","admin-session.css","admin-auth.js","admin-auth.css","brand.css","favicon.ico",
             "brand/hangul-point-v1/lockup-ko.svg","brand/hangul-point-v1/favicon.svg",
             "brand/hangul-point-v1/favicon-32.png","brand/hangul-point-v1/apple-touch-icon.png");
     public static void main(String[] args) throws Exception {
@@ -66,6 +66,25 @@ public final class AnalyticsPreviewServer {
                 }
             };
         } else bots=new OriginBotService("",clock);
+        final AutomationStatisticsService automation;
+        String automationSnapshot=System.getenv("ANALYTICS_PREVIEW_AUTOMATION_SNAPSHOT");
+        if(automationSnapshot!=null && !automationSnapshot.isBlank()) {
+            Path file=Path.of(automationSnapshot);
+            if(Files.size(file)>4_000_000)throw new IllegalArgumentException("Automation aggregate snapshot too large");
+            var automationData=json.readTree(Files.readString(file));
+            String catalogSnapshot=System.getenv("ANALYTICS_PREVIEW_CRAWLER_CATALOG");
+            if(catalogSnapshot!=null && !catalogSnapshot.isBlank()) {
+                Path catalogFile=Path.of(catalogSnapshot);
+                if(Files.size(catalogFile)>64000)throw new IllegalArgumentException("Catalog metadata too large");
+                var catalogData=json.readTree(Files.readString(catalogFile));
+                if(catalogData.path("schema").asInt()!=1 || !catalogData.path("source").asText().equals("official-crawler-source-catalog"))throw new IllegalArgumentException("Catalog metadata required");
+                ((tools.jackson.databind.node.ObjectNode)automationData).set("officialSources",catalogData.path("officialSources"));
+            }
+            Clock automationClock=Clock.systemUTC();
+            automation=new AutomationStatisticsService("snapshot-only",automationClock) {
+                @Override protected tools.jackson.databind.JsonNode loadExport(){return automationData;}
+            };
+        } else automation=new AutomationStatisticsService("",clock);
         var server=HttpServer.create(new InetSocketAddress("127.0.0.1",port),16);
         var executor=Executors.newFixedThreadPool(2);server.setExecutor(executor);
         Path assets=Path.of("src/main/resources/static").toAbsolutePath().normalize();
@@ -95,6 +114,11 @@ public final class AnalyticsPreviewServer {
                     if(raw!=null)for(String entry:raw.split("&")){String[] parts=entry.split("=",2);query.put(URLDecoder.decode(parts[0],StandardCharsets.UTF_8),parts.length==2?URLDecoder.decode(parts[1],StandardCharsets.UTF_8):"");}
                     body=json.writeValueAsBytes(bots.report(query.getOrDefault("range","7d"),query.get("from"),query.get("to")));
                 }
+                else if(path.equals("/api/admin/v1/service-analytics/automation-statistics")) {
+                    Map<String,String> query=new HashMap<>();String raw=exchange.getRequestURI().getRawQuery();
+                    if(raw!=null)for(String entry:raw.split("&")){String[] parts=entry.split("=",2);query.put(URLDecoder.decode(parts[0],StandardCharsets.UTF_8),parts.length==2?URLDecoder.decode(parts[1],StandardCharsets.UTF_8):"");}
+                    body=json.writeValueAsBytes(automation.report(query.getOrDefault("range","7d"),query.get("from"),query.get("to")));
+                }
                 else if(path.equals("/api/admin/v1/service-analytics/realtime"))body=json.writeValueAsBytes(Map.of("available",true,"fetchedAt",clock.instant(),"data",summaries.realtime(clock.instant().minusSeconds(1800),!"excludeBots=false".equals(exchange.getRequestURI().getRawQuery()))));
                 else {
                     String file=path.equals("/")?"service-analytics.html":path.substring(1);
@@ -105,12 +129,15 @@ public final class AnalyticsPreviewServer {
                     } else {
                     String content=Files.readString(assets.resolve(file));
                     String previewLabel=realSnapshot?"실제 이용 기록 · "+clock.instant().atZone(AnalyticsExploreQuery.SEOUL).format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))+" KST 기준 복사본 · 읽기 전용 · 실시간 갱신 아님":"검증 프리뷰 · 합성 데이터 · 실제 Java/SQL 집계 · 운영 데이터와 연결되지 않습니다.";
-                    if(file.equals("service-analytics.html"))content=content.replace("<script src=\"/admin-session.js?v=2\"></script>","")
+                    if(!realSnapshot && automationSnapshot!=null && !automationSnapshot.isBlank())previewLabel="기본 방문 화면은 합성 데이터 · 자동화 분류 영역만 읽기 전용 집계 사본 · 운영 데이터 변경 없음";
+                    if(file.equals("service-analytics.html"))content=content.replaceAll("<script src=\"/admin-session\\.js\\?v=[0-9]+\"></script>","")
                             .replace("<body class=\"admin-page analytics-page\">","<body class=\"admin-page analytics-page\"><aside style=\"padding:12px 24px;background:#fff4d6;color:#624918;text-align:center\">"+previewLabel+"</aside>");
                     if(file.equals("service-analytics.js")){
+                        content=content.replace("AdminAuth.start(root)","AdminAuth.start(root, {profileUrl: '/preview-auth'})");
                         content=content.replace("https://api.geupddong.com/api/v1/auth/me","/preview-auth");
                         if(realSnapshot)content=content.replace("지금 들어오는 방문","복사 시점 직전 30분").replace("최근 30분 · 전체 서비스 기준","복사 시점 직전 30분 · 전체 서비스 기준");
                     }
+                    if(file.equals("admin-auth.js"))content=content.replace("https://api.geupddong.com/api/v1/auth","/preview-session");
                     if(file.equals("popular-toilets.js") && engagementMetadata!=null)
                         content=content.replace("https://geupddong.com/toilet/","https://preview.geupddong.com/toilet/");
                     // Keep the existing shell's design without opening unrelated admin pages in the test.

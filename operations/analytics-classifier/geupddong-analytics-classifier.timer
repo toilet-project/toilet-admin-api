@@ -1,0 +1,13 @@
+[Unit]
+Description=Classify closed automated analytics sessions every five minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=15s
+Persistent=true
+Unit=geupddong-analytics-classifier.service
+
+[Install]
+WantedBy=timers.target
+

@@ -42,11 +42,13 @@ class AnalyticsExploreRepositoryTest {
         var legacy=repository.entryClues(query("today",Map.of()));
         assertThat(legacy.evidenceAvailable()).isFalse();
         assertThat(legacy.rows()).hasSize(1);
+        assertThat(legacy.review().totalSessions()).isEqualTo(3);
         var row=legacy.rows().getFirst();
         assertThat(row.entry()).isEqualTo("UNRECORDED");assertThat(row.navigation()).isEqualTo("UNKNOWN");
         assertThat(row.sessions()).isEqualTo(2);assertThat(row.views()).isEqualTo(2);
         assertThat(row.withDetail()).isEqualTo(2);assertThat(row.withSearch()).isEqualTo(2);
         assertThat(row.engagementSeconds()).isEqualTo(20);
+        assertThat(repository.entryClues(query("today",Map.of("source","naver"))).review().totalSessions()).isOne();
         assertThat(repository.entryClues(query("today",Map.of("source","naver"))).rows()).isEmpty();
         jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN traffic_class VARCHAR(16) DEFAULT 'UNFLAGGED'");
         jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN acquisition_evidence VARCHAR(24) DEFAULT 'UNRECORDED'");
@@ -61,9 +63,97 @@ class AnalyticsExploreRepositoryTest {
         assertThat(filtered.sessions()).isOne();assertThat(filtered.views()).isOne();
         assertThat(repository.daily(q).getFirst().metrics().sessions()).isEqualTo(filtered.sessions());
         var bots=query("today",Map.of()).withEntryEvidence(true).withBotClassification(true);
-        assertThat(repository.entryClues(bots).rows()).hasSize(1);
-        assertThat(repository.entryClues(bots.includingBots()).rows()).hasSize(2);
+        assertThat(repository.entryClues(bots).review().totalSessions()).isEqualTo(2);
+        assertThat(repository.entryClues(bots.includingBots()).review().totalSessions()).isEqualTo(3);
         assertThat(repository.entryClues(query("today",Map.of("browser","' OR 1=1 --")))).extracting(EntryClues::rows).asList().isEmpty();
+    }
+    @Test void sessionReviewUsesEachSessionBeforeGroupingAndPreservesSignalsAndCoverage(){
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN traffic_class VARCHAR(16) DEFAULT 'UNFLAGGED'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context VARCHAR(24) DEFAULT 'BROWSER'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN client_context_evidence VARCHAR(16) DEFAULT 'REQUEST_UA'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN acquisition_evidence VARCHAR(24) DEFAULT 'NO_REFERRER'");
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN entry_navigation VARCHAR(16) DEFAULT 'NAVIGATE'");
+        for(int i=1;i<=13;i++) {
+            if(i==12) continue; // An orphan page_view is reported, never invented as a started session.
+            event("2026-09-24T01:00:00Z","session_start",i,i,"none","/regions","",null,0);
+            if(i!=4 && i!=10) event("2026-09-24T01:00:01Z","page_view",i,i,"none","/regions","",null,0);
+        }
+        event("2026-09-24T01:00:02Z","engagement",2,2,"none","/regions","",null,8);
+        event("2026-09-24T01:00:02Z","toilet_search",3,3,"none","/regions","",true,0);
+        event("2026-09-24T01:00:02Z","toilet_search",4,4,"none","/regions","",true,0); // No page view does not mean no actions.
+        for(int i:List.of(5,11))event("2026-09-24T01:00:02Z","page_view",i,i,"none","/regions","",null,0);
+        event("2026-09-24T01:00:03Z","session_start",1,1,"none","/regions","",null,0);
+        event("2026-09-24T01:00:04Z","page_view",12,12,"none","/regions","",null,0);
+        jdbc.update("UPDATE service_analytics_event SET client_context='KAKAOTALK' WHERE session_hash=?",hash(6));
+        jdbc.update("UPDATE service_analytics_event SET entry_navigation='RELOAD' WHERE session_hash=?",hash(7));
+        jdbc.update("UPDATE service_analytics_event SET traffic_class='BOT' WHERE session_hash=?",hash(8));
+        jdbc.update("UPDATE service_analytics_event SET traffic_class='LEGACY' WHERE session_hash=?",hash(9));
+        jdbc.update("UPDATE service_analytics_event SET traffic_class='BOT' WHERE session_hash=? AND event_name='page_view'",hash(13));
+        var q=query("today",Map.of()).withBotClassification(true).withClientContext(true).withEntryEvidence(true).includingBots();
+        var result=repository.entryClues(q);
+        assertThat(result.review().totalSessions()).isEqualTo(12);
+        assertThat(result.review().displayedSessions()).isEqualTo(12);
+        assertThat(result.review().eventsWithoutStart()).isOne();
+        Map<String,Long> counts=new HashMap<>();result.review().categories().forEach(r->counts.put(r.key(),r.sessions()));
+        assertThat(counts).containsEntry("PASSIVE_SINGLE_VIEW",1L).containsEntry("TIMED_SINGLE_VIEW",1L)
+                .containsEntry("OBSERVED_ACTIVITY",1L).containsEntry("APP_CONTEXT",1L).containsEntry("REENTRY",1L)
+                .containsEntry("BOT_SIGNAL",1L).containsEntry("LEGACY_OR_MIXED",2L)
+                .containsEntry("NO_PAGE_VIEW",2L).containsEntry("OTHER_UNFLAGGED",2L);
+        assertThat(counts.values().stream().mapToLong(Long::longValue).sum()).isEqualTo(12);
+        assertThat(result.review().rows()).anySatisfy(r->{assertThat(r.review()).isEqualTo("LEGACY_OR_MIXED");assertThat(r.traffic()).isEqualTo("MIXED");});
+        assertThat(result.review().rows()).anySatisfy(r->{assertThat(r.review()).isEqualTo("NO_PAGE_VIEW");assertThat(r.withSearch()).isOne();});
+        assertThat(repository.entryClues(query("today",Map.of()).withBotClassification(true).withClientContext(true).withEntryEvidence(true)).review().totalSessions()).isEqualTo(11);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM service_analytics_event WHERE traffic_class='BOT'",Long.class)).isEqualTo(3);
+    }
+    private static byte[] hash(int id){byte[] hash=new byte[32];hash[0]=(byte)id;return hash;}
+    @Test void sessionReviewTotalsCoverRowsBeyondCapAndZeroStartPeriods(){
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN traffic_class VARCHAR(16) DEFAULT 'UNFLAGGED'");
+        var q=query("today",Map.of()).withBotClassification(true);
+        event("2026-09-24T01:00:00Z","page_view",120,120,"naver","/","",null,0);
+        var empty=repository.entryClues(q);
+        assertThat(empty.rows()).isEmpty();assertThat(empty.review().totalSessions()).isZero();
+        assertThat(empty.review().eventsWithoutStart()).isOne();
+        for(int i=1;i<=101;i++) {
+            event("2026-09-24T01:00:00Z","session_start",i,i,"naver","/","",null,0);
+            event("2026-09-24T01:00:01Z","page_view",i,i,"naver","/","",null,0);
+            jdbc.update("UPDATE service_analytics_event SET os_family=? WHERE session_hash=?","OS-"+i,hash(i));
+        }
+        var result=repository.entryClues(q);
+        assertThat(result.rows()).isEmpty();assertThat(result.truncated()).isFalse();
+        assertThat(result.review().rows()).hasSize(100);assertThat(result.review().truncated()).isTrue();
+        assertThat(result.review().totalSessions()).isEqualTo(101);
+        assertThat(result.review().displayedSessions()).isEqualTo(100);
+        assertThat(result.review().categories().stream().mapToLong(ReviewCount::sessions).sum()).isEqualTo(101);
+        assertThat(repository.daily(q).getFirst().metrics().sessions()).isEqualTo(result.review().totalSessions());
+        event("2026-09-24T01:00:00Z","session_start",111,111,"none","/","",null,0);
+        event("2026-09-24T01:00:01Z","page_view",111,111,"none","/","",null,0);
+        var independent=repository.entryClues(q);
+        assertThat(independent.rows()).hasSize(1);assertThat(independent.truncated()).isFalse();
+        assertThat(independent.review().rows()).hasSize(100);assertThat(independent.review().truncated()).isTrue();
+        for(int i=121;i<=220;i++) {
+            event("2026-09-24T01:00:00Z","session_start",i,i,"none","/","",null,0);
+            event("2026-09-24T01:00:01Z","page_view",i,i,"none","/","",null,0);
+            jdbc.update("UPDATE service_analytics_event SET os_family=? WHERE session_hash=?","Direct-"+i,hash(i));
+        }
+        var both=repository.entryClues(q);
+        assertThat(both.rows()).hasSize(100);assertThat(both.truncated()).isTrue();
+        assertThat(both.review().rows()).hasSize(100);assertThat(both.review().truncated()).isTrue();
+        assertThat(both.review().totalSessions()).isEqualTo(202);
+    }
+    @Test void legacyCluesKeepUnknownOnlyAndOriginalGroupingWhileReviewIsAdditive(){
+        jdbc.execute("ALTER TABLE service_analytics_event ADD COLUMN traffic_class VARCHAR(16) DEFAULT 'UNFLAGGED'");
+        var q=query("today",Map.of()).withBotClassification(true);
+        for(int i=1;i<=4;i++) {
+            event("2026-09-24T01:00:00Z","session_start",i,i,i==4?"naver":"none","/","",null,0);
+            event("2026-09-24T01:00:01Z","page_view",i,i,i==4?"naver":"none","/","",null,0);
+        }
+        event("2026-09-24T01:00:02Z","engagement",2,2,"none","/","",null,8);
+        event("2026-09-24T01:00:02Z","toilet_search",3,3,"none","/","",true,0);
+        var result=repository.entryClues(q);
+        assertThat(result.rows()).hasSize(1);assertThat(result.rows().getFirst().sessions()).isEqualTo(3);
+        assertThat(result.rows().getFirst().views()).isEqualTo(3);assertThat(result.rows().getFirst().withSearch()).isOne();
+        assertThat(result.review().totalSessions()).isEqualTo(4);assertThat(result.review().rows()).hasSize(4);
+        assertThat(result.review().rows()).anyMatch(row->row.source().equals("naver"));
     }
     @Test void clientContextIsIndependentOfReferrerAndWorksBeforeAndAfterMigration(){
         event("2026-09-24T01:00:00Z","session_start",1,1,"none","/","",null,0);

@@ -1,0 +1,28 @@
+[Unit]
+Description=Geupddong statistics-only automation classification
+After=snap.docker.dockerd.service
+Requires=snap.docker.dockerd.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+# This digest pins the reviewed policy. A policy edit requires a reviewed unit update.
+# Local v2 candidate only; installation/application requires separate approval.
+ExecStart=/usr/bin/python3 /opt/geupddong-analytics-classifier/classifier.py --run --apply-approved --expected-policy c851ebe4f840cb026709b1fbcb683f828ef8e19d0de16784468738ee7b0e9811 --export /var/snap/docker/common/geupddong-origin-bots/exports/automation-statistics.json
+UMask=0077
+Nice=19
+IOSchedulingClass=idle
+CPUQuota=20%
+MemoryMax=512M
+TimeoutStartSec=240
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+ReadOnlyPaths=/var/log/nginx
+ReadWritePaths=/var/lib/geupddong-analytics-classifier /var/snap/docker/common/geupddong-origin-bots/exports
+

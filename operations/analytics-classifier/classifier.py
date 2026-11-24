@@ -24,7 +24,7 @@ import sys
 import time
 
 KST = timezone(timedelta(hours=9))
-RULE_VERSION = "stats-pattern-v1"
+RULE_VERSION = "stats-pattern-v2-candidate"
 REVIEWED_DESKTOP_PROFILES = [
     ["Chrome", "120.0.0.0", "macOS"], ["Chrome", "118.0.0.0", "Windows"],
     ["Edge", "120.0.0.0", "Windows"], ["Chrome", "120.0.0.0", "Windows"],
@@ -32,17 +32,27 @@ REVIEWED_DESKTOP_PROFILES = [
     ["Firefox", "121.0", "Windows"], ["Firefox", "120.0", "Windows"],
     ["Edge", "119.0.0.0", "Windows"], ["Chrome", "119.0.0.0", "Windows"],
 ]
+REVIEWED_MOBILE_PROFILES = [["Chrome", str(version) + ".0.0.0", os]
+                           for version in range(147, 152) for os in ("Android", "iOS")]
 POLICY = {"ruleVersion": RULE_VERSION, "windowDays": 7, "retentionDays": 35,
           "minStarts": 20, "minNetworks": 20, "directPercent": 95,
           "passivePercent": 90, "idleMinutes": 35, "maxEngagementSeconds": 30,
           "reviewedDesktopProfiles": REVIEWED_DESKTOP_PROFILES,
           "reviewedDesktopOnset": "2026-11-19T00:00:00+09:00",
           "reviewedOnsetPercent": 90,
+          "reviewedMobileProfiles": REVIEWED_MOBILE_PROFILES,
+          # Beginning of this follow-up review scope, not an asserted attack onset.
+          "reviewedMobileOnset": "2026-11-20T20:19:16.221517+09:00",
+          "mobileCohortThresholds": {"minStarts": 50, "minNetworks": 50, "directPercent": 99,
+                                     "passivePercent": 95, "zeroPassivePercent": 95, "minObservedSpanHours": 24},
+          "mobileEngagementSeconds": 0,
           "unknownCohorts": "REVIEW_ONLY",
           "knownPriorProfile": {"product": "Chrome", "version": "145.0.0.0", "os": "Linux"}}
 SAFE_EVENTS = {"session_start", "page_view", "engagement"}
 JAVA_TRIM = "".join(chr(n) for n in range(33))
-REASONS = {"DISTRIBUTED_PASSIVE_PROFILE", "KNOWN_BULK_CLIENT"}
+REASONS = {"DISTRIBUTED_PASSIVE_PROFILE", "DISTRIBUTED_MOBILE_PASSIVE_PROFILE", "KNOWN_BULK_CLIENT"}
+# Diagnostic output only; never changes policy eligibility or its pinned digest.
+COHORT_EVIDENCE_LIMIT = 1000
 
 
 def canonical(value):
@@ -386,10 +396,15 @@ def analyze(rows, mapping, owned, cutoff, suppressed=None):
     for session, events in grouped.items():
         starts = sorted((row for row in events if row["event"] == "session_start"), key=lambda row: int(row["id"]))
         in_period = bool(starts) and floor <= at(starts[0]["at"]) < cutoff
+        engagement = sum(float(row["engagement"] or 0) for row in events)
         if not starts:
-            contrary = any(row["event"] not in SAFE_EVENTS or row["client"] not in (None, "UNKNOWN", "BROWSER", "WEB", "NONE") or row["source"] not in ("none", "unknown") or row["channel"] not in ("Direct", "Unassigned") or row["navigation"] in ("RELOAD", "HISTORY", "CONTINUATION") for row in events) or sum(row["event"] == "page_view" for row in events) > 1 or sum(float(row["engagement"] or 0) for row in events) > POLICY["maxEngagementSeconds"]
-            if contrary:
-                orphan_restore.extend(row for row in events if row["id"] in owned and row["traffic"] == "BOT" and owned[row["id"]]["fingerprint"] == immutable(row))
+            contrary = any(row["event"] not in SAFE_EVENTS or row["client"] not in (None, "UNKNOWN", "BROWSER", "WEB", "NONE") or row["source"] not in ("none", "unknown") or row["channel"] not in ("Direct", "Unassigned") or row["navigation"] in ("RELOAD", "HISTORY", "CONTINUATION") for row in events) or sum(row["event"] == "page_view" for row in events) > 1 or engagement > POLICY["maxEngagementSeconds"]
+            mobile_positive = engagement > POLICY["mobileEngagementSeconds"] and any(
+                row["id"] in owned and owned[row["id"]]["reason"] == "DISTRIBUTED_MOBILE_PASSIVE_PROFILE" for row in events)
+            if contrary or mobile_positive:
+                orphan_restore.extend(row for row in events if row["id"] in owned and row["traffic"] == "BOT"
+                                      and owned[row["id"]]["fingerprint"] == immutable(row)
+                                      and (contrary or owned[row["id"]]["reason"] == "DISTRIBUTED_MOBILE_PASSIVE_PROFILE"))
                 sessions[session] = {"session": session, "events": events, "inPeriod": False, "originalUnflagged": False, "link": None}
             continue
         if not in_period and not any(row["id"] in owned for row in events):
@@ -408,22 +423,29 @@ def analyze(rows, mapping, owned, cutoff, suppressed=None):
         views = sum(row["event"] == "page_view" for row in events)
         reentry = any(row["navigation"] in ("RELOAD", "HISTORY", "CONTINUATION") for row in events)
         passive = len(starts) == 1 and views == 1 and not functional and not app and not reentry
-        bounded = sum(float(row["engagement"] or 0) for row in events) <= POLICY["maxEngagementSeconds"]
+        bounded = engagement <= POLICY["maxEngagementSeconds"]
         closed = max(at(row["at"]) for row in events) <= cutoff - timedelta(minutes=POLICY["idleMinutes"])
         value = {"session": session, "events": events, "start": start, "link": link,
                  "originalUnflagged": original_unflagged, "app": app, "functional": functional,
                  "direct": direct, "views": views, "passive": passive, "bounded": bounded, "closed": closed,
-                 "singleStart": len(starts) == 1, "reentry": reentry}
+                 "singleStart": len(starts) == 1, "reentry": reentry,
+                 "zeroEngagement": engagement == POLICY["mobileEngagementSeconds"]}
         value["inPeriod"] = in_period
         sessions[session] = value
         # Global rolling cohort, independent of admin filters and including our prior BOT changes.
         if in_period and original_unflagged and link and not profile.get("declaredBot"):
             cohorts[link["ua_key"]].append(value)
-    strong = set()
+    strong, strong_mobile = set(), set()
     for ua_key, members in cohorts.items():
         n = len(members)
         if n >= POLICY["minStarts"] and len({m["link"]["network_key"] for m in members}) >= POLICY["minNetworks"] and sum(m["direct"] for m in members) * 100 >= POLICY["directPercent"] * n and sum(m["passive"] for m in members) * 100 >= POLICY["passivePercent"] * n and sum(at(m["start"]["at"]) >= at(POLICY["reviewedDesktopOnset"]) for m in members) * 100 >= POLICY["reviewedOnsetPercent"] * n:
             strong.add(ua_key)
+        profile = json.loads(members[0]["link"]["profile"])
+        mobile_thresholds = POLICY["mobileCohortThresholds"]
+        if [profile.get(k) for k in ("product", "version", "os")] in POLICY["reviewedMobileProfiles"]:
+            span_seconds = (max(at(m["start"]["at"]) for m in members) - min(at(m["start"]["at"]) for m in members)).total_seconds()
+            if n >= mobile_thresholds["minStarts"] and len({m["link"]["network_key"] for m in members}) >= mobile_thresholds["minNetworks"] and sum(m["direct"] for m in members) * 100 >= mobile_thresholds["directPercent"] * n and sum(m["passive"] for m in members) * 100 >= mobile_thresholds["passivePercent"] * n and sum(m["passive"] and m["zeroEngagement"] for m in members) * 100 >= mobile_thresholds["zeroPassivePercent"] * n and span_seconds >= mobile_thresholds["minObservedSpanHours"] * 3600:
+                strong_mobile.add(ua_key)
     selected, restore = {}, orphan_restore
     for session, value in sessions.items():
         if "start" not in value:
@@ -439,18 +461,70 @@ def analyze(rows, mapping, owned, cutoff, suppressed=None):
                 reason = "KNOWN_BULK_CLIENT"
             elif value["passive"] and link["ua_key"] in strong and [profile.get(k) for k in ("product", "version", "os")] in POLICY["reviewedDesktopProfiles"] and at(value["start"]["at"]) >= at(POLICY["reviewedDesktopOnset"]):
                 reason = "DISTRIBUTED_PASSIVE_PROFILE"
+            elif value["passive"] and value["zeroEngagement"] and link["ua_key"] in strong_mobile and [profile.get(k) for k in ("product", "version", "os")] in POLICY["reviewedMobileProfiles"] and at(value["start"]["at"]) >= at(POLICY["reviewedMobileOnset"]):
+                reason = "DISTRIBUTED_MOBILE_PASSIVE_PROFILE"
         if reason:
             selected[session] = {**value, "reason": reason}
         # A previously flagged session that later gains any real interaction/app context is restored.
         if value["functional"] or value["app"] or value["views"] > 1 or not value["direct"] or not value["singleStart"] or value["reentry"] or not value["bounded"]:
             restore.extend(row for row in value["events"] if row["id"] in owned and row["traffic"] == "BOT" and owned[row["id"]]["fingerprint"] == immutable(row))
-    preservation = Counter()
+        elif not value["zeroEngagement"]:
+            restore.extend(row for row in value["events"] if row["id"] in owned and row["traffic"] == "BOT"
+                           and owned[row["id"]]["reason"] == "DISTRIBUTED_MOBILE_PASSIVE_PROFILE"
+                           and owned[row["id"]]["fingerprint"] == immutable(row))
+    preservation, mobile_preservation = Counter(), Counter()
     cohort_evidence = []
     for ua_key, members in cohorts.items():
         profile = json.loads(members[0]["link"]["profile"])
-        if [profile.get(k) for k in ("product", "version", "os")] in POLICY["reviewedDesktopProfiles"]:
-            n = len(members)
-            cohort_evidence.append({"browserProfile": {k: profile.get(k) for k in ("product", "version", "os")}, "starts": n, "networkIdentities": len({m["link"]["network_key"] for m in members}), "directPercent": round(sum(m["direct"] for m in members) * 100 / n, 2), "passivePercent": round(sum(m["passive"] for m in members) * 100 / n, 2), "strong": ua_key in strong})
+        n = len(members)
+        networks = len({m["link"]["network_key"] for m in members})
+        direct = sum(m["direct"] for m in members)
+        passive = sum(m["passive"] for m in members)
+        zero_passive = sum(m["passive"] and m["zeroEngagement"] for m in members)
+        desktop_family = [profile.get(k) for k in ("product", "version", "os")] in POLICY["reviewedDesktopProfiles"]
+        mobile_family = [profile.get(k) for k in ("product", "version", "os")] in POLICY["reviewedMobileProfiles"]
+        thresholds = POLICY["mobileCohortThresholds"] if mobile_family else POLICY
+        scope_start = POLICY["reviewedMobileOnset"] if mobile_family else POLICY["reviewedDesktopOnset"]
+        since_onset = sum(at(m["start"]["at"]) >= at(scope_start) for m in members)
+        span_seconds = (max(at(m["start"]["at"]) for m in members) - min(at(m["start"]["at"]) for m in members)).total_seconds()
+        cohort_conditions = {"minStarts": n >= thresholds["minStarts"], "minNetworks": networks >= thresholds["minNetworks"],
+                             "directPercent": direct * 100 >= thresholds["directPercent"] * n,
+                             "passivePercent": passive * 100 >= thresholds["passivePercent"] * n}
+        if mobile_family:
+            cohort_conditions.update(zeroPassivePercent=zero_passive * 100 >= thresholds["zeroPassivePercent"] * n,
+                                     minObservedSpanHours=span_seconds >= thresholds["minObservedSpanHours"] * 3600)
+        else:
+            cohort_conditions["reviewedOnsetPercent"] = since_onset * 100 >= thresholds["reviewedOnsetPercent"] * n
+        # The population deliberately includes owned BOT sessions, as the selection
+        # denominator does. Diagnostics never expose monthly UA/network hashes.
+        common = sum(m["inPeriod"] and m["originalUnflagged"] and m["link"] is not None
+                     and m["closed"] and m["direct"] and not m["app"] and not m["functional"]
+                     and m["singleStart"] and not m["reentry"] and m["bounded"] for m in members)
+        cohort_evidence.append({
+            "browserProfile": {k: profile.get(k) for k in ("product", "version", "os")},
+            "starts": n, "networkIdentities": networks,
+            "directPercent": round(direct * 100 / n, 2), "passivePercent": round(passive * 100 / n, 2),
+            "zeroPassivePercent": round(zero_passive * 100 / n, 2), "observedSpanHours": round(span_seconds / 3600, 6),
+            "strong": ua_key in (strong_mobile if mobile_family else strong),
+            "reviewedFamily": desktop_family or mobile_family,
+            "reviewedFamilyKind": "MOBILE" if mobile_family else "DESKTOP" if desktop_family else "UNREVIEWED",
+            "reviewScopeStart": scope_start,
+            "eligibility": {
+                "cohortConditions": cohort_conditions,
+                "commonSafeguardSessions": common, "passiveSingleViewSessions": passive,
+                "zeroPassiveSingleViewSessions": zero_passive,
+                "zeroEngagementSessions": sum(m["zeroEngagement"] for m in members),
+                "reviewedOnsetSessions": since_onset,
+                "knownPriorProfileAndNetworkSessions": sum(bool(m["link"]["known_prior"])
+                    and all(profile.get(k) == v for k, v in POLICY["knownPriorProfile"].items()) for m in members),
+                "currentlyUnflaggedSessions": sum(all(row["traffic"] == "UNFLAGGED" for row in m["events"]) for m in members),
+                "ownedBotSessions": sum(any(row["traffic"] == "BOT" for row in m["events"]) for m in members),
+                "selectedSessions": sum(m["session"] in selected for m in members),
+            },
+        })
+    cohort_evidence.sort(key=lambda value: (-value["starts"], -value["networkIdentities"],
+                        tuple(str(value["browserProfile"].get(k) or "") for k in ("product", "version", "os")),
+                        -value["directPercent"], -value["passivePercent"]))
     for value in sessions.values():
         if not value["inPeriod"] or "start" not in value:
             continue
@@ -458,30 +532,46 @@ def analyze(rows, mapping, owned, cutoff, suppressed=None):
         if len(first_link) != 1:
             continue
         profile = json.loads(first_link[0]["profile"])
-        if [profile.get(k) for k in ("product", "version", "os")] not in POLICY["reviewedDesktopProfiles"]:
+        mobile_family = [profile.get(k) for k in ("product", "version", "os")] in POLICY["reviewedMobileProfiles"]
+        if not mobile_family and [profile.get(k) for k in ("product", "version", "os")] not in POLICY["reviewedDesktopProfiles"]:
             continue
+        partition = mobile_preservation if mobile_family else preservation
+        scope_start = POLICY["reviewedMobileOnset"] if mobile_family else POLICY["reviewedDesktopOnset"]
         if value["session"] in selected:
-            preservation["classified"] += 1
+            partition["classified"] += 1
         elif value["functional"]:
-            preservation["functional"] += 1
+            partition["functional"] += 1
         elif value["app"]:
-            preservation["app"] += 1
-        elif at(value["start"]["at"]) < at(POLICY["reviewedDesktopOnset"]):
-            preservation["beforeOnset"] += 1
+            partition["app"] += 1
+        elif at(value["start"]["at"]) < at(scope_start):
+            partition["beforeOnset"] += 1
+        elif mobile_family and not value["zeroEngagement"]:
+            partition["positiveEngagement"] += 1
         elif not value["bounded"]:
-            preservation["engagementAboveBound"] += 1
+            partition["engagementAboveBound"] += 1
         elif value["reentry"]:
-            preservation["reentry"] += 1
+            partition["reentry"] += 1
         elif not value["closed"]:
-            preservation["recentActivity"] += 1
+            partition["recentActivity"] += 1
         elif not value["originalUnflagged"]:
-            preservation["originalBotOrMixed"] += 1
+            partition["originalBotOrMixed"] += 1
         elif value["link"] is None:
-            preservation["ambiguousSessionIdentity"] += 1
+            partition["ambiguousSessionIdentity"] += 1
+        elif mobile_family and value["views"] == 0:
+            partition["noPageView"] += 1
+        elif mobile_family and value["views"] > 1:
+            partition["multiplePageViews"] += 1
+        elif mobile_family and not value["singleStart"]:
+            partition["multipleStarts"] += 1
+        elif mobile_family and value["link"]["ua_key"] not in strong_mobile:
+            partition["cohortBelowThreshold"] += 1
         else:
-            preservation["otherSafeguard"] += 1
+            partition["otherSafeguard"] += 1
     return {"selected": selected, "restore": restore, "coverage": dict(coverage), "sessions": sessions,
-            "strongCohorts": len(strong), "cohorts": len(cohorts), "reviewedDesktopPartition": dict(preservation), "cohortEvidence": cohort_evidence}
+            "strongCohorts": sum(value["strong"] for value in cohort_evidence), "cohorts": len(cohorts),
+            "reviewedDesktopPartition": dict(preservation), "reviewedMobilePartition": dict(mobile_preservation),
+            "cohortEvidenceSessions": sum(value["starts"] for value in cohort_evidence),
+            "cohortEvidence": cohort_evidence[:COHORT_EVIDENCE_LIMIT]}
 
 
 def plan_digest(analysis, cutoff):
@@ -691,7 +781,11 @@ def report(analysis, rows, owned, cutoff, status, scan):
     coverage = {key: analysis["coverage"].get(key, 0) for key in ("matchedEvents", "totalEvents", "eligibleSessions", "unmatchedEvents", "ambiguousEvents")}
     classified = sum(g["sessions"] for g in groups.values())
     coverage.update(classifiedSessions=classified, flaggedEvents=sum(g["events"] for g in groups.values()))
-    review = [v for v in analysis["sessions"].values() if v["inPeriod"] and v["originalUnflagged"] and v["link"] and v["passive"] and v["direct"] and v["closed"] and v["session"] not in analysis["selected"]]
+    # originalUnflagged also permits unchanged owned BOT events for cohort stability;
+    # review-only must instead describe sessions whose current events are all UNFLAGGED.
+    review = [v for v in analysis["sessions"].values() if v["inPeriod"] and v["originalUnflagged"] and v["link"] and v["passive"] and v["direct"] and v["closed"] and v["session"] not in analysis["selected"]
+              and all(row["traffic"] == "UNFLAGGED" for row in v["events"])]
+    reported_cohort_sessions = sum(value["starts"] for value in analysis["cohortEvidence"])
     return {"schema": 1, "source": "automation-statistics", "generatedAt": stamp(cutoff), "lastCompletedAt": stamp(cutoff) if status in ("ready", "plan") else None,
             "status": status, "errorCode": None if scan["complete"] else "INCOMPLETE_LOG_SCAN",
             "period": {"from": str(floor.date()), "to": str(cutoff.date())},
@@ -699,12 +793,31 @@ def report(analysis, rows, owned, cutoff, status, scan):
             "coverage": coverage, "groups": list(groups.values()),
             "daily": [{"date": day, "classification": classification, "reasonKey": reason, **counts} for (day, classification, reason), counts in sorted(daily.items())],
             "reviewOnly": {"sessions": len(review), "events": sum(len(v["events"]) for v in review), "strongCohorts": analysis["strongCohorts"], "action": "PRESERVE_UNFLAGGED"},
-            "policyEvidence": {"reviewedDesktopPartition": analysis["reviewedDesktopPartition"], "cohorts": analysis["cohortEvidence"]},
+            "policyEvidence": {
+                "reviewedDesktopPartition": analysis["reviewedDesktopPartition"],
+                "reviewedMobilePartition": analysis["reviewedMobilePartition"], "cohorts": analysis["cohortEvidence"],
+                "cohortCount": analysis["cohorts"], "reportedCohortCount": len(analysis["cohortEvidence"]),
+                "omittedCohortCount": analysis["cohorts"] - len(analysis["cohortEvidence"]),
+                "cohortStartedSessions": analysis["cohortEvidenceSessions"], "reportedCohortStartedSessions": reported_cohort_sessions,
+                "omittedCohortStartedSessions": analysis["cohortEvidenceSessions"] - reported_cohort_sessions,
+                "cohortEvidenceLimit": COHORT_EVIDENCE_LIMIT,
+                "thresholds": {key: POLICY[key] for key in ("minStarts", "minNetworks", "directPercent", "passivePercent",
+                                                          "reviewedOnsetPercent", "reviewedDesktopOnset", "reviewedMobileOnset",
+                                                          "mobileCohortThresholds", "mobileEngagementSeconds", "idleMinutes", "maxEngagementSeconds")},
+                "definitions": {
+                    "cohorts": "Started sessions inside the rolling period with one matched full-UA/network identity and no declared bot name; unchanged classifier-owned BOT sessions remain in this denominator. Separate full UAs may have identical normalized browserProfile values.",
+                    "commonSafeguardSessions": "In-period original-UNFLAGGED or unchanged owned events, complete unambiguous same-UA/network matching, closed for idleMinutes, all events Direct/unattributed, no app or functional event, one start, no reentry and engagement within maxEngagementSeconds.",
+                    "selection": "The desktop/mobile rules additionally require the corresponding reviewed family, its strong cohort, passive single view and a start inside that family's reviewed scope. Mobile sessions also require zero total engagement seconds; later positive time restores only mobile-owned events. reviewedMobileOnset is an individual selection floor for this follow-up review scope, not a cohort onset-ratio gate or an asserted attack start. The known-prior rule instead requires its exact network/profile and at most one view. selectedSessions includes already-owned sessions still meeting policy, not only new writes.",
+                    "mobileCohort": "All matching full-UA started sessions in the seven-calendar-day population remain in the denominator, including starts before the review scope. Observed span is max minus min first-start time within that population. zeroPassive is the zero-engagement subset of passive single-view sessions, not independent evidence.",
+                    "reviewOnly": "Currently all-UNFLAGGED, uniquely matched passive single-view Direct/unattributed sessions closed for idleMinutes and not selected by current policy. This subset is not all remaining visitors; the engagement bound is not required. Already-BOT sessions are excluded.",
+                    "classifiedSessions": "Distinct sessions with classifier-owned BOT start events in the advertised period; plan mode additionally includes proposed classifications. This is actual/proposed inventory, not the current policy-eligibility count.",
+                },
+            },
             "lastRun": {"newlyClassifiedSessions": sum(any(r["traffic"] == "UNFLAGGED" for r in value["events"]) for value in analysis["selected"].values()), "newlyFlaggedEvents": sum(r["traffic"] == "UNFLAGGED" for value in analysis["selected"].values() for r in value["events"]), "restoredEvents": len(restored)},
             "affectedDates": sorted({r["day"] for v in analysis["selected"].values() for r in v["events"] if r["traffic"] == "UNFLAGGED"} | {r["day"] for r in analysis["restore"]}),
             "rollup": {"status": "PENDING_EXISTING_BATCH_REFRESH" if any(r["traffic"] == "UNFLAGGED" for v in analysis["selected"].values() for r in v["events"]) or restored else "UNCHANGED"},
             "planDigest": plan_digest(analysis, cutoff), "policyDigest": POLICY_DIGEST, "scan": scan,
-            "limitations": ["Pattern inference does not authenticate an operator or establish malicious intent.", "Source matching links monthly network/full-UA cohorts, not a person or one-to-one HTTP request.", "New profiles and mobile cohorts remain review-only; the reviewed desktop family and historical exact network require joint behavioral evidence."]}
+            "limitations": ["Pattern inference does not authenticate an operator or establish malicious intent.", "Source matching links monthly network/full-UA cohorts, not a person or one-to-one HTTP request.", "Unreviewed profiles remain review-only; the reviewed desktop/mobile families and historical exact network require joint behavioral evidence.", "The mobile rule is a review candidate; its scope start is not an asserted attack onset."]}
 
 
 def main(argv=None):

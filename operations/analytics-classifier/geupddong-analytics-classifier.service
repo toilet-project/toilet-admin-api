@@ -8,7 +8,8 @@ Type=oneshot
 User=root
 Group=root
 # This digest pins the reviewed policy. A policy edit requires a reviewed unit update.
-ExecStart=/usr/bin/python3 /opt/geupddong-analytics-classifier/classifier.py --run --apply-approved --expected-policy a3701b8614039d73dba323886607114605152d0ae4512886932ed03249060992 --export /var/snap/docker/common/geupddong-origin-bots/exports/automation-statistics.json
+# Local v2 candidate only; installation/application requires separate approval.
+ExecStart=/usr/bin/python3 /opt/geupddong-analytics-classifier/classifier.py --run --apply-approved --expected-policy c851ebe4f840cb026709b1fbcb683f828ef8e19d0de16784468738ee7b0e9811 --export /var/snap/docker/common/geupddong-origin-bots/exports/automation-statistics.json
 UMask=0077
 Nice=19
 IOSchedulingClass=idle

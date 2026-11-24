@@ -21,7 +21,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class AutomationStatisticsService {
     private static final Set<String> KINDS=Set.of("UA_SIGNAL","PATTERN_INFERRED");
-    private static final Set<String> REASONS=Set.of("UA_SIGNAL","DISTRIBUTED_PASSIVE_PROFILE","KNOWN_BULK_CLIENT");
+    private static final Set<String> REASONS=Set.of("UA_SIGNAL","DISTRIBUTED_PASSIVE_PROFILE","DISTRIBUTED_MOBILE_PASSIVE_PROFILE","KNOWN_BULK_CLIENT");
     private static final Set<String> JOB_STATES=Set.of("plan","ready","partial","error");
     private final String directory;
     private final Clock clock;

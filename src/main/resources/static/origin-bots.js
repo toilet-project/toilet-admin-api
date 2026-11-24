@@ -58,7 +58,7 @@
       originHost.innerHTML = `<p class="analytics-error" role="alert">${error.message==='auth'?'관리자 로그인이 필요합니다.':'봇 접근 기록을 불러오지 못했습니다. 새로고침으로 다시 시도해 주세요.'}</p>`;
     }
   }
-  const automationReasons={UA_SIGNAL:'요청 브라우저 정보의 자동화 표시',DISTRIBUTED_PASSIVE_PROFILE:'분산 접속 · 반복 브라우저 패턴 · 단일 조회',KNOWN_BULK_CLIENT:'반복 수집 클라이언트 패턴'};
+  const automationReasons={UA_SIGNAL:'요청 브라우저 정보의 자동화 표시',DISTRIBUTED_PASSIVE_PROFILE:'분산 접속 · 반복 브라우저 패턴 · 단일 조회',DISTRIBUTED_MOBILE_PASSIVE_PROFILE:'분산 모바일 접속 · 반복 브라우저 패턴 · 단일 조회',KNOWN_BULK_CLIENT:'반복 수집 클라이언트 패턴'};
   const automationKinds={UA_SIGNAL:'자동화 표시 있음 · 신원 인증 아님',PATTERN_INFERRED:'패턴 판별 · 운영 주체 미확인'};
   function sourceCatalog(report) {
     const sources=report.officialSources||[];

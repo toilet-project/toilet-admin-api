@@ -12,6 +12,7 @@ import classifier as c
 
 NOW = c.at("2026-11-20T16:22:14.573622+09:00")
 PROFILE = {"product": "Chrome", "version": "120.0.0.0", "os": "Windows", "app": None, "declaredBot": None}
+MOBILE_NOW = c.at("2026-11-24T20:13:14.872307+09:00")
 
 
 def fixture(n=20, profile=None):
@@ -26,6 +27,14 @@ def fixture(n=20, profile=None):
                          "at": "2026-11-20 12:00:00.000000", "day": "2026-11-20", "event": event,
                          "traffic": "UNFLAGGED", "source": "none", "channel": "Direct", "client": "BROWSER",
                          "navigation": "NEW", "engagement": 0})
+    return rows, mapping
+
+
+def mobile_fixture(n=50, version="147.0.0.0", os="Android"):
+    rows, mapping = fixture(n, {**PROFILE, "version": version, "os": os})
+    for index, row in enumerate(rows):
+        day = "2026-11-21" if index // 2 < n // 2 else "2026-11-22"
+        row.update(at=day + " 12:00:00.000000", day=day)
     return rows, mapping
 
 
@@ -61,6 +70,250 @@ class PolicyTest(unittest.TestCase):
         self.assertFalse(self.analyze(rows, mapping)["selected"])
         rows, mapping = fixture(profile={**PROFILE, "version": "147.0.0.0", "os": "Android"})
         self.assertFalse(self.analyze(rows, mapping)["selected"])
+
+    def test_strong_mobile_cohorts_are_reported_without_automatic_selection(self):
+        for version, os in (("152.0.0.0", "Android"), ("153.0.0.0", "iOS")):
+            with self.subTest(version=version, os=os):
+                rows, mapping = fixture(profile={**PROFILE, "version": version, "os": os})
+                result = self.analyze(rows, mapping)
+                report = c.report(result, rows, {}, NOW, "ready", {"complete": True})
+                evidence = report["policyEvidence"]
+                self.assertFalse(result["selected"])
+                self.assertEqual((1, 1, 0), tuple(evidence[key] for key in ("cohortCount", "reportedCohortCount", "omittedCohortCount")))
+                cohort = evidence["cohorts"][0]
+                self.assertEqual({"product": "Chrome", "version": version, "os": os}, cohort["browserProfile"])
+                self.assertEqual((20, 20, 100, 100), tuple(cohort[key] for key in ("starts", "networkIdentities", "directPercent", "passivePercent")))
+                self.assertTrue(cohort["strong"])
+                self.assertFalse(cohort["reviewedFamily"])
+                self.assertTrue(all(cohort["eligibility"]["cohortConditions"].values()))
+                self.assertEqual(20, cohort["eligibility"]["commonSafeguardSessions"])
+                self.assertEqual(20, cohort["eligibility"]["currentlyUnflaggedSessions"])
+                self.assertEqual(0, cohort["eligibility"]["selectedSessions"])
+                self.assertEqual(20, report["reviewOnly"]["sessions"])
+                public = json.dumps(evidence)
+                for private in (rows[0]["visitor"], rows[0]["session"], '"UA"', '"NET0"', '"ua_key"', '"network_key"'):
+                    self.assertNotIn(private, public)
+
+    def test_reviewed_mobile_profiles_select_only_after_review_scope_start(self):
+        for product, version, os in c.REVIEWED_MOBILE_PROFILES:
+            with self.subTest(version=version, os=os):
+                rows, mapping = mobile_fixture(version=version, os=os)
+                result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+                self.assertEqual(50, len(result["selected"]))
+                self.assertEqual({"DISTRIBUTED_MOBILE_PASSIVE_PROFILE"}, {v["reason"] for v in result["selected"].values()})
+                report = c.report(result, rows, {}, MOBILE_NOW, "plan", {"complete": True})
+                self.assertEqual(50, report["coverage"]["classifiedSessions"])
+                self.assertEqual(0, report["reviewOnly"]["sessions"])
+                cohort = report["policyEvidence"]["cohorts"][0]
+                self.assertEqual("MOBILE", cohort["reviewedFamilyKind"])
+                self.assertEqual(c.POLICY["reviewedMobileOnset"], cohort["reviewScopeStart"])
+                self.assertTrue(cohort["strong"])
+                for row in rows:
+                    row.update(at="2026-11-20 12:00:00.000000", day="2026-11-20")
+                earlier = c.analyze(rows, mapping, {}, MOBILE_NOW)
+                self.assertFalse(earlier["selected"])
+                self.assertEqual(50, earlier["reviewedMobilePartition"]["beforeOnset"])
+
+    def test_mobile_review_scope_is_selection_floor_not_cohort_ratio(self):
+        rows, mapping = mobile_fixture()
+        for row in rows[:50]:
+            row.update(at="2026-11-20 12:00:00.000000", day="2026-11-20")
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertEqual(25, len(result["selected"]))
+        cohort = result["cohortEvidence"][0]
+        self.assertEqual(50, cohort["starts"])
+        self.assertEqual(25, cohort["eligibility"]["reviewedOnsetSessions"])
+        self.assertNotIn("reviewedOnsetPercent", cohort["eligibility"]["cohortConditions"])
+        self.assertEqual(25, result["reviewedMobilePartition"]["beforeOnset"])
+
+    def test_mobile_minimum_starts_and_network_boundaries(self):
+        rows, mapping = mobile_fixture(49)
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertFalse(result["selected"])
+        self.assertFalse(result["cohortEvidence"][0]["eligibility"]["cohortConditions"]["minStarts"])
+        rows, mapping = mobile_fixture()
+        links = list(mapping.values())
+        links[-1][0]["network_key"] = links[0][0]["network_key"]
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertFalse(result["selected"])
+        self.assertTrue(result["cohortEvidence"][0]["eligibility"]["cohortConditions"]["minStarts"])
+        self.assertFalse(result["cohortEvidence"][0]["eligibility"]["cohortConditions"]["minNetworks"])
+        links[-1][0]["network_key"] = "DISTINCT_LAST_NETWORK"
+        self.assertEqual(50, len(c.analyze(rows, mapping, {}, MOBILE_NOW)["selected"]))
+
+    def test_mobile_requires_full_24_hour_observed_span(self):
+        rows, mapping = mobile_fixture()
+        for row in rows[50:]:
+            row["at"] = "2026-11-22 11:59:00.000000"
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertFalse(result["selected"])
+        self.assertFalse(result["cohortEvidence"][0]["eligibility"]["cohortConditions"]["minObservedSpanHours"])
+        for row in rows[50:]:
+            row["at"] = "2026-11-22 12:00:00.000000"
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertEqual(50, len(result["selected"]))
+        self.assertEqual(24, result["cohortEvidence"][0]["observedSpanHours"])
+
+    def test_mobile_direct_percent_boundary_uses_all_cohort_sessions(self):
+        rows, mapping = mobile_fixture(100)
+        rows[0]["source"] = "google"
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertEqual(99, len(result["selected"]))
+        self.assertEqual(99, result["cohortEvidence"][0]["directPercent"])
+        rows[2]["source"] = "google"
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertFalse(result["selected"])
+        self.assertFalse(result["cohortEvidence"][0]["eligibility"]["cohortConditions"]["directPercent"])
+
+    def test_mobile_zero_passive_boundary_protects_positive_engagement(self):
+        rows, mapping = mobile_fixture(100)
+        for index in range(5):
+            rows[index * 2]["engagement"] = 1
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertEqual(95, len(result["selected"]))
+        cohort = result["cohortEvidence"][0]
+        self.assertEqual(100, cohort["passivePercent"])
+        self.assertEqual(95, cohort["zeroPassivePercent"])
+        self.assertEqual(5, result["reviewedMobilePartition"]["positiveEngagement"])
+        rows[10]["engagement"] = 1
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertFalse(result["selected"])
+        self.assertTrue(result["cohortEvidence"][0]["eligibility"]["cohortConditions"]["passivePercent"])
+        self.assertFalse(result["cohortEvidence"][0]["eligibility"]["cohortConditions"]["zeroPassivePercent"])
+
+    def test_mobile_passive_boundary_also_preserves_additional_events(self):
+        rows, mapping = mobile_fixture(100)
+        for index in range(5):
+            rows[index * 2 + 1]["event"] = "screen_view"
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertEqual(95, len(result["selected"]))
+        self.assertEqual(95, result["cohortEvidence"][0]["passivePercent"])
+        rows[11]["event"] = "scroll_depth"
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertFalse(result["selected"])
+        self.assertFalse(result["cohortEvidence"][0]["eligibility"]["cohortConditions"]["passivePercent"])
+
+    def test_mobile_preserves_individual_activity_and_session_safeguards(self):
+        rows, mapping = mobile_fixture(250)
+        protected = {rows[index * 2]["session"] for index in range(13)}
+        rows[1]["event"] = "screen_view"
+        rows[3]["event"] = "scroll_depth"
+        rows[5]["event"] = "toilet_search"
+        rows[6]["client"] = "KAKAOTALK"
+        rows[8]["navigation"] = "HISTORY"
+        rows[11]["event"] = "engagement"  # A start with no page view remains unflagged.
+        rows.append({**rows[13], "id": "9001"})  # A second page view protects the session.
+        rows.append({**rows[14], "id": "9002"})  # A second start also protects it.
+        rows[16]["engagement"] = 31
+        rows[18]["at"] = c.stamp(MOBILE_NOW - timedelta(minutes=34))
+        rows[20]["source"] = "google"
+        rows[23]["visitor"] = rows[24]["visitor"]  # Another network in the same session.
+        rows[24]["engagement"] = 1  # Even one positive second protects a mobile session.
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertEqual(237, len(result["selected"]))
+        self.assertTrue(protected.isdisjoint(result["selected"]))
+        self.assertTrue(result["cohortEvidence"][0]["strong"])
+        self.assertEqual(1, result["reviewedMobilePartition"]["noPageView"])
+        self.assertEqual(1, result["reviewedMobilePartition"]["multiplePageViews"])
+        self.assertEqual(1, result["reviewedMobilePartition"]["multipleStarts"])
+        self.assertEqual(3, result["reviewedMobilePartition"]["functional"])
+        self.assertEqual(2, result["reviewedMobilePartition"]["positiveEngagement"])
+
+    def test_mobile_unknown_profiles_remain_review_only(self):
+        for version, os in (("152.0.0.0", "Android"), ("147.0.0.0", "Linux")):
+            with self.subTest(version=version, os=os):
+                rows, mapping = mobile_fixture(20, version=version, os=os)
+                result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+                self.assertFalse(result["selected"])
+                report = c.report(result, rows, {}, MOBILE_NOW, "ready", {"complete": True})
+                self.assertEqual(20, report["reviewOnly"]["sessions"])
+                self.assertFalse(report["policyEvidence"]["cohorts"][0]["reviewedFamily"])
+
+    def test_mobile_late_screen_activity_restores_owned_events(self):
+        rows, mapping = mobile_fixture()
+        owned = own(rows[:2], reason="DISTRIBUTED_MOBILE_PASSIVE_PROFILE")
+        rows.append({**rows[1], "id": "9001", "event": "screen_view", "traffic": "UNFLAGGED",
+                     "at": c.stamp(MOBILE_NOW - timedelta(minutes=10)), "day": "2026-11-24"})
+        result = c.analyze(rows, mapping, owned, MOBILE_NOW)
+        self.assertEqual(49, len(result["selected"]))
+        self.assertNotIn(rows[0]["session"], result["selected"])
+        self.assertEqual({rows[0]["id"], rows[1]["id"]}, {row["id"] for row in result["restore"]})
+
+    def test_mobile_requires_complete_same_ua_and_network_mapping(self):
+        rows, mapping = mobile_fixture(53)
+        mapping.pop(rows[0]["visitor"])
+        mapping[rows[2]["visitor"]].append({**mapping[rows[2]["visitor"]][0], "ua_key": "AMBIGUOUS"})
+        rows[5]["visitor"] = rows[6]["visitor"]
+        result = c.analyze(rows, mapping, {}, MOBILE_NOW)
+        self.assertEqual(50, len(result["selected"]))
+        self.assertEqual(2, result["coverage"]["unmatchedEvents"])
+        self.assertEqual(2, result["coverage"]["ambiguousEvents"])
+        self.assertEqual(1, result["reviewedMobilePartition"]["ambiguousSessionIdentity"])
+
+    def test_mobile_late_positive_time_restores_owned_events(self):
+        rows, mapping = mobile_fixture()
+        owned = own(rows[:2], reason="DISTRIBUTED_MOBILE_PASSIVE_PROFILE")
+        rows.append({**rows[1], "id": "9001", "event": "engagement", "traffic": "UNFLAGGED", "engagement": 1,
+                     "at": c.stamp(MOBILE_NOW - timedelta(minutes=10)), "day": "2026-11-24"})
+        result = c.analyze(rows, mapping, owned, MOBILE_NOW)
+        self.assertEqual(49, len(result["selected"]))
+        self.assertEqual({rows[0]["id"], rows[1]["id"]}, {row["id"] for row in result["restore"]})
+        self.assertEqual(1, result["reviewedMobilePartition"]["positiveEngagement"])
+
+    def test_mobile_owned_orphan_restores_on_one_positive_second(self):
+        rows, mapping = mobile_fixture(1)
+        rows = rows[1:]
+        owned = own(rows, reason="DISTRIBUTED_MOBILE_PASSIVE_PROFILE")
+        rows.append({**rows[0], "id": "9001", "event": "engagement", "traffic": "UNFLAGGED", "engagement": 1})
+        result = c.analyze(rows, mapping, owned, MOBILE_NOW)
+        self.assertEqual([rows[0]["id"]], [row["id"] for row in result["restore"]])
+
+    def test_mobile_zero_time_rule_does_not_restore_desktop_or_prior(self):
+        for prior in (False, True):
+            with self.subTest(prior=prior):
+                profile = {**PROFILE, "version": "145.0.0.0", "os": "Linux"} if prior else PROFILE
+                rows, mapping = fixture(20, profile)
+                if prior:
+                    for links in mapping.values():
+                        links[0]["known_prior"] = 1
+                owned = own(rows[:2], reason="KNOWN_BULK_CLIENT" if prior else "DISTRIBUTED_PASSIVE_PROFILE")
+                rows.append({**rows[1], "id": "9001", "event": "engagement", "traffic": "UNFLAGGED", "engagement": 1,
+                             "at": c.stamp(NOW - timedelta(minutes=10))})
+                self.assertFalse(self.analyze(rows, mapping, owned)["restore"])
+
+    def test_cohort_diagnostics_explain_thresholds_and_common_safeguards(self):
+        rows, mapping = fixture()
+        for links in mapping.values():
+            links[0]["network_key"] = "ONE"
+        rows[1]["event"] = "toilet_search"
+        rows[2]["source"] = "google"
+        rows[4]["engagement"] = 31
+        rows[6]["at"] = c.stamp(NOW - timedelta(minutes=34))
+        rows[8]["navigation"] = "RELOAD"
+        rows[10]["client"] = "KAKAOTALK"
+        result = self.analyze(rows, mapping)
+        cohort = result["cohortEvidence"][0]
+        self.assertFalse(result["selected"])
+        self.assertTrue(cohort["reviewedFamily"])
+        self.assertFalse(cohort["strong"])
+        self.assertEqual({"minStarts": True, "minNetworks": False, "directPercent": True,
+                          "passivePercent": False, "reviewedOnsetPercent": True}, cohort["eligibility"]["cohortConditions"])
+        self.assertEqual(17, cohort["eligibility"]["passiveSingleViewSessions"])
+        self.assertEqual(14, cohort["eligibility"]["commonSafeguardSessions"])
+
+    def test_cohort_diagnostic_cap_reports_omitted_cohorts_and_sessions(self):
+        rows, mapping = fixture(c.COHORT_EVIDENCE_LIMIT + 2)
+        for index, links in enumerate(mapping.values()):
+            links[0]["ua_key"] = "SHARED" if index < 2 else "UA" + str(index)
+        result = self.analyze(rows, mapping)
+        evidence = c.report(result, rows, {}, NOW, "ready", {"complete": True})["policyEvidence"]
+        self.assertEqual(c.COHORT_EVIDENCE_LIMIT + 1, evidence["cohortCount"])
+        self.assertEqual(c.COHORT_EVIDENCE_LIMIT, evidence["reportedCohortCount"])
+        self.assertEqual(1, evidence["omittedCohortCount"])
+        self.assertEqual(c.COHORT_EVIDENCE_LIMIT + 2, evidence["cohortStartedSessions"])
+        self.assertEqual(c.COHORT_EVIDENCE_LIMIT + 1, evidence["reportedCohortStartedSessions"])
+        self.assertEqual(1, evidence["omittedCohortStartedSessions"])
+        self.assertEqual(2, evidence["cohorts"][0]["starts"])
 
     def test_functional_and_app_sessions_preserved_inside_strong_cohort(self):
         rows, mapping = fixture()
@@ -140,6 +393,22 @@ class PolicyTest(unittest.TestCase):
         self.assertEqual(1, report["coverage"]["classifiedSessions"])
         self.assertEqual(2, report["coverage"]["flaggedEvents"])
         self.assertEqual("PATTERN_INFERRED", report["daily"][0]["classification"])
+        self.assertEqual(0, report["reviewOnly"]["sessions"])
+
+    def test_review_only_excludes_owned_bot_when_cohort_decays(self):
+        rows, mapping = fixture(2)
+        owned = own(rows[:2])
+        result = self.analyze(rows, mapping, owned)
+        self.assertFalse(result["selected"])
+        for mode in ("ready", "plan"):
+            with self.subTest(mode=mode):
+                report = c.report(result, rows, owned, NOW, mode, {"complete": True})
+                self.assertEqual(1, report["coverage"]["classifiedSessions"])
+                self.assertEqual(1, report["reviewOnly"]["sessions"])
+                self.assertEqual(2, report["reviewOnly"]["events"])
+                cohort = report["policyEvidence"]["cohorts"][0]
+                self.assertEqual(1, cohort["eligibility"]["currentlyUnflaggedSessions"])
+                self.assertEqual(1, cohort["eligibility"]["ownedBotSessions"])
 
     def test_calendar_window_and_orphan_coverage(self):
         rows, mapping = fixture(1)

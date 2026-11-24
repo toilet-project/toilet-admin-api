@@ -33,6 +33,21 @@ class AutomationStatisticsServiceTest {
         assertThat(report.toString()).doesNotContain("NEVER_EXPORT").doesNotContain("hash=");
         assertThat(service(FIXTURE).report("today",null,null).rows()).hasSize(1);
     }
+    @Test void acceptsMobilePatternReasonInCandidatePlansAndCompletedExports() throws Exception {
+        for(String state:new String[]{"plan","ready"}) {
+            String fixture=FIXTURE.replace("stats-pattern-v1","stats-pattern-v2-candidate")
+                    .replace("DISTRIBUTED_PASSIVE_PROFILE","DISTRIBUTED_MOBILE_PASSIVE_PROFILE")
+                    .replace("\"status\":\"ready\"","\"status\":\""+state+"\"")
+                    .replace("\"applyMode\":\"run\"","\"applyMode\":\""+(state.equals("plan")?"plan":"run")+"\"");
+            var report=service(fixture).report("7d",null,null);
+            assertThat(report.status()).isEqualTo(state.toUpperCase(java.util.Locale.ROOT));
+            assertThat(report.job().ruleVersion()).isEqualTo("stats-pattern-v2-candidate");
+            assertThat(report.rows()).extracting(AutomationStatisticsService.Row::reason)
+                    .containsExactly("DISTRIBUTED_MOBILE_PASSIVE_PROFILE","UA_SIGNAL");
+            assertThat(report.rows().getFirst().classification()).isEqualTo("PATTERN_INFERRED");
+            assertThat(report.toString()).doesNotContain("NEVER_EXPORT");
+        }
+    }
     @Test void missingDisabledBrokenAndSymlinkExportsAreNotReportedAsZero() throws Exception {
         assertThat(new AutomationStatisticsService("",CLOCK).report("7d",null,null).status()).isEqualTo("DISABLED");
         assertThat(new AutomationStatisticsService(directory.toString(),CLOCK).report("7d",null,null).status()).isEqualTo("NOT_READY");

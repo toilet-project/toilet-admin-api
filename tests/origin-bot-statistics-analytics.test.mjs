@@ -35,6 +35,15 @@ test('analytics automation is separate from verified origin requests even if ori
   assert.match(ui.automation(),/목록에 없다는 이유만으로 악의적 접속/);
   assert.match(ui.origin(),/연결 대기/);
 });
+test('mobile pattern plans keep a distinct reason and never imply provider verification',async()=>{
+  const ui=await workspace(),pending=ui.api.show(ui.host,{range:'7d'}),data=automation('PLAN');
+  data.rows.push({classification:'PATTERN_INFERRED',reason:'DISTRIBUTED_MOBILE_PASSIVE_PROFILE',sessions:12,views:12,events:25});
+  await ui.respond('automation-statistics',data);await ui.respond('origin-bots',{status:'DISABLED',message:'대기'});await pending;
+  assert.match(ui.automation(),/분산 모바일 접속 · 반복 브라우저 패턴 · 단일 조회/);
+  assert.match(ui.automation(),/분산 접속 · 반복 브라우저 패턴 · 단일 조회/);
+  assert.match(ui.automation(),/패턴 판별 · 운영 주체 미확인/);
+  assert.match(ui.automation(),/패턴 분리 예정/);assert.doesNotMatch(ui.automation(),/패턴으로 분리한|근거 확인 필요/);
+});
 test('missing automation reader never hides existing bot requests or implies zero automated traffic',async()=>{
   const ui=await workspace(),pending=ui.api.show(ui.host,{range:'7d'});
   await ui.respond('automation-statistics',{},404);await ui.respond('origin-bots',origin());await pending;
